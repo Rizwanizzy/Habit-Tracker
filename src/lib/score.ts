@@ -2,10 +2,17 @@ export const SMOOTHING_CONSTANT = 0.05
 
 export type Habit = {
   id: string
+  user_id?: string
+  name?: string
   type: 'boolean' | 'numeric'
   target: number
+  unit?: string | null
   freq_times: number
   freq_days: number
+  color?: string
+  sort_order?: number
+  archived?: boolean
+  /** Local YYYY-MM-DD date the habit counts from. */
   created_at: string
 }
 

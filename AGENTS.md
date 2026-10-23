@@ -42,7 +42,9 @@ Read DESIGN.md before building or changing any UI.
    - Numeric habits count as done when `value >= target`.
 5. **Check-ins** are one tap, optimistic (update the UI first, then sync, roll back on error). Backfilling past dates must be easy.
 6. **Habit limit:** warn gently when the user has more than 7 active habits.
-7. Archived habits are hidden from Today and Overview but their history is kept.
+7. **Archived habits:** hidden from Today and Overview but their history is kept.
+8. **PROJECT_CONTEXT.md (always do this):** maintain a `PROJECT_CONTEXT.md` file that documents everything done in the project so far — concept, purpose, stack, features, current progress, and how things fit together — so any other AI model or application can read it and fully understand the project. After completing each task, check that `PROJECT_CONTEXT.md` is up to date and update it if it is not. Also maintain a `README.md` for GitHub.
+
 
 ## UI rules
 - Mobile-first; every page must work at 360px wide and scale up cleanly.
