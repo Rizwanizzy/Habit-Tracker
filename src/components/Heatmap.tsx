@@ -12,6 +12,7 @@ interface Props {
   habit: Habit
   entries: Entry[]
   weeks?: number
+  onToggle?: (date: string) => void
 }
 
 /** 0 = missed, 1 = partial (~40%), 2 = mostly (~70%), 3 = done (full color). */
@@ -42,8 +43,8 @@ function statusText(level: number, future: boolean): string {
 
 type Cell = { date: string; level: number; future: boolean }
 
-/** Loop-style calendar heatmap: weeks as columns, Sun–Sat as rows, month labels on top. */
-export function Heatmap({ habit, entries, weeks = 18 }: Props) {
+/** Loop-style calendar heatmap: weeks as columns, Sun–Sat as rows, month labels on top. Tapping a day toggles it. */
+export function Heatmap({ habit, entries, weeks = 18, onToggle }: Props) {
   const today = todayString()
   const byDate = new Map(entries.map((e) => [e.date, e]))
   const dow = parseLocalDate(today).getDay()
@@ -113,12 +114,25 @@ export function Heatmap({ habit, entries, weeks = 18 }: Props) {
               </span>
               {columns.map((col, w) => {
                 const cell = col[r]
+                if (cell.future) {
+                  return (
+                    <div
+                      key={`${w}-${r}`}
+                      title={`${cell.date} — ${statusText(cell.level, cell.future)}`}
+                      className="rounded-[6px]"
+                      style={{ backgroundColor: 'transparent' }}
+                    />
+                  )
+                }
                 return (
-                  <div
+                  <button
                     key={`${w}-${r}`}
+                    type="button"
                     title={`${cell.date} — ${statusText(cell.level, cell.future)}`}
-                    className="rounded-[6px]"
-                    style={cell.future ? { backgroundColor: 'transparent' } : levelStyle(habit, cell.level)}
+                    onClick={() => onToggle?.(cell.date)}
+                    className="cursor-pointer rounded-[6px] transition-transform duration-150 active:scale-90"
+                    style={levelStyle(habit, cell.level)}
+                    aria-label={`${cell.date}: ${statusText(cell.level, cell.future)}`}
                   />
                 )
               })}

@@ -77,12 +77,12 @@ VITE_SUPABASE_ANON_KEY=<anon key>
    - **Stat tiles** — current streak, best streak, 30-day completion rate.
    - **Score line chart** (Recharts `AreaChart`, 30d/90d toggle) — smooth monotone line 2.5px in the habit color with 8% fill under the line, horizontal gridlines in chart-grid color, % axis, custom surface-raised tooltip.
    - **Weekly/monthly completion bar chart** (`CompletionHistoryChart`) — Week/Month toggle chips in the habit color (active = filled), ~14px bars with 6px top radius, value labels above bars, custom tooltip.
-   - **Custom calendar Heatmap** (`Heatmap`) — weeks as columns, Sun–Sat rows, month labels on top; 4 intensity levels via `color-mix(in srgb, <color> 40/70/100%, transparent)`, missed days in neutral surface, future days transparent; horizontally scrollable on mobile.
+   - **Custom calendar Heatmap** (`Heatmap`) — weeks as columns, Sun–Sat rows, month labels on top; 4 intensity levels via `color-mix(in srgb, <color> 40/70/100%, transparent)`, missed days in neutral surface, future days transparent; horizontally scrollable on mobile; tapping a day toggles that check-in.
    - Loading / error (with retry) / not-found states; back arrow + edit pencil in the header.
 7. **Overview page** — multi-line score chart (Recharts `LineChart`): one smooth 2.5px line per active habit in that habit's color, per-habit toggle chips that show/hide lines (doubled as chart legend, chip style per DESIGN.md), and a neutral range switch (30 days / 90 days / 1 year). Score series are merged per date (later-created habits' lines start at their creation). Custom multi-row tooltip with habit-colored dots; loading / error / empty states.
 
 ### Not yet built (planned next)
-- PWA (`vite-plugin-pwa`, later). All main pages are now implemented.
+- PWA installability added via `vite-plugin-pwa` (manifest + generated service worker, auto-update). All main pages implemented.
 
 ## 6. Key rules any contributor must follow (from AGENTS.md — full list there)
 

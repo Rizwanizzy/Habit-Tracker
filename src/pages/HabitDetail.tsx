@@ -14,7 +14,9 @@ import { CompletionHistoryChart } from '../components/CompletionHistoryChart'
 import { useHabits } from '../hooks/useHabits'
 import { useEntries } from '../hooks/useEntries'
 import { bestStreak, completionRate, currentStreak, scoreSeries } from '../lib/score'
+import { isDone, type Entry } from '../lib/score'
 import { addDays, todayString } from '../lib/dates'
+import { extractError } from '../hooks/useHabits'
 
 const DAY_FMT = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' })
 
@@ -35,6 +37,14 @@ function ScoreTip({ active, label, payload }: TipProps) {
   )
 }
 
+function upsertEntry(list: Entry[], entry: Entry): Entry[] {
+  const i = list.findIndex((e) => e.date === entry.date)
+  if (i === -1) return [...list, entry]
+  const copy = list.slice()
+  copy[i] = entry
+  return copy
+}
+
 function StatTile({ value, label }: { value: string; label: string }) {
   return (
     <div className="min-w-0 rounded-card border border-border bg-surface-raised p-4 text-center">
@@ -51,13 +61,37 @@ export function HabitDetail() {
     entriesByHabit,
     loading: entriesLoading,
     error: entriesError,
+    saveEntry,
+    removeEntry,
+    setEntriesByHabit,
   } = useEntries(id ? [id] : [], 365)
 
   const today = todayString()
   const [scoreWindow, setScoreWindow] = useState<'90' | '30'>('90')
+  const [actionError, setActionError] = useState<string | null>(null)
   const habit = habits.find((h) => h.id === id)
   const entries = id ? (entriesByHabit[id] ?? []) : []
   const color = habit?.color ?? '#3B82F6'
+
+  async function toggleDay(date: string) {
+    if (!habit || !id || date > today) return
+    setActionError(null)
+    const prev = entriesByHabit[id] ?? []
+    const existing = prev.find((e) => e.date === date)
+    const markingDone = !(existing && isDone(habit, existing))
+    const value = habit.type === 'numeric' ? habit.target : 1
+    const next = markingDone
+      ? upsertEntry(prev, { date, value })
+      : prev.filter((e) => e.date !== date)
+    setEntriesByHabit((m) => ({ ...m, [id]: next }))
+    try {
+      if (markingDone) await saveEntry(id, date, value)
+      else await removeEntry(id, date)
+    } catch (e) {
+      setEntriesByHabit((m) => ({ ...m, [id]: prev }))
+      setActionError(extractError(e))
+    }
+  }
 
   const series = useMemo(() => {
     if (!habit) return []
@@ -225,8 +259,13 @@ export function HabitDetail() {
         <h2 className="text-section-title">Calendar</h2>
         <p className="mt-1 text-caption text-fg-muted">Last 18 weeks — intensity shows progress toward target.</p>
         <div className="mt-3">
-          <Heatmap habit={habit} entries={entries} />
+          <Heatmap habit={habit} entries={entries} onToggle={(d) => void toggleDay(d)} />
         </div>
+        {actionError && (
+          <p role="alert" className="mt-2 rounded-button bg-danger/10 px-3 py-2 text-caption text-danger">
+            {actionError}
+          </p>
+        )}
       </div>
     </section>
   )
