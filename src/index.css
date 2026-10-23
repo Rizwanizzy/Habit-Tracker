@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Tailwind v4 class-based dark strategy */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Color tokens from DESIGN.md (light values on :root, dark values on .dark) */
 :root {
   --background: #ffffff;
   --surface: #f8fafc;
@@ -15,26 +19,74 @@
   --chart-axis: #94a3b8;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f0f13;
-    --surface: #16161d;
-    --surface-raised: #1f1f26;
-    --border: #33333a;
-    --text-primary: #e4e4e7;
-    --text-secondary: #a8a8b2;
-    --text-muted: #71717a;
-    --accent: #6366f1;
-    --success: #22c55e;
-    --danger: #ef4444;
-    --chart-grid: #33333a;
-    --chart-axis: #71717a;
-  }
+.dark {
+  --background: #0f0f13;
+  --surface: #16161d;
+  --surface-raised: #1f1f26;
+  --border: #33333a;
+  --text-primary: #e4e4e7;
+  --text-secondary: #a8a8b2;
+  --text-muted: #71717a;
+  --accent: #6366f1;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --chart-grid: #33333a;
+  --chart-axis: #71717a;
+}
+
+/* Tailwind theme mapping (inline so utilities switch with the CSS vars) */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  /* DESIGN.md text-primary / -secondary / -mapped to fg names for clean utilities */
+  --color-fg: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-axis: var(--chart-axis);
+}
+
+/* Typography, radius, spacing from DESIGN.md.
+   Spacing uses the default 4px Tailwind scale (4, 8, 12, 16, 20, 24, 32, ...). */
+@theme {
+  --font-sans: Inter, system-ui, sans-serif;
+
+  --text-page-title: 2rem; /* 32px */
+  --text-page-title--line-height: 1.2;
+  --text-page-title--font-weight: 700;
+
+  --text-section-title: 1.375rem; /* 22px */
+  --text-section-title--line-height: 1.3;
+  --text-section-title--font-weight: 600;
+
+  --text-habit-name: 1.0625rem; /* 17px */
+  --text-habit-name--line-height: 1.4;
+  --text-habit-name--font-weight: 500;
+
+  --text-body: 0.9375rem; /* 15px */
+  --text-body--line-height: 1.5;
+
+  --text-caption: 0.75rem; /* 12px */
+  --text-caption--line-height: 1.4;
+
+  --text-stat: 2.125rem; /* 34px */
+  --text-stat--line-height: 1.1;
+  --text-stat--font-weight: 700;
+
+  --radius-card: 1rem; /* 16px */
+  --radius-button: 0.75rem; /* 12px */
 }
 
 body {
   margin: 0;
   background: var(--background);
   color: var(--text-primary);
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
