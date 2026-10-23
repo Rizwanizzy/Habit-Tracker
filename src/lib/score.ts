@@ -119,3 +119,26 @@ export function completionRate(
   if (total === 0) return 0
   return done / total
 }
+
+export type ScorePoint = { date: string; score: number }
+
+/** Daily EMA values for charting; final point equals scoreRange over the same window. */
+export function scoreSeries(
+  habit: Habit,
+  entries: Entry[],
+  startDate: string,
+  endDate: string,
+): ScorePoint[] {
+  const byDate = new Map(entries.map((e) => [e.date, e]))
+  const weight = perDayWeight(habit)
+  let score = 0
+  const points: ScorePoint[] = []
+  let d = habit.created_at > startDate ? habit.created_at : startDate
+  while (d <= endDate) {
+    const done = isDone(habit, byDate.get(d))
+    score = score + (done ? 1 - score : 0 - score) * weight
+    points.push({ date: d, score })
+    d = addDaysStr(d, 1)
+  }
+  return points
+}

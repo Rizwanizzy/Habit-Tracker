@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { scoreRange, currentStreak, bestStreak, completionRate, isDone } from './score'
+import { scoreRange, scoreSeries, currentStreak, bestStreak, completionRate, isDone } from './score'
 
 const habit = {
   id: 'h1',
@@ -49,5 +49,20 @@ describe('score', () => {
     const s = scoreRange(habit, entries, '2026-10-01', '2026-10-31')
     expect(s).toBeLessThan(0.99)
     expect(s).toBeGreaterThan(0)
+  })
+
+  it('scoreSeries final value matches scoreRange', () => {
+    const entries = [
+      { date: '2026-10-01', value: 1 },
+      { date: '2026-10-02', value: 1 },
+      { date: '2026-10-03', value: 0 },
+      { date: '2026-10-04', value: 1 },
+      { date: '2026-10-05', value: 1 },
+    ]
+    const series = scoreSeries(habit, entries, '2026-10-01', '2026-10-05')
+    expect(series).toHaveLength(5)
+    expect(series[series.length - 1].score).toBeCloseTo(
+      scoreRange(habit, entries, '2026-10-01', '2026-10-05'),
+    )
   })
 })

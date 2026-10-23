@@ -3,7 +3,7 @@
 > Purpose of this file: give any developer, AI model, or application a complete, current
 > understanding of this project — concept, purpose, stack, architecture, features, and
 > progress — without reading every source file. **Update this file after every completed task.**
-> Last updated: 2026-10-24
+> Last updated: 2026-10-25
 
 ## 1. What this project is
 
@@ -64,21 +64,25 @@ VITE_SUPABASE_ANON_KEY=<anon key>
    - `Login.tsx` — Supabase email/password sign in + create account; navigates to `/` on success (bug fixed: Login sits outside the guard so it must navigate itself).
    - `ThemeToggle.tsx` — light/dark toggle, in Settings page.
    - Login works end-to-end against the user's Supabase project.
-5. **Habit tracking features** (latest):
+5. **Habit tracking features:**
    - `supabase/schema.sql` — `habits` + `entries` tables, RLS on, per-user policies, unique `(habit_id, date)`. **User still needs to run this in the Supabase SQL editor.**
    - `useHabits.ts` — fetch active/all habits (`sort_order` order), `createHabit`, `updateHabit`, optimistic `archiveHabit` with rollback; `extractError` helper.
    - `useEntries.ts` — entries grouped per habit (last 365 days), `saveEntry` (upsert on `habit_id,date`), `removeEntry`.
-   - **Today page** — one-tap check-in (optimistic, rollback + visible error), habit-colored checkbox/name/streak badge (streak via `currentStreak`), backfill control (‹ Prev + date picker + Today button), numeric value chip with inline input, loading/empty/error states, gentle >7-habits warning.
+   - **Today page** — one-tap check-in (optimistic, rollback + visible error), habit-colored checkbox/name/streak badge (streak via `currentStreak`), backfill control (‹ Prev + date picker + Today button), numeric value chip with inline input, loading/empty/error states, gentle >7-habits warning. Habit names link to the habit detail page.
    - **HabitForm page** (`/habits/new`, `/habits/:id/edit`) — name, yes-no/numeric type (target + unit), frequency (times per N days), ColorPicker.
    - **ColorPicker component** — 10 preset swatches + native `<input type="color">` + hex text field.
    - **Settings page** — Appearance (theme toggle), Habits (Archive / Restore, archived history kept), Account (email + Sign out).
+6. **Habit detail page** (`/habits/:id`, reached by tapping a habit name on Today):
+   - `scoreSeries()` added to `score.ts` (daily EMA series for charts; final point equals `scoreRange`; covered by a new test).
+   - **Stat tiles** — current streak, best streak, 30-day completion rate.
+   - **Score line chart** (Recharts `AreaChart`, 30d/90d toggle) — smooth monotone line 2.5px in the habit color with 8% fill under the line, horizontal gridlines in chart-grid color, % axis, custom surface-raised tooltip.
+   - **Weekly/monthly completion bar chart** (`CompletionHistoryChart`) — Week/Month toggle chips in the habit color (active = filled), ~14px bars with 6px top radius, value labels above bars, custom tooltip.
+   - **Custom calendar Heatmap** (`Heatmap`) — weeks as columns, Sun–Sat rows, month labels on top; 4 intensity levels via `color-mix(in srgb, <color> 40/70/100%, transparent)`, missed days in neutral surface, future days transparent; horizontally scrollable on mobile.
+   - Loading / error (with retry) / not-found states; back arrow + edit pencil in the header.
+7. **Overview page** — multi-line score chart (Recharts `LineChart`): one smooth 2.5px line per active habit in that habit's color, per-habit toggle chips that show/hide lines (doubled as chart legend, chip style per DESIGN.md), and a neutral range switch (30 days / 90 days / 1 year). Score series are merged per date (later-created habits' lines start at their creation). Custom multi-row tooltip with habit-colored dots; loading / error / empty states.
 
 ### Not yet built (planned next)
-- **Overview page** — score line chart + calendar heatmap + stat tiles (Recharts); per-habit toggle chips.
-- **Habit detail page** (`HabitDetail` in DESIGN.md) — overview stats, score chart, calendar heatmap, best streaks.
-- **Calendar heatmap** — custom component; intensity via `color-mix(in srgb, <color> N%, transparent)`.
-- **Supabase schema applied** — user must run `supabase/schema.sql` in the SQL editor before habit features work end-to-end.
-- PWA (`vite-plugin-pwa`, later).
+- PWA (`vite-plugin-pwa`, later). All main pages are now implemented.
 
 ## 6. Key rules any contributor must follow (from AGENTS.md — full list there)
 
@@ -112,11 +116,15 @@ src/
   components/
     AppShell.tsx      bottom nav (mobile) / sidebar (desktop)
     RequireAuth.tsx   auth guard
-    Login.tsx is in pages; components: HabitRow, ColorPicker, ThemeToggle, icons
+    HabitRow.tsx      Today row (checkbox, name link, streak badge)
+    Heatmap.tsx       custom calendar heatmap (color-mix intensity levels)
+    CompletionHistoryChart.tsx  weekly/monthly completion bars + toggle chips
+    ColorPicker.tsx, ThemeToggle.tsx, icons.tsx
   pages/
     Today.tsx         check-ins + backfill
     HabitForm.tsx     add/edit habit
-    Overview.tsx      placeholder (charts to come)
+    HabitDetail.tsx   /habits/:id — stats, score chart, bars, heatmap
+    Overview.tsx      multi-line score chart + range switch + habit toggle chips
     Settings.tsx      theme, habit archive/restore, account/sign out
     Login.tsx         Supabase email/password auth
 ```

@@ -5,6 +5,7 @@ import { Today } from './pages/Today'
 import { Overview } from './pages/Overview'
 import { Settings } from './pages/Settings'
 import { HabitForm } from './pages/HabitForm'
+import { HabitDetail } from './pages/HabitDetail'
 import { Login } from './pages/Login'
 
 export function App() {
@@ -19,6 +20,7 @@ export function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="habits/new" element={<HabitForm />} />
             <Route path="habits/:id/edit" element={<HabitForm />} />
+            <Route path="habits/:id" element={<HabitDetail />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

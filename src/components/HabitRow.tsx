@@ -68,9 +68,13 @@ export function HabitRow({ habit, done, streak, value, onToggle, onLogValue }: P
         </span>
       </button>
 
-      <span className="text-habit-name min-w-0 flex-1 truncate" style={{ color }}>
+      <Link
+        to={`/habits/${habit.id}`}
+        className="text-habit-name min-w-0 flex-1 truncate hover:underline decoration-1 underline-offset-2"
+        style={{ color }}
+      >
         {habit.name}
-      </span>
+      </Link>
 
       {isNumeric &&
         (editing ? (
