@@ -91,7 +91,7 @@ export function Profile() {
       <button
         type="button"
         onClick={() => setConfirmSignOut(true)}
-        className="relative shrink-0"
+        className="relative shrink-0 hover:bg-surface-raised focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
       >
         <IconLogout className="size-6" />
       </button>

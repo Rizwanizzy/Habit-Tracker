@@ -69,6 +69,27 @@
   --color-chart-axis: var(--chart-axis);
 }
 
+/* Base cursor rules for clickable elements (Tailwind v4 doesn't set
+   cursor:pointer on buttons by default). */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  summary,
+  select,
+  label[for],
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="color"]:not(:disabled),
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
 /* Typography scale (DESIGN.md §3) and shape scale (§4) */
 @theme {
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;

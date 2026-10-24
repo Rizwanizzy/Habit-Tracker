@@ -99,7 +99,7 @@ export function HabitTile({ habit, done, streak, value, index, onToggle, onLogVa
           aria-pressed={done}
           aria-label={done ? `Mark ${habit.name} not done` : `Mark ${habit.name} done`}
           onAnimationEnd={handleAnimationEnd}
-          className={`relative grid size-11 shrink-0 place-items-center rounded-full transition-all duration-150 active:scale-95 ${
+          className={`relative grid size-11 shrink-0 place-items-center rounded-full transition-all duration-150 active:scale-95 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
             popping ? 'ring-pop' : ''
           }`}
           style={

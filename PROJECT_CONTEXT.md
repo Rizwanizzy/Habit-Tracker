@@ -72,7 +72,8 @@ VITE_SUPABASE_ANON_KEY=<anon key>
    - `supabase.ts` — lazy singleton `getSupabase()` from VITE_ env vars, clear error when missing.
    - Tests: `dates.test.ts` (midnight boundary), `score.test.ts` (miss after long streak, numeric below target, created mid-range), `color.test.ts`, `profile.test.ts` (validation + initials). **All passing.**
 3. **Aurora Glass redesign (in progress, UI-only — no logic/DB changes):**
-   - **Done:** `index.css` rewritten to DESIGN.md §1/§3/§4 tokens (aurora bg, glass recipes, Space Grotesk/DM Sans, radii shell 28→32 scale, caption uppercase); `src/lib/color.ts`; **`AppShell.tsx` rebuilt** — floating rounded shell (inset 16px, max 1280px, radius 32px) with a 72px circular icon rail on desktop (active = accent-gradient + glow; theme + sign-out circles at rail bottom, sign-out navigates to /login); mobile = floating glass bottom dock (64px, 16px inset, safe-area padding, active = gradient circle); `index.html` loads the new fonts and `viewport-fit=cover`.
+   - **Done — Aurora Glass redesign (in progress, UI-only — no logic/DB changes):**
+   - **Done:** `index.css` rewritten to DESIGN.md §1/§3/§4 tokens (aurora bg, glass recipes, Space Grotesk/DM Sans, radii shell 28→32 scale, caption uppercase); `src/lib/color.ts`; **`AppShell.tsx` rebuilt** — floating rounded shell (inset 16px, max 1280px, radius 32px) with a 72px circular icon rail on desktop (logo mark at top, clickable → Today; Today/Overview/Settings in middle — Today reached via logo click since `/` is the default route; Profile avatar + theme toggle at bottom group; sign-out removed from rail, now on Profile header as an icon button opening `ConfirmDialog`); mobile = floating glass bottom dock (64px, 16px inset, safe-area padding, 3 items: Today, Overview, Settings); `index.html` loads the new fonts and `viewport-fit=cover`. **Cursor pointer rule added to `@layer base`** so all buttons, links, role="button" etc. show hand cursor; hover states + focus rings added to rail icons, theme toggle, range switch segments, habit check rings, color swatches, chips, and the sign-out icon.
    - **Done — Today page bento (DESIGN.md §8):** header with page title + date caption, glass date pill (‹ › arrows + native calendar input + Today shortcut, never lets you navigate past today), gradient 48px "Add habit" pill. Row 1: hero card (5 cols) with `ProgressRings` — concentric rings, one per habit (outermost = first, max 7, stroke 10/gap 6, tint 12% tracks), draw-in 900ms then morph on check-in 700ms; center shows `done / total` (tabular) + caption; motivational line + longest-streak flame chip. Weekly card (7 cols) with `WeeklyCompletion` — last 7 days, one bar per day = share of eligible habits done (habits only count from their `created_at`), native tooltip per bar, today's bar highlighted with glow, draw-in + 40ms stagger, empty state text. Row 2: `HabitTile` grid (1 col mobile / 2 tablet / 3 desktop) — min 132px, `linear-gradient(145deg, tint 22%, tint 6%)` bg, tint 35% border (70% on hover + 2px lift), 44px check ring (pending = 2px habit ring; done = fill + tint glow + white check) with ring-pop (280ms) and burst of 6 habit-colored dots, name in text-fg (habit color never used for body text), flame streak chip in `readableColor`, numeric tiles show a 6px progress bar + "12 / 30 min" (unit once, tap to open inline value input — save/cancel), edit pencil hover-visible (always on mobile). Motion utilities in `index.css`: `ring-pop`, `burst-dot`, `bar-in`, `fade-up` (staggers via animationDelay), `.habit-tile` hover recipe, `.ring-progress`/`.ring-draw`; all collapse under `prefers-reduced-motion`. New files: `components/ProgressRings.tsx`, `components/WeeklyCompletion.tsx`, `components/HabitTile.tsx` (replaces deleted `components/HabitRow.tsx`), `hooks/useThemeName.ts` (reactive dark/light for `readableColor`, listens to the `themechange` event; existing hooks untouched).
    - **Remaining passes:** count-up numerals only — Settings, HabitForm, Login, HabitDetail (stat tiles, score chart, bars, heatmap) are all restyled now (see item 8).
 4. **App shell + auth** (`src/components/`, `src/hooks/`, `src/pages/`):
@@ -155,7 +156,7 @@ VITE_SUPABASE_ANON_KEY=<anon key>
 ```
 src/
   main.tsx            entry — applies stored/system theme, renders <App/>
-  App.tsx             BrowserRouter routes (/login outside guard; /, /overview, /profile,
+  App.tsx             BrowserRouter routes (/login outside guard; / = Today default route reached via logo click, /overview, /profile,
                       /settings, /habits/new, /habits/:id/edit, /habits/:id inside RequireAuth + AppShell)
   index.css           Tailwind v4 + design tokens (@theme) + dark class strategy
   lib/
@@ -173,7 +174,7 @@ src/
     useEntries.ts     entries per habit + save/remove
     useProfile.ts     profile row load/save (upsert), avatar upload/remove, signed URL (1h, auto-refresh)
   components/
-    AppShell.tsx      floating shell: icon rail (desktop) / glass dock (mobile); logo mark at rail top; Profile avatar at rail bottom
+    AppShell.tsx      floating shell: icon rail (desktop) / glass dock (mobile); logo mark at rail top (clickable → Today); Today/Overview/Settings in middle; Profile avatar at rail bottom; theme toggle; sign-out removed from rail, now on Profile header
     RequireAuth.tsx   auth guard
     TodayGreeting.tsx greeting block: avatar + time-of-day greeting + "Hi, <name>" + date; avatar links to /profile
     HabitTile.tsx     Today habit tile (check ring + burst, streak chip, progress)

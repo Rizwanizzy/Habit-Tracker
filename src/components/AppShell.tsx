@@ -13,7 +13,7 @@ const NAV: NavItem[] = [
 
 /** Rounded 48px circles used by the rail (DESIGN.md §5). */
 const RAIL_CIRCLE =
-  'grid size-12 place-items-center rounded-full transition-all duration-150 active:scale-95 '
+  'grid size-12 place-items-center rounded-full transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none '
 
 /** App shell (DESIGN.md §5): floating rounded shell over the aurora background
  *  with a 72px icon rail on desktop; floating glass dock on mobile. */
@@ -53,7 +53,7 @@ export function AppShell() {
                 title={label}
                 className={railClass({ isActive: activePath === to || (to === '/' && activePath === '/') })}
               >
-                <Icon className="size-5" />
+                <Icon className="size-5 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none" />
               </NavLink>
             ))}
           </nav>
@@ -65,7 +65,7 @@ export function AppShell() {
             >
               <div className="relative">
                 <div
-                  className="grid size-12 place-items-center rounded-full bg-surface-raised border border-border hover:bg-surface hover:text-fg transition-colors duration-150 active:scale-95"
+                  className="grid size-12 place-items-center rounded-full bg-surface-raised border border-border hover:bg-surface hover:text-fg transition-colors duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
                 >
                   {avatarUrl && profile?.avatar_path ? (
                     <img src={avatarUrl} alt="Profile" className="size-[40px] rounded-full object-cover" />
