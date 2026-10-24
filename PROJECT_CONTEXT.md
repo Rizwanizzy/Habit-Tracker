@@ -71,7 +71,7 @@ VITE_SUPABASE_ANON_KEY=<anon key>
 3. **Aurora Glass redesign (in progress, UI-only — no logic/DB changes):**
    - **Done:** `index.css` rewritten to DESIGN.md §1/§3/§4 tokens (aurora bg, glass recipes, Space Grotesk/DM Sans, radii shell 28→32 scale, caption uppercase); `src/lib/color.ts`; **`AppShell.tsx` rebuilt** — floating rounded shell (inset 16px, max 1280px, radius 32px) with a 72px circular icon rail on desktop (active = accent-gradient + glow; theme + sign-out circles at rail bottom, sign-out navigates to /login); mobile = floating glass bottom dock (64px, 16px inset, safe-area padding, active = gradient circle); `index.html` loads the new fonts and `viewport-fit=cover`.
    - **Done — Today page bento (DESIGN.md §8):** header with page title + date caption, glass date pill (‹ › arrows + native calendar input + Today shortcut, never lets you navigate past today), gradient 48px "Add habit" pill. Row 1: hero card (5 cols) with `ProgressRings` — concentric rings, one per habit (outermost = first, max 7, stroke 10/gap 6, tint 12% tracks), draw-in 900ms then morph on check-in 700ms; center shows `done / total` (tabular) + caption; motivational line + longest-streak flame chip. Weekly card (7 cols) with `WeeklyCompletion` — last 7 days, one bar per day = share of eligible habits done (habits only count from their `created_at`), native tooltip per bar, today's bar highlighted with glow, draw-in + 40ms stagger, empty state text. Row 2: `HabitTile` grid (1 col mobile / 2 tablet / 3 desktop) — min 132px, `linear-gradient(145deg, tint 22%, tint 6%)` bg, tint 35% border (70% on hover + 2px lift), 44px check ring (pending = 2px habit ring; done = fill + tint glow + white check) with ring-pop (280ms) and burst of 6 habit-colored dots, name in text-fg (habit color never used for body text), flame streak chip in `readableColor`, numeric tiles show a 6px progress bar + "12 / 30 min" (unit once, tap to open inline value input — save/cancel), edit pencil hover-visible (always on mobile). Motion utilities in `index.css`: `ring-pop`, `burst-dot`, `bar-in`, `fade-up` (staggers via animationDelay), `.habit-tile` hover recipe, `.ring-progress`/`.ring-draw`; all collapse under `prefers-reduced-motion`. New files: `components/ProgressRings.tsx`, `components/WeeklyCompletion.tsx`, `components/HabitTile.tsx` (replaces deleted `components/HabitRow.tsx`), `hooks/useThemeName.ts` (reactive dark/light for `readableColor`, listens to the `themechange` event; existing hooks untouched).
-   - **Remaining passes:** Heatmap (14px cells / 4px gap), charts (glow, dashed grid, tooltips glass style), Overview stat tiles + bento, Settings two-column, Login glass card, count-up numerals.
+   - **Remaining passes:** HabitDetail charts + Heatmap (14px cells / 4px gap), `CompletionHistoryChart` bars → 10px, Settings two-column, Login glass card, count-up numerals.
 4. **App shell + auth** (`src/components/`, `src/hooks/`, `src/pages/`):
    - `useAuth.ts` — session state live via `onAuthStateChange`.
    - `RequireAuth.tsx` — guard; redirects to `/login` when signed out; loading state while checking.
@@ -93,10 +93,15 @@ VITE_SUPABASE_ANON_KEY=<anon key>
    - **Weekly/monthly completion bar chart** (`CompletionHistoryChart`) — Week/Month toggle chips in the habit color (active = filled), ~14px bars with 6px top radius, value labels above bars, custom tooltip.
    - **Custom calendar Heatmap** (`Heatmap`) — weeks as columns, Sun–Sat rows, month labels on top; 4 intensity levels via `color-mix(in srgb, <color> 40/70/100%, transparent)`, missed days in neutral surface, future days transparent; horizontally scrollable on mobile; tapping a day toggles that check-in.
    - Loading / error (with retry) / not-found states; back arrow + edit pencil in the header.
-7. **Overview page** — multi-line score chart (Recharts `LineChart`): one smooth 2.5px line per active habit in that habit's color, per-habit toggle chips that show/hide lines (doubled as chart legend, chip style per DESIGN.md), and a neutral range switch (30 days / 90 days / 1 year). Score series are merged per date (later-created habits' lines start at their creation). Custom multi-row tooltip with habit-colored dots; loading / error / empty states.
+7. **Overview page** — Aurora Glass restyle per DESIGN.md §6/§7/§8 (data flow unchanged: `useHabits`/`useEntries` + `scoreSeries`, merged per date so later-created habits' lines start at creation; score logic untouched):
+   - Header with the sliding `RangeSwitch` (30/90/365, segmented accent pill, 36px).
+   - Row 1 stat tiles via new `StatTile.tsx` (`StatTile` glass card + `DeltaChip` arrow chip success/danger + `HabitDotName` dot+name line): average score for the range with a delta chip vs the previous equal-length window, best habit, needs attention.
+   - Row 2 large chart card with the habit chips **inside it** (`ScoreLineChart.tsx`): chips are 36px pills with a habit-color dot, selected = tint 20% fill + tint 40% border, off = 50% opacity; chart = monotone 2.5px habit-color lines, glow via a wide translucent halo `<Line>` per habit (`dataKey="g:<id>"`, strokeWidth 9, opacity 0.18, static) drawn under the real line, horizontal dashed grid only, no axis lines, 12px `chart-axis` labels, 8px active dot with 3px white ring, glass tooltip (16px radius, colored dot + habit name + value; filters out `g:` halo rows), empty state "Check in a habit to see your score".
+   - Row 3 per-habit sparkline cards (`Sparkline.tsx`, pure SVG habit-color polyline with white-ringed end dot), each linking to `/habits/:id`.
+   - Loading / error+retry / no-habits empty states. UI-only: rows gain a visualization-only `g:<habitId>` duplicate key for the halo lines.
 
 ### Remaining next steps (Aurora Glass passes still to do)
-- All main pages are implemented and the PWA is live (manifest + generated service worker, auto-update). What's left is per-page/component restyling to DESIGN.md: Heatmap (14px cells / 4px gap), charts (glow, dashed grid, glass tooltips — e.g. `CompletionHistoryChart` bars are ~14px, DESIGN.md wants 10px), Overview stat tiles + bento, Settings two-column, Login glass card, count-up numerals.
+- All main pages are implemented and the PWA is live (manifest + generated service worker, auto-update). What's left is per-page/component restyling to DESIGN.md: HabitDetail (score chart restyle, `CompletionHistoryChart` bars ~14px → 10px, Heatmap 14px cells / 4px gap), Settings two-column, Login glass card, count-up numerals.
 
 ## 6. Key rules any contributor must follow (from AGENTS.md — full list there)
 
@@ -136,6 +141,10 @@ src/
     HabitTile.tsx     Today habit tile (check ring + burst, streak chip, progress)
     ProgressRings.tsx hero concentric rings (one per habit, draw-in + morph)
     WeeklyCompletion.tsx  weekly completion mini bars (last 7 days, tooltips)
+    StatTile.tsx      glass stat tile + DeltaChip (arrow chips) + HabitDotName
+    RangeSwitch.tsx   segmented sliding accent-pill range switch (36px)
+    Sparkline.tsx     pure SVG per-habit sparkline with white-ringed end dot
+    ScoreLineChart.tsx  multi-line chart: halo glow, dashed grid, glass tooltip
     Heatmap.tsx       custom calendar heatmap (color-mix intensity levels)
     CompletionHistoryChart.tsx  weekly/monthly completion bars + toggle chips
     ColorPicker.tsx, ThemeToggle.tsx, icons.tsx
@@ -143,7 +152,7 @@ src/
     Today.tsx         bento: hero rings + weekly bars + habit tiles (optimistic check-ins, date pill, backfill)
     HabitForm.tsx     add/edit habit
     HabitDetail.tsx   /habits/:id — stats, score chart, bars, heatmap
-    Overview.tsx      multi-line score chart + range switch + habit toggle chips
+    Overview.tsx      stat tiles + multi-line chart card (chips inside) + sparkline cards
     Settings.tsx      theme, habit archive/restore, account/sign out
     Login.tsx         Supabase email/password auth
 ```
