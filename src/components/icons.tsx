@@ -109,3 +109,31 @@ export function IconPencil({ className }: { className?: string }) {
     </svg>
   )
 }
+
+export function IconUser({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="10" r="3" />
+      <path d="M6.7 18.6a6.5 6.5 0 0 1 10.6 0" />
+    </svg>
+  )
+}
+
+export function IconCamera({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="M3 8a2 2 0 0 1 2-2h2.2l1.2-1.6a2 2 0 0 1 1.6-.8h4a2 2 0 0 1 1.6.8L16.8 6H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+      <circle cx="12" cy="12.5" r="3.5" />
+    </svg>
+  )
+}
+
+export function IconLock({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <rect x="5.5" y="11" width="13" height="9" rx="2.5" />
+      <path d="M8.5 11V7.5a3.5 3.5 0 0 1 7 0V11" />
+    </svg>
+  )
+}

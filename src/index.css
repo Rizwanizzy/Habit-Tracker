@@ -305,3 +305,53 @@ body {
 .input-field::placeholder {
   color: var(--text-muted);
 }
+
+/* Profile banner (DESIGN.md §11): 1px chart-grid lines in 56px cells, plus a
+   couple of cells tinted at 4% white. */
+.banner-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.04)),
+    linear-gradient(rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.04)),
+    linear-gradient(var(--chart-grid) 1px, transparent 1px),
+    linear-gradient(to right, var(--chart-grid) 1px, transparent 1px);
+  background-size: 56px 56px;
+  background-position:
+    224px 56px,
+    448px 112px,
+    0 0,
+    0 0;
+  background-repeat: no-repeat, no-repeat, repeat, repeat;
+}
+
+/* Indeterminate spinner ring shown on the avatar while uploading. */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.progress-spin {
+  animation: spin 800ms linear infinite;
+}
+
+/* Skeleton shimmer for loading states. */
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton {
+  background-color: var(--surface-2);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--text-primary) 7%, transparent),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1400ms ease-in-out infinite;
+}

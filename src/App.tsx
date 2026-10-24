@@ -6,6 +6,7 @@ import { Overview } from './pages/Overview'
 import { Settings } from './pages/Settings'
 import { HabitForm } from './pages/HabitForm'
 import { HabitDetail } from './pages/HabitDetail'
+import { Profile } from './pages/Profile'
 import { Login } from './pages/Login'
 
 export function App() {
@@ -18,6 +19,7 @@ export function App() {
             <Route index element={<Today />} />
             <Route path="overview" element={<Overview />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="profile" element={<Profile />} />
             <Route path="habits/new" element={<HabitForm />} />
             <Route path="habits/:id/edit" element={<HabitForm />} />
             <Route path="habits/:id" element={<HabitDetail />} />

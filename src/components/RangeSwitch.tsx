@@ -8,11 +8,13 @@ interface Props {
   value: string
   onChange: (key: string) => void
   ariaLabel: string
+  /** Smaller caption-size text, for 4-option switches (e.g. Gender). */
+  dense?: boolean
 }
 
 /** Segmented range switch (DESIGN.md §6): 36px high, glass track, with a
  *  sliding accent-gradient pill behind the active option. */
-export function RangeSwitch({ options, value, onChange, ariaLabel }: Props) {
+export function RangeSwitch({ options, value, onChange, ariaLabel, dense }: Props) {
   const idx = Math.max(
     0,
     options.findIndex((o) => o.key === value),
@@ -37,9 +39,9 @@ export function RangeSwitch({ options, value, onChange, ariaLabel }: Props) {
           type="button"
           onClick={() => onChange(opt.key)}
           aria-pressed={i === idx}
-          className={`text-body relative z-10 h-8 flex-1 rounded-pill px-2 font-medium transition-colors duration-150 after:absolute after:inset-x-0 after:inset-y-[-6px] after:content-[''] ${
-            i === idx ? 'text-white' : 'text-fg-secondary hover:text-fg'
-          }`}
+          className={`relative z-10 h-8 flex-1 rounded-pill font-medium transition-colors duration-150 after:absolute after:inset-x-0 after:inset-y-[-6px] after:content-[''] ${
+            dense ? 'text-caption px-1' : 'text-body px-2'
+          } ${i === idx ? 'text-white' : 'text-fg-secondary hover:text-fg'}`}
         >
           {opt.label}
         </button>

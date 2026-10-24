@@ -66,8 +66,10 @@ VITE_SUPABASE_ANON_KEY=<anon key>
    - `score.ts` — habit score as an exponential moving average (`SMOOTHING_CONSTANT = 0.05`, per-day weight from `freq_times/freq_days`), `scoreSeries` (daily EMA for charts; last point ≡ `scoreRange`), `currentStreak`, `bestStreak`, `completionRate`, `isDone` (numeric done when `value >= target`); stats only count from habit `created_at`.
    - `dates.ts` — local `YYYY-MM-DD` helpers for `Asia/Kolkata` (`toLocalDateString`, `todayString`, `parseLocalDate`, `addDays`, `daysBetween`). Never `toISOString().slice(0,10)` — UTC date near midnight breaks the IST day.
    - `color.ts` — `readableColor(hex, theme)` (walks HSL lightness until WCAG contrast ≥ 3:1 against the theme's glass surface; dark raises lightness, light lowers it), `tint(hex, percent)` → `color-mix(in srgb, …, transparent)` strings, plus `contrast()` and `surfaceColor()` helpers. ✅ covered by `color.test.ts` (very dark color on dark theme, very light on light theme, 3-digit hex, invalid input).
+   - `profile.ts` — `Profile`/`ProfileInput` types, `GENDERS`, `isGender`, `validateFullName` (≤ 80 chars), `validateDateOfBirth` (YYYY-MM-DD, on/after 1900, not future), `validatePhone` (7–15 digits, optional leading +, common separators), `validateGender`, `validateProfile` (aggregates), `initialsFrom(name, email)` for avatar fallback. Pure, no React/Supabase. ✅ covered by `profile.test.ts`.
+   - `avatar.ts` — `prepareAvatar(file)`: rejects non-images and files over 2 MB, center-crops to a square, resizes to 512px, encodes as WebP via canvas, returns a Blob. Browser-only (canvas).
    - `supabase.ts` — lazy singleton `getSupabase()` from VITE_ env vars, clear error when missing.
-   - Tests: `dates.test.ts` (midnight boundary), `score.test.ts` (miss after long streak, numeric below target, created mid-range), `color.test.ts`. **19 tests passing.**
+   - Tests: `dates.test.ts` (midnight boundary), `score.test.ts` (miss after long streak, numeric below target, created mid-range), `color.test.ts`, `profile.test.ts` (validation + initials). **All passing.**
 3. **Aurora Glass redesign (in progress, UI-only — no logic/DB changes):**
    - **Done:** `index.css` rewritten to DESIGN.md §1/§3/§4 tokens (aurora bg, glass recipes, Space Grotesk/DM Sans, radii shell 28→32 scale, caption uppercase); `src/lib/color.ts`; **`AppShell.tsx` rebuilt** — floating rounded shell (inset 16px, max 1280px, radius 32px) with a 72px circular icon rail on desktop (active = accent-gradient + glow; theme + sign-out circles at rail bottom, sign-out navigates to /login); mobile = floating glass bottom dock (64px, 16px inset, safe-area padding, active = gradient circle); `index.html` loads the new fonts and `viewport-fit=cover`.
    - **Done — Today page bento (DESIGN.md §8):** header with page title + date caption, glass date pill (‹ › arrows + native calendar input + Today shortcut, never lets you navigate past today), gradient 48px "Add habit" pill. Row 1: hero card (5 cols) with `ProgressRings` — concentric rings, one per habit (outermost = first, max 7, stroke 10/gap 6, tint 12% tracks), draw-in 900ms then morph on check-in 700ms; center shows `done / total` (tabular) + caption; motivational line + longest-streak flame chip. Weekly card (7 cols) with `WeeklyCompletion` — last 7 days, one bar per day = share of eligible habits done (habits only count from their `created_at`), native tooltip per bar, today's bar highlighted with glow, draw-in + 40ms stagger, empty state text. Row 2: `HabitTile` grid (1 col mobile / 2 tablet / 3 desktop) — min 132px, `linear-gradient(145deg, tint 22%, tint 6%)` bg, tint 35% border (70% on hover + 2px lift), 44px check ring (pending = 2px habit ring; done = fill + tint glow + white check) with ring-pop (280ms) and burst of 6 habit-colored dots, name in text-fg (habit color never used for body text), flame streak chip in `readableColor`, numeric tiles show a 6px progress bar + "12 / 30 min" (unit once, tap to open inline value input — save/cancel), edit pencil hover-visible (always on mobile). Motion utilities in `index.css`: `ring-pop`, `burst-dot`, `bar-in`, `fade-up` (staggers via animationDelay), `.habit-tile` hover recipe, `.ring-progress`/`.ring-draw`; all collapse under `prefers-reduced-motion`. New files: `components/ProgressRings.tsx`, `components/WeeklyCompletion.tsx`, `components/HabitTile.tsx` (replaces deleted `components/HabitRow.tsx`), `hooks/useThemeName.ts` (reactive dark/light for `readableColor`, listens to the `themechange` event; existing hooks untouched).
@@ -112,6 +114,17 @@ VITE_SUPABASE_ANON_KEY=<anon key>
    - **Tap targets:** Settings habit-name link and HabitDetail "Back to Today" text link are now 44px (`flex h-11`); specced controls below 44px visually (36px chips, 32px color-select swatches, RangeSwitch options) got invisible hit-area extensions via `after:` pseudo-elements so the full 44px is tappable without changing the look; heatmap cells stay 14px per DESIGN.md §7 spec.
    - Small consistency fixes: Today action-error chips match the other pages (text-body / rounded-input); Login "Create account" hover now uses `hover:bg-surface-raised` instead of white text (invisible on light theme); Today Retry button gained a danger hover fill.
 
+10. **Profile & avatar data layer** (UI built in item 11):
+   - `src/lib/profile.ts` — `Profile`/`ProfileInput` types, `GENDERS`, `isGender`, `validateFullName` (≤80 chars), `validateDateOfBirth` (YYYY-MM-DD, on/after 1900, not future), `validatePhone` (7–15 digits, optional leading +, common separators), `validateGender`, `validateProfile` (aggregates), `initialsFrom(name, email)` for avatar fallback. Pure, no React/Supabase. ✅ `profile.test.ts`.
+   - `src/lib/avatar.ts` — `prepareAvatar(file)`: rejects non-images and files over 2 MB, center-crops to a square, resizes to 512px, encodes as WebP via canvas, returns a Blob.
+   - `src/hooks/useProfile.ts` — loads the profile row (may not exist yet via `maybeSingle`), `save` upserts on `user_id`, `uploadAvatar` (to `<user_id>/avatar.webp` with upsert then saves `avatar_path`), `removeAvatar` (deletes file and clears path), 1-hour signed URL for display with auto-refresh 5 min before expiry, exposes auth `email` and `emailConfirmed` (`email_confirmed_at`), surfaces errors (sets state + rethrows). UI wiring in item 11.
+11. **Profile page** (`/profile`, DESIGN.md §11, UI pass — data layer from item 10 used as-is):
+    - Components: `ProfileBanner.tsx` (glass banner 120/160px with `.banner-grid` 56px square-grid pattern + aurora fade overlay; overlapping avatar 96/120px, 4px `ring-bg-base`, accent glow, initials-on-accent-gradient fallback, 36px camera button with 44px hit-area + hidden file input, indeterminate `.progress-spin` ring while uploading, name 32/40 + blue verified badge (16px SVG) when email confirmed, email below, "Remove photo" when a photo exists); `ProfileDetails.tsx` + `ProfileDetailsDisplay.tsx` + `ProfileDetailsEdit.tsx` (28px-radius glass card: header separated by 1px border with Edit control; rows 35%/65% label/value stacked on mobile with dashed dividers and "Not added" for empties; edit mode = 52px `.input-field` inputs in place, Gender via `RangeSwitch` with a new optional `dense` prop (caption-size text for 4 options; null maps to `prefer_not_to_say`), DOB `type=date` capped at today, phone `type=tel`, email read-only with lock icon; Save/Cancel in a sticky glass-pill card header, per-field inline validation errors from `validateProfile`).
+    - `pages/Profile.tsx` — breadcrumb header "My Account / Profile" + primary "Edit profile" pill (hidden while editing); skeleton shimmer via `.skeleton`; page-level error card with Retry only when `error && !profile` (save/upload failures surface as toasts instead); toasts fixed-bottom auto-dismiss 2.6s ("Profile saved" / upload/remove/save errors via `extractError`).
+    - Nav: "Profile" (IconUser) added to `AppShell` NAV — 4 items in the desktop rail and mobile dock; `/profile` route added inside RequireAuth; icons gained `IconUser`, `IconCamera`, `IconLock`; CSS gained `.banner-grid`, `@keyframes spin` + `.progress-spin`, `@keyframes shimmer` + `.skeleton` (reduced-motion covered by the global rule).
+    - Note: the edit header uses `sticky top-2`; the shell's `overflow-hidden` wrapper may prevent it from engaging on scroll (best-effort); layout covers 360px and 1440px in both themes.
+    - DB field `country` is included as a row in both display and edit modes so `save` never nulls it.
+
 ### Remaining next steps (Aurora Glass passes still to do)
 - All main pages are implemented and the PWA is live (manifest + generated service worker, auto-update). Every page is restyled to DESIGN.md except one motion detail: big-numeral count-up on stat tiles.
 
@@ -133,20 +146,23 @@ VITE_SUPABASE_ANON_KEY=<anon key>
 ```
 src/
   main.tsx            entry — applies stored/system theme, renders <App/>
-  App.tsx             BrowserRouter routes (/login outside guard; /, /overview, /settings,
-                      /habits/new, /habits/:id/edit, /habits/:id inside RequireAuth + AppShell)
+  App.tsx             BrowserRouter routes (/login outside guard; /, /overview, /profile,
+                      /settings, /habits/new, /habits/:id/edit, /habits/:id inside RequireAuth + AppShell)
   index.css           Tailwind v4 + design tokens (@theme) + dark class strategy
   lib/
     score.ts          pure score/streak/completion logic (SMOOTHING_CONSTANT)
     dates.ts          Asia/Kolkata local date helpers
     supabase.ts       lazy Supabase client (getSupabase)
     color.ts          readableColor / tint / contrast (WCAG-3:1 habit color visibility)
+    profile.ts        Profile type + validation + initialsFrom (pure)
+    avatar.ts         prepareAvatar: crop/resize/encode WebP via canvas (browser-only)
   hooks/
     useAuth.ts        session via onAuthStateChange
     useTheme.ts       dark toggle + persistence (dispatches `themechange`)
     useThemeName.ts   reactive dark/light for readableColor (listens to `themechange`)
     useHabits.ts      habits CRUD/archive + loading/error
     useEntries.ts     entries per habit + save/remove
+    useProfile.ts     profile row load/save (upsert), avatar upload/remove, signed URL (1h, auto-refresh)
   components/
     AppShell.tsx      floating shell: icon rail (desktop) / glass dock (mobile)
     RequireAuth.tsx   auth guard
@@ -160,13 +176,18 @@ src/
     Heatmap.tsx       custom calendar heatmap (color-mix intensity levels)
     CompletionHistoryChart.tsx  weekly/monthly completion bars + toggle chips
     ColorPicker.tsx, ThemeToggle.tsx, icons.tsx
+    ProfileBanner.tsx  banner + avatar/camera/progress + name/verified/email + remove photo
+    ProfileDetails.tsx details card shell (routes display ↔ edit)
+    ProfileDetailsDisplay.tsx  35/65 label-value rows with dashed dividers
+    ProfileDetailsEdit.tsx     in-place edit form + sticky Save/Cancel header
   pages/
     Today.tsx         bento: hero rings + weekly bars + habit tiles (optimistic check-ins, date pill, backfill)
     HabitForm.tsx     add/edit habit
     HabitDetail.tsx   /habits/:id — stats, score chart, bars, heatmap
     Overview.tsx      stat tiles + multi-line chart card (chips inside) + sparkline cards
     Settings.tsx      theme, habit archive/restore, account/sign out
+    Profile.tsx       /profile — banner + personal details (display/edit), toasts, skeleton/error states
     Login.tsx         Supabase email/password auth
 ```
 
-DB: `habits` (id, user_id, name, type boolean|numeric, target, unit, freq_times, freq_days, color, sort_order, archived, created_at) and `entries` (id, user_id, habit_id, date YYYY-MM-DD, value, unique (habit_id, date)). RLS on both. `created_at` timestamps are converted to local dates via `dates.ts` before use in score logic.
+DB: `habits` (id, user_id, name, type boolean|numeric, target, unit, freq_times, freq_days, color, sort_order, archived, created_at), `entries` (id, user_id, habit_id, date YYYY-MM-DD, value, unique (habit_id, date)), `profiles` (user_id pk, full_name, date_of_birth, gender, nationality, country, address, phone, avatar_path, updated_at — one row per user, RLS on) and the private `avatars` bucket (2 MB, files at `<user_id>/avatar.webp`; displayed via 1-hour signed URLs). RLS on habits/entries/profiles. `created_at` timestamps are converted to local dates via `dates.ts` before use in score logic. Email lives only in the auth session, never in `profiles`.

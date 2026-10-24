@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { IconLogout, IconMoon, IconOverview, IconSettings, IconSun, IconToday } from './icons'
+import { IconLogout, IconMoon, IconOverview, IconSettings, IconSun, IconToday, IconUser } from './icons'
 import { useTheme } from '../hooks/useTheme'
 import { getSupabase } from '../lib/supabase'
 import type { ComponentType } from 'react'
@@ -10,6 +10,7 @@ type NavItem = { to: string; label: string; Icon: ComponentType<{ className?: st
 const NAV: NavItem[] = [
   { to: '/', label: 'Today', Icon: IconToday },
   { to: '/overview', label: 'Overview', Icon: IconOverview },
+  { to: '/profile', label: 'Profile', Icon: IconUser },
   { to: '/settings', label: 'Settings', Icon: IconSettings },
 ]
 

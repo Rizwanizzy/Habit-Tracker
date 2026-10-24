@@ -80,3 +80,16 @@ Glass recipe (light): same blur, shadow 0 20px 50px -24px rgba(15,23,42,.18).
 - Don't use habit colors for text, uppercase habit names, or flat black card backgrounds.
 - Don't add new dependencies except an icon set already in use. Animations are CSS and SVG only.
 - Don't leave a page as one narrow centered column on desktop; use the grid.
+
+## 11. Profile page
+Layout from the reference, in the Aurora Glass theme (same tokens, glass cards, radii, fonts, and motion as the rest of the app).
+- Header row: breadcrumb "My Account / Profile" (caption style, "Profile" in text-primary with a small user-circle icon) on the left, primary "Edit profile" pill on the right.
+- Banner: full-width glass area, 160px high on desktop and 120px on mobile, with a subtle square-grid pattern (1px lines at chart-grid color, 56px cells, a few cells filled at 4% white) and an aurora gradient fading out at the bottom.
+- Avatar: 120px circle (96px on mobile) overlapping the banner's bottom edge, 4px ring in bg-base, soft glow in the accent color. Fallback when there is no photo: initials on accent-gradient. A 36px circular camera button sits at its bottom-right corner and opens the file picker.
+- Below the avatar: full name in 32/40 Space Grotesk 700, with a blue verified badge (16px) after it when the email is confirmed; the email below in text-secondary.
+- "Personal details" card: glass card, 28px radius. A header row (title 16px 600 plus the edit control on the right) separated by a 1px border, then rows: Full name, Date of birth, Gender, Nationality, Address (country + city or region), Phone number, Email. Each row is a two-column grid (label 35%, value 65%; stacked on mobile), label in text-secondary, value in text-primary, dashed 1px dividers between rows, 16px vertical padding. Empty values show "Not added" in text-muted.
+- Edit mode: the rows turn into inputs (52px, surface-2) in place with no page change; Gender is a segmented control, Date of birth a date input, Phone a tel input. Save (primary) and Cancel (secondary) buttons appear in the card header and stay visible while scrolling. Email stays read-only with a small lock icon.
+- Avatar upload: crop to a centered square, resize to 512px, convert to webp, then upload. Show a progress ring on the avatar while uploading; show an error toast if the file is over 2 MB or not an image. A "Remove photo" text button appears when a photo exists.
+- States: skeleton shimmer while loading, inline error with Retry, success toast "Profile saved".
+- Desktop: the card is max 720px wide and centered under the avatar block. Mobile: full width, single column.
+- Navigation: add "Profile" (user-circle icon) to the rail and the mobile dock; the dock now has 4 items.

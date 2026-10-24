@@ -30,6 +30,8 @@ Read DESIGN.md before building or changing any UI.
 - `habits`: id, user_id, name, type ('boolean' | 'numeric'), target, unit, freq_times, freq_days, color (hex), sort_order, archived, created_at
 - `entries`: id, user_id, habit_id, date (YYYY-MM-DD), value, unique (habit_id, date)
 - RLS is on for both tables. Never disable it. Never use the service role key in the frontend.
+- `profiles`: user_id (pk, = auth.users id), full_name, date_of_birth, gender ('female'|'male'|'other'|'prefer_not_to_say'), nationality, country, address, phone, avatar_path, updated_at. One row per user, created on first save (upsert). RLS on.
+- Storage bucket `avatars` (private, 2 MB, jpeg/png/webp). Files live at `<user_id>/avatar.webp`. Store only the path in `profiles.avatar_path`; display with `createSignedUrl` (1 hour) and refresh when expired. Email is read from the auth session, is shown read-only, and is never stored in `profiles`.
 
 ## Rules that matter
 1. **Colors:** every habit has its own `color` hex from the database. All charts, heatmaps, checkboxes and badges must read it from the habit. Never hardcode a habit color. Heatmap intensity levels use `color-mix(in srgb, <color> N%, transparent)`.

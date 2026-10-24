@@ -12,6 +12,7 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 - **Stats & charts** — glass stat tiles, a glowing gradient score line chart, 10px rounded completion bars, and a 14px-cell calendar heatmap on each habit's detail page; Overview with stat tiles (average score, best habit, needs attention), a glowing multi-line score chart with habit toggle chips, and per-habit sparkline cards
 - **Color picker** — preset swatches, native color input, and custom hex per habit; every foreground use stays readable in both themes
 - **Auth** — Supabase email/password sign in, session guard, sign out
+- **Profile & avatar** — banner with grid pattern and overlapping avatar (camera upload, crop/resize/WebP, remove photo), name with verified badge, "Personal details" card with in-place edit mode and validation, loading/error/toast states
 - **Theming** — light/dark via a sliding sun/moon switch; design tokens from `DESIGN.md`
 
 ## Tech stack
@@ -35,7 +36,7 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
    VITE_SUPABASE_URL=<your-project-url>
    VITE_SUPABASE_ANON_KEY=<your-anon-key>
    ```
-3. **Create the database tables** — run `supabase/schema.sql` in the Supabase SQL editor (creates `habits` and `entries` with row-level security enabled). Skip this if the tables already exist in your project.
+3. **Create the database tables** — run `supabase/schema.sql` in the Supabase SQL editor (creates `habits`, `entries`, `profiles` and the private `avatars` bucket with row-level security enabled). Skip this if your project already has them.
 4. **Run the app**
    ```bash
    npm run dev
@@ -54,10 +55,10 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 
 ```
 src/
-  lib/        pure logic (score, dates, color, supabase client)
-  hooks/      data hooks (useHabits, useEntries, useAuth, useTheme, useThemeName)
-  components/ reusable UI (AppShell, HabitTile, ProgressRings, WeeklyCompletion, Heatmap, ColorPicker, ThemeToggle)
-  pages/      Today (bento), Overview, Settings, HabitForm, HabitDetail, Login
+  lib/        pure logic (score, dates, color, profile, avatar, supabase client)
+  hooks/      data hooks (useHabits, useEntries, useProfile, useAuth, useTheme, useThemeName)
+  components/ reusable UI (AppShell, HabitTile, Heatmap, ColorPicker, Profile*, ThemeToggle)
+  pages/      Today (bento), Overview, Profile, Settings, HabitForm, HabitDetail, Login
 ```
 
 ## Documentation
