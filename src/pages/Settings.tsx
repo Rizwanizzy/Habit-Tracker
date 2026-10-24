@@ -113,6 +113,12 @@ export function Settings() {
           <div className="glass-card fade-up rounded-card p-6" style={{ animationDelay: '80ms' }}>
             <h2 className="text-section-title">Account</h2>
             <p className="text-caption mt-1 text-fg-muted">Signed in as {session?.user.email ?? 'unknown'}</p>
+            <Link
+              to="/profile"
+              className="mt-2 inline-flex h-11 items-center rounded-pill px-4 text-body font-medium text-accent hover:underline"
+            >
+              View profile
+            </Link>
             {signOutError && (
               <p role="alert" className="mt-4 rounded-input bg-danger/10 px-3 py-2 text-body text-danger">
                 {signOutError}

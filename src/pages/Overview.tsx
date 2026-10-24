@@ -12,10 +12,10 @@ import { ScoreLineChart, type ChartRow } from '../components/ScoreLineChart'
 
 type RangeKey = '30' | '90' | '365'
 
-const RANGES: { key: RangeKey; label: string }[] = [
-  { key: '30', label: '30 days' },
-  { key: '90', label: '90 days' },
-  { key: '365', label: '1 year' },
+const RANGES: { key: RangeKey; label: string; short: string }[] = [
+  { key: '30', label: '30 days', short: '30d' },
+  { key: '90', label: '90 days', short: '90d' },
+  { key: '365', label: '1 year', short: '1y' },
 ]
 
 const pct = (score: number) => Math.round(score * 100)

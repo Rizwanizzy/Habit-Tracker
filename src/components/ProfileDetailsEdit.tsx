@@ -135,7 +135,6 @@ export function ProfileDetailsEdit({
         <div className="grid grid-cols-1 gap-1.5 border-b border-dashed border-border py-4">
           <span className="text-caption text-fg-secondary">Gender</span>
           <RangeSwitch
-            dense
             options={GENDER_OPTIONS}
             value={draft.gender}
             ariaLabel="Gender"

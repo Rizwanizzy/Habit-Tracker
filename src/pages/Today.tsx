@@ -8,6 +8,7 @@ import { ProgressRings } from '../components/ProgressRings'
 import { WeeklyCompletion } from '../components/WeeklyCompletion'
 import { HabitTile } from '../components/HabitTile'
 import { IconChevronLeft, IconChevronRight, IconFlame } from '../components/icons'
+import { TodayGreeting } from '../components/TodayGreeting'
 
 function upsertEntry(list: Entry[], entry: Entry): Entry[] {
   const i = list.findIndex((e) => e.date === entry.date)
@@ -115,7 +116,7 @@ export function Today() {
   if (pageError) {
     return (
       <section>
-        <h1 className="text-page-title">Today</h1>
+        <TodayGreeting />
         <div className="glass-card mt-6 rounded-card p-6 text-center" role="alert">
           <p className="text-body text-danger">{pageError}</p>
           <button
@@ -133,7 +134,7 @@ export function Today() {
   if (habitsLoading || entriesLoading) {
     return (
       <section>
-        <h1 className="text-page-title">Today</h1>
+        <TodayGreeting />
         <div className="glass-card mt-6 grid min-h-32 place-items-center rounded-card p-10" role="status">
           <span className="text-body text-fg-muted">Loading…</span>
         </div>
@@ -144,7 +145,7 @@ export function Today() {
   if (habits.length === 0) {
     return (
       <section>
-        <h1 className="text-page-title">Today</h1>
+        <TodayGreeting />
         <p className="text-caption mt-1 text-fg-muted">{dateLabel}</p>
         <div className="glass-card mt-6 rounded-card p-6 text-center">
           <p className="text-body text-fg-secondary">No habits yet.</p>
@@ -162,12 +163,9 @@ export function Today() {
 
   return (
     <section>
-      {/* Header: page title + date caption on the left, date pill + primary action on the right */}
+      {/* Header: greeting block on the left, date pill + primary action on the right */}
       <header className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-page-title">Today</h1>
-          <p className="text-caption mt-1 text-fg-muted">{dateLabel}</p>
-        </div>
+        <TodayGreeting />
         <div className="flex flex-wrap items-center gap-3">
           <div
             role="group"

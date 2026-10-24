@@ -71,11 +71,13 @@ export function ProfileBanner({
 
   return (
     <section aria-label="Profile header">
-      {/* Banner: full-width grid background, no border, no glass-card, no radius */}
-      <div className="banner-grid banner-bg w-full h-[120px] lg:h-[160px]" />
+      {/* Banner container: relative so avatar can overlap the grid area */}
+      <div className="relative w-full">
+        {/* Banner: full-width grid background, no border, no glass-card, no radius */}
+        <div className="banner-grid banner-bg w-full h-[20px] lg:h-[28px]" />
 
-      {/* Avatar + identity block on top of the grid, ~24px from the top */}
-      <div className="mx-auto mt-6 flex w-full max-w-[720px] flex-col items-center gap-4 lg:mt-8" ref={avatarRef}>
+        {/* Avatar + identity block overlapping the bottom of the grid area */}
+        <div className="mx-auto -mt-6 flex w-full max-w-[720px] flex-col items-center gap-4 lg:-mt-12 lg:mt-0" ref={avatarRef}>
         <div className="relative shrink-0">
           {hasPhoto ? (
             <img
@@ -217,6 +219,7 @@ export function ProfileBanner({
             <span className="truncate">{email}</span>
           </span>
         </p>
+        </div>
       </div>
     </section>
   )

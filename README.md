@@ -49,6 +49,7 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 | `npm run dev` | Start the dev server |
 | `npm run build` | Type-check and production build |
 | `npm test` | Run Vitest unit tests |
+| `npm run icons` | Generate PWA icons and favicons |
 | `npm run lint` | Lint with oxlint |
 
 ## Project layout
@@ -58,6 +59,7 @@ src/
   lib/        pure logic (score, dates, color, profile, avatar, supabase client)
   hooks/      data hooks (useHabits, useEntries, useProfile, useAuth, useTheme, useThemeName)
   components/ reusable UI (AppShell, HabitTile, Heatmap, ColorPicker, Profile*, ThemeToggle)
+  contexts/   React context providers (ProfileContext)
   pages/      Today (bento), Overview, Profile, Settings, HabitForm, HabitDetail, Login
 ```
 

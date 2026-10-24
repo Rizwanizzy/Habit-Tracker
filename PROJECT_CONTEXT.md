@@ -49,7 +49,8 @@ one tap (today or any past date), and sees streaks, scores, and charts in the ha
 ```
 npm run dev     # dev server (http://localhost:5173)
 npm run build   # tsc -b && vite build
-npm test        # vitest run (19/19 passing)
+npm test        # vitest run (44/44 passing)
+npm run icons   # generate PWA icons/favicons (@vite-pwa/assets-generator)
 ```
 
 For local dev, `.env.local` (NOT committed) must contain:
@@ -121,12 +122,19 @@ VITE_SUPABASE_ANON_KEY=<anon key>
 11. **Profile page** (`/profile`, DESIGN.md §11, UI pass — data layer from item 10 used as-is):
     - Components: `ProfileBanner.tsx` (full-width grid background banner 120/160px with `.banner-grid` 56px square-grid pattern + radial mask-image fade toward bottom/sides, no glass-card/border/radius; avatar 96/120px sitting inside the grid ~24px from top with 4px `ring-bg-base`, accent glow, initials fallback; 36px camera button opening a keyboard-accessible glass popover with "Change photo" and "Remove photo" — the latter only when a photo exists, with a confirmation step; popover closes on outside click and Escape; name 32/40 + blue verified badge when email confirmed; email below); `ProfileDetails.tsx` + `ProfileDetailsDisplay.tsx` + `ProfileDetailsEdit.tsx` (28px-radius glass card: header separated by 1px border with a subtle 36px ghost/outline Edit pill; rows 35%/65% label/value stacked on mobile with dashed dividers and "Not added" for empties; edit mode = 52px `.input-field` inputs in place, Gender via `RangeSwitch` with a new optional `dense` prop (caption-size text for 4 options; null maps to `prefer_not_to_say`), DOB `type=date` capped at today, phone `type=tel`, email read-only with lock icon; Save (48px primary) and Cancel (secondary) replace Edit in the same sticky card-header spot, per-field inline validation errors from `validateProfile`).
     - `pages/Profile.tsx` — breadcrumb header "My Account / Profile" (no action pill); skeleton shimmer via `.skeleton`; page-level error card with Retry only when `error && !profile` (save/upload failures surface as toasts instead); toasts fixed-bottom auto-dismiss 2.6s ("Profile saved" / upload/remove/save errors via `extractError`).
-    - Nav: "Profile" (IconUser) added to `AppShell` NAV — 4 items in the desktop rail and mobile dock; `/profile` route added inside RequireAuth; icons gained `IconUser`, `IconCamera`, `IconLock`; CSS gained `.banner-grid`, `.banner-bg` (radial mask fade), `@keyframes spin` + `.progress-spin`, `@keyframes shimmer` + `.skeleton` (reduced-motion covered by the global rule).
+    - Nav: Profile is accessed via the avatar in the Today header (navigates to /profile) and via the "View profile" link in Settings; not in the rail or mobile dock. /profile route added inside RequireAuth; icons gained IconUser, IconCamera, IconLock; CSS gained .banner-grid, .banner-bg (radial mask fade), @keyframes spin + .progress-spin, @keyframes shimmer + .skeleton (reduced-motion covered by the global rule).
     - Note: the edit header uses `sticky top-2`; the shell's `overflow-hidden` wrapper may prevent it from engaging on scroll (best-effort); layout covers 360px and 1440px in both themes.
     - DB field `country` is included as a row in both display and edit modes so `save` never nulls it.
 
 ### Remaining next steps (Aurora Glass passes still to do)
 - All main pages are implemented and the PWA is live (manifest + generated service worker, auto-update). Every page is restyled to DESIGN.md except one motion detail: big-numeral count-up on stat tiles.
+
+## Branding and icons (new)
+- Logo source: `design-refs/habit-tracker-logo.png` / `public/logo.png` (served copy).
+- Generated via `npm run icons` (`@vite-pwa/assets-generator`, `pwa-assets.config.js`): `public/logo.png` (logo master), `public/favicon.ico`, `public/icon-192.png`, `public/icon-512.png`, `public/icon-maskable-512.png` (logo ~70% on #070A12), `public/apple-touch-icon.png` (180x180, #070A12).
+- `index.html`: favicon links (SVG + ICO), apple-touch-icon, theme-color `#070A12`, title "Habit Tracker".
+- `vite.config.ts` PWA manifest: theme_color/background_color `#070A12`, icons 192/512/maskable-512.
+- Logo shown in: sidebar header (mark + hidden wordmark), Login page above card.
 
 ## 6. Key rules any contributor must follow (from AGENTS.md — full list there)
 
@@ -164,13 +172,14 @@ src/
     useEntries.ts     entries per habit + save/remove
     useProfile.ts     profile row load/save (upsert), avatar upload/remove, signed URL (1h, auto-refresh)
   components/
-    AppShell.tsx      floating shell: icon rail (desktop) / glass dock (mobile)
+    AppShell.tsx      floating shell: icon rail (desktop) / glass dock (mobile); logo mark at rail top; Profile avatar at rail bottom
     RequireAuth.tsx   auth guard
+    TodayGreeting.tsx greeting block: avatar + time-of-day greeting + "Hi, <name>" + date; avatar links to /profile
     HabitTile.tsx     Today habit tile (check ring + burst, streak chip, progress)
     ProgressRings.tsx hero concentric rings (one per habit, draw-in + morph)
     WeeklyCompletion.tsx  weekly completion mini bars (last 7 days, tooltips)
     StatTile.tsx      glass stat tile + DeltaChip (arrow chips) + HabitDotName
-    RangeSwitch.tsx   segmented sliding accent-pill range switch (36px)
+    RangeSwitch.tsx   segmented sliding accent-pill range switch (40px, equal-width grid segments, translateX pill, short labels under 400px)
     Sparkline.tsx     pure SVG per-habit sparkline with white-ringed end dot
     ScoreLineChart.tsx  multi-line chart: halo glow, dashed grid, glass tooltip
     Heatmap.tsx       custom calendar heatmap (color-mix intensity levels)
@@ -180,6 +189,8 @@ src/
     ProfileDetails.tsx details card shell (routes display ↔ edit)
     ProfileDetailsDisplay.tsx  35/65 label-value rows with dashed dividers
     ProfileDetailsEdit.tsx     in-place edit form + sticky Save/Cancel header
+  contexts/
+    ProfileContext.tsx ProfileProvider wrapping useProfile — shared profile state across Today header, rail avatar, Profile page
   pages/
     Today.tsx         bento: hero rings + weekly bars + habit tiles (optimistic check-ins, date pill, backfill)
     HabitForm.tsx     add/edit habit

@@ -12,18 +12,23 @@ Read DESIGN.md before building or changing any UI.
 - React Router for pages
 - Vitest for tests
 - `vite-plugin-pwa` (added later)
+- `@vite-pwa/assets-generator` (dev dependency, one-off icon generation only)
 - Heatmap is a custom component, not a library.
 
 ## Commands
 - `npm run dev` start dev server
 - `npm run build` type-check and build
 - `npm test` run Vitest
+- `npm run icons` generate PWA icons and favicons from `public/logo.png` (uses `@vite-pwa/assets-generator`, see `pwa-assets.config.js`)
 
 ## Folder structure
-- `src/lib/` pure logic: `score.ts`, `dates.ts`, `supabase.ts`
-- `src/hooks/` data hooks (`useHabits`, `useEntries`)
-- `src/components/` reusable UI (HabitRow, Heatmap, ScoreChart, ColorPicker, ...)
-- `src/pages/` Today, Overview, HabitDetail, WeeklyReview, Settings, Login
+- `src/lib/` pure logic: `score.ts`, `dates.ts`, `supabase.ts`, `color.ts`, `profile.ts`, `avatar.ts`
+- `src/hooks/` data hooks (`useHabits`, `useEntries`, `useTheme`, `useProfile`)
+- `src/contexts/` React context providers (`ProfileContext` shares profile state across Today header, rail avatar, and Profile page)
+- `src/components/` reusable UI (HabitRow, Heatmap, ScoreChart, ColorPicker, TodayGreeting, RangeSwitch, ProfileBanner, ...)
+- `src/pages/` Today, Overview, HabitDetail, WeeklyReview, Settings, Login, Profile
+- `scripts/` one-off scripts (`generate-icons.mjs` - superseded by `pwa-assets.config.js` + `npm run icons`)
+- `public/` favicon.ico, favicon.svg, logo.png, icon-192.png, icon-512.png, icon-maskable-512.png, apple-touch-icon.png, icons.svg
 - Keep files under about 200 lines; split when larger.
 
 ## Data model
@@ -67,4 +72,5 @@ Read DESIGN.md before building or changing any UI.
 - Don't add payments, social features, or multi-user features.
 - Don't commit `.env.local` or any keys.
 - Don't change the database schema without telling me and showing the SQL.
+- Don't change `src/lib/score.ts` or `src/lib/dates.ts` (pure logic with tests).
 - Don't rewrite files unrelated to the task.

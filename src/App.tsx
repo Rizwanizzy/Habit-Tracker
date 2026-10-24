@@ -8,25 +8,28 @@ import { HabitForm } from './pages/HabitForm'
 import { HabitDetail } from './pages/HabitDetail'
 import { Profile } from './pages/Profile'
 import { Login } from './pages/Login'
+import { ProfileProvider } from './contexts/ProfileContext'
 
 export function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route element={<RequireAuth />}>
-          <Route element={<AppShell />}>
-            <Route index element={<Today />} />
-            <Route path="overview" element={<Overview />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="habits/new" element={<HabitForm />} />
-            <Route path="habits/:id/edit" element={<HabitForm />} />
-            <Route path="habits/:id" element={<HabitDetail />} />
+    <ProfileProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<RequireAuth />}>
+            <Route element={<AppShell />}>
+              <Route index element={<Today />} />
+              <Route path="overview" element={<Overview />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="habits/new" element={<HabitForm />} />
+              <Route path="habits/:id/edit" element={<HabitForm />} />
+              <Route path="habits/:id" element={<HabitDetail />} />
+            </Route>
           </Route>
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ProfileProvider>
   )
 }

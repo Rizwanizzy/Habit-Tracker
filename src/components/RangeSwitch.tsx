@@ -1,6 +1,8 @@
 interface Option {
   key: string
   label: string
+  /** Short label used when the viewport is under 400px wide. */
+  short?: string
 }
 
 interface Props {
@@ -8,22 +10,23 @@ interface Props {
   value: string
   onChange: (key: string) => void
   ariaLabel: string
-  /** Smaller caption-size text, for 4-option switches (e.g. Gender). */
-  dense?: boolean
 }
 
-/** Segmented range switch (DESIGN.md §6): 36px high, glass track, with a
- *  sliding accent-gradient pill behind the active option. */
-export function RangeSwitch({ options, value, onChange, ariaLabel, dense }: Props) {
+/** Segmented range switch (DESIGN.md §6): 40px high, 3-column equal-width grid,
+ *  with a sliding accent pill sized to exactly one segment. Under 400px uses
+ *  short labels (e.g. "30d", "90d", "1y"). */
+export function RangeSwitch({ options, value, onChange, ariaLabel }: Props) {
   const idx = Math.max(
     0,
     options.findIndex((o) => o.key === value),
   )
+  const isNarrow = typeof window !== 'undefined' && window.innerWidth < 400
+
   return (
     <div
-      role="group"
+      role="radiogroup"
       aria-label={ariaLabel}
-      className="relative flex h-9 items-center rounded-pill border border-border bg-surface p-0.5"
+      className="relative flex h-10 items-center rounded-pill border border-border bg-surface p-0.5"
     >
       <span
         aria-hidden="true"
@@ -33,19 +36,24 @@ export function RangeSwitch({ options, value, onChange, ariaLabel, dense }: Prop
           transform: `translateX(${idx * 100}%)`,
         }}
       />
-      {options.map((opt, i) => (
-        <button
-          key={opt.key}
-          type="button"
-          onClick={() => onChange(opt.key)}
-          aria-pressed={i === idx}
-          className={`relative z-10 h-8 flex-1 rounded-pill font-medium transition-colors duration-150 after:absolute after:inset-x-0 after:inset-y-[-6px] after:content-[''] ${
-            dense ? 'text-caption px-1' : 'text-body px-2'
-          } ${i === idx ? 'text-white' : 'text-fg-secondary hover:text-fg'} focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none`}
-        >
-          {opt.label}
-        </button>
-      ))}
+      {options.map((opt, i) => {
+        const label = isNarrow && opt.short ? opt.short : opt.label
+        return (
+          <button
+            key={opt.key}
+            type="button"
+            role="radio"
+            aria-checked={i === idx}
+            onClick={() => onChange(opt.key)}
+            aria-pressed={i === idx}
+            className={`relative z-10 h-[38px] w-full rounded-pill font-medium transition-colors duration-150 whitespace-nowrap items-center justify-center px-2 text-caption ${
+              i === idx ? 'text-white' : 'text-fg-secondary hover:text-fg'
+            } focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none`}
+          >
+            {label}
+          </button>
+        )
+      })}
     </div>
   )
 }

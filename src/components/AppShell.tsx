@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom'
 import { IconLogout, IconMoon, IconOverview, IconSettings, IconSun, IconToday, IconUser } from './icons'
 import { useTheme } from '../hooks/useTheme'
+import { useProfileContext } from '../contexts/ProfileContext'
 import { getSupabase } from '../lib/supabase'
 import type { ComponentType } from 'react'
 
@@ -10,7 +11,6 @@ type NavItem = { to: string; label: string; Icon: ComponentType<{ className?: st
 const NAV: NavItem[] = [
   { to: '/', label: 'Today', Icon: IconToday },
   { to: '/overview', label: 'Overview', Icon: IconOverview },
-  { to: '/profile', label: 'Profile', Icon: IconUser },
   { to: '/settings', label: 'Settings', Icon: IconSettings },
 ]
 
@@ -24,6 +24,7 @@ export function AppShell() {
   const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const [signOutError, setSignOutError] = useState<string | null>(null)
+  const { profile, avatarUrl } = useProfileContext()
 
   async function signOut() {
     setSignOutError(null)
@@ -43,19 +44,54 @@ export function AppShell() {
       : `${RAIL_CIRCLE}bg-surface-raised text-fg-secondary hover:text-fg`
   }
 
+  const activePath = window.location.pathname
+
   return (
     <div className="mx-auto w-full max-w-[1280px] lg:p-4">
       <div className="glass-card flex min-h-dvh overflow-hidden lg:rounded-shell lg:min-h-[calc(100dvh-2rem)]">
-        {/* Desktop rail: 72px wide column of circular icon buttons */}
+        {/* Desktop rail: 72px wide column */}
         <aside aria-label="Primary" className="hidden w-[72px] shrink-0 flex-col items-center border-r border-border py-5 lg:flex">
+          {/* Top: logo mark (no border/background, matches Sign in page) */}
+          <Link to="/" className="mb-6 inline-flex shrink-0" aria-label="Go to Today">
+            <img
+              src="/logo.png"
+              alt="Habit Tracker"
+              className="size-[56px]"
+              aria-hidden="true"
+            />
+          </Link>
           <nav className="flex flex-col items-center gap-3">
             {NAV.map(({ to, label, Icon }) => (
-              <NavLink key={to} to={to} end={to === '/'} aria-label={label} title={label} className={railClass}>
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                aria-label={label}
+                title={label}
+                className={railClass({ isActive: activePath === to || (to === '/' && activePath === '/') })}
+              >
                 <Icon className="size-5" />
               </NavLink>
             ))}
           </nav>
           <div className="mt-auto flex flex-col items-center gap-3">
+            {/* Profile avatar button (48px, active state with accent ring) */}
+            <Link
+              to="/profile"
+              className="relative shrink-0"
+            >
+              <div className="relative">
+                <div
+                  className="grid size-12 place-items-center rounded-full bg-surface-raised border border-border hover:bg-surface hover:text-fg transition-colors duration-150 active:scale-95"
+                >
+                  {avatarUrl && profile?.avatar_path ? (
+                    <img src={avatarUrl} alt="Profile" className="size-[40px] rounded-full object-cover" />
+                  ) : (
+                    <IconUser className="size-5" />
+                  )}
+                </div>
+              </div>
+            </Link>
             <button
               type="button"
               onClick={toggle}

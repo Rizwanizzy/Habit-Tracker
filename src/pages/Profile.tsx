@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useProfile } from '../hooks/useProfile'
 import { extractError } from '../hooks/useHabits'
 import type { ProfileInput } from '../lib/profile'
 import { ProfileBanner } from '../components/ProfileBanner'
 import { ProfileDetails } from '../components/ProfileDetails'
 import { IconUser } from '../components/icons'
+import { useProfileContext } from '../contexts/ProfileContext'
 
 type Notice = { kind: 'success' | 'danger'; text: string } | null
 
@@ -25,7 +25,7 @@ export function Profile() {
     save,
     uploadAvatar,
     removeAvatar,
-  } = useProfile()
+  } = useProfileContext()
   const [editing, setEditing] = useState(false)
   const [notice, setNotice] = useState<Notice>(null)
 
@@ -64,7 +64,7 @@ export function Profile() {
   }
 
   const header = (
-    <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <header className="mb-2 flex flex-wrap items-center justify-between gap-3">
       <nav aria-label="Breadcrumb" className="flex min-h-11 items-center gap-1.5 text-caption text-fg-muted">
         <span>My Account /</span>
         <span className="flex items-center gap-1.5 text-fg">
@@ -129,7 +129,7 @@ export function Profile() {
         onPickFile={(file) => void handlePick(file)}
         onRemove={() => void handleRemove()}
       />
-      <div className="mx-auto mt-6 w-full max-w-[720px] lg:mt-8">
+      <div className="mx-auto mt-4 w-full max-w-[720px] lg:mt-6">
         <ProfileDetails
           profile={profile}
           email={email}

@@ -53,25 +53,14 @@ export function Login() {
         onSubmit={signIn}
         className="glass-card fade-up w-full max-w-sm rounded-card p-6 sm:p-8"
       >
-        {/* Gradient logo mark above the card content (DESIGN.md §8). */}
+        {/* Logo mark above the card content (DESIGN.md §8). */}
         <div className="flex flex-col items-center text-center">
-          <span
+          <img
+            src="/logo.png"
+            alt="Habit Tracker"
+            className="size-[84px] mb-3"
             aria-hidden="true"
-            className="bg-accent-gradient glow-accent grid size-16 place-items-center rounded-[20px]"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="size-8"
-              fill="none"
-              stroke="white"
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="9" strokeWidth={2} />
-              <path d="m8 12.5 2.5 2.5L16 9.5" />
-            </svg>
-          </span>
+          />
           <h1 className="text-page-title mt-4">Sign in</h1>
           <p className="text-caption mt-1 text-fg-muted">Sync your habits across devices</p>
         </div>

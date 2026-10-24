@@ -200,8 +200,8 @@ export function HabitDetail() {
             <h2 className="text-section-title">Score</h2>
             <RangeSwitch
               options={[
-                { key: '30', label: '30 days' },
-                { key: '90', label: '90 days' },
+                { key: '30', label: '30 days', short: '30d' },
+                { key: '90', label: '90 days', short: '90d' },
               ]}
               value={scoreWindow}
               onChange={(k) => setScoreWindow(k as '90' | '30')}

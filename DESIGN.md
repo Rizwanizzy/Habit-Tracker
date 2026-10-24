@@ -39,9 +39,12 @@ Glass recipe (light): same blur, shadow 0 20px 50px -24px rgba(15,23,42,.18).
 - Never use flat black cards with only a border. Every card has glass + soft shadow.
 
 ## 5. Layout shell
-- Desktop (>=1024px): floating rounded shell inset 16px from the viewport edges over the aurora background. Slim 72px left rail with circular 48px icon buttons (Today, Overview, Settings). Active button: accent-gradient fill with glow. Inactive: surface-2 circle. Theme toggle and sign-out as circle buttons at the bottom of the rail.
-- Mobile: no rail. Floating bottom dock, glass pill, 64px high, 16px from bottom and sides, 3 icon buttons, respects safe-area inset. Content gets bottom padding so the dock never covers it.
-- Header on every page: greeting or page title on the left, date caption beneath, primary action pill on the right.
+- Desktop (>=1024px): floating rounded shell inset 16px from the viewport edges over the aurora background. Slim 72px left rail with:
+  - Top: logo mark (48px) in a glass tile; wordmark "Habit Tracker" present but visually hidden on the narrow rail.
+  - Middle: Today, Overview, Settings as circular 48px icon buttons. Active: accent-gradient fill with glow. Inactive: surface-2 circle.
+  - Bottom group: Profile (user's 48px avatar circle, active state with accent-gradient ring when on /profile), theme toggle, sign-out as circle buttons.
+- Mobile: no rail. Floating bottom dock, glass pill, 64px high, 16px from bottom and sides, 3 icon buttons (Today, Overview, Settings), respects safe-area inset. Content gets bottom padding so the dock never covers it. Profile is reached via the avatar in the Today header; Settings has a "View profile" link.
+- Header on every page: greeting block (avatar, time-of-day greeting, "Hi, <name>", date) on the left, primary action pill on the right.
 
 ## 6. Components
 - **Primary button:** 48px, accent-gradient, white text, glow shadow (0 10px 30px -8px accent at 60%). Hover: brightness 1.08 and translateY(-1px).
@@ -50,7 +53,7 @@ Glass recipe (light): same blur, shadow 0 20px 50px -24px rgba(15,23,42,.18).
 - **Progress rings (hero):** concentric SVG rings, one per habit, each in its habit color, outermost = first habit. Stroke 10px, 6px gap, round caps, 12% opacity track. Center shows the big numeral "3/4" and caption "done today". Max 7 rings.
 - **Stat tile:** glass, caption label on top, big numeral, small delta chip with arrow (success or danger).
 - **Chips (habit toggles):** 36px pill, small dot in habit color. Selected: habit 20% fill and habit 40% border. Unselected: 50% opacity.
-- **Range switch:** segmented control with a sliding accent pill behind the active option, 36px high.
+- **Range switch:** segmented control with a sliding accent pill behind the active option, 40px high, equal-width segments, white-space nowrap. Under 400px uses short labels ("30d", "90d", "1y").
 - **Color picker:** 10 preset round swatches (32px) with a ring on the selected one, plus a "custom" swatch that opens the native color input.
 - **Inputs:** 52px, surface-2, 16px radius, 1px border, accent focus ring with glow.
 
@@ -92,4 +95,17 @@ Layout from the reference, in the Aurora Glass theme (same tokens, glass cards, 
 - Avatar upload: crop to a centered square, resize to 512px, convert to webp, then upload. Show a progress ring on the avatar while uploading; show an error toast if the file is over 2 MB or not an image. Remove photo is accessed via the camera button popover.
 - States: skeleton shimmer while loading, inline error with Retry, success toast "Profile saved".
 - Desktop: the card is max 720px wide and centered under the avatar block. Mobile: full width, single column.
-- Navigation: add "Profile" (user-circle icon) to the rail and the mobile dock; the dock now has 4 items.
+- Navigation: Profile is accessed via the avatar in the Today header (navigates to /profile) and via the "View profile" link in Settings; not in the rail or mobile dock.
+
+## 12. Brand and icons
+- Logo source: `design-refs/habit-tracker-logo.png` (PNG master) or `public/logo.png` (served copy).
+- Logo placement: sidebar header (logo mark + "Habit Tracker" wordmark, wordmark visually hidden on narrow rail), Login page above the card.
+- Generated icons (run `npm run icons`, uses `@vite-pwa/assets-generator`):
+  - `public/favicon.ico` (16/32/48)
+  - `public/logo.png` (logo master, 192x192)
+  - `public/icon-192.png` (192x192 PNG)
+  - `public/icon-512.png` (512x512 PNG)
+  - `public/icon-maskable-512.png` (512x512 maskable, logo at ~70% on solid #070A12)
+  - `public/apple-touch-icon.png` (180x180, solid #070A12, no transparency)
+- `index.html`: favicon links (SVG + ICO), apple-touch-icon, theme-color meta `#070A12`, title "Habit Tracker".
+- `vite.config.ts` PWA manifest: name "Habit Tracker", short_name "Habits", theme_color/background_color `#070A12`, display standalone, start_url "/", icons 192/512/maskable-512.
