@@ -1,15 +1,12 @@
-import { useState } from 'react'
-import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom'
-import { IconLogout, IconMoon, IconOverview, IconSettings, IconSun, IconToday, IconUser } from './icons'
+import { NavLink, Link, Outlet } from 'react-router-dom'
+import { IconMoon, IconOverview, IconSettings, IconSun, IconUser } from './icons'
 import { useTheme } from '../hooks/useTheme'
 import { useProfileContext } from '../contexts/ProfileContext'
-import { getSupabase } from '../lib/supabase'
 import type { ComponentType } from 'react'
 
 type NavItem = { to: string; label: string; Icon: ComponentType<{ className?: string }> }
 
 const NAV: NavItem[] = [
-  { to: '/', label: 'Today', Icon: IconToday },
   { to: '/overview', label: 'Overview', Icon: IconOverview },
   { to: '/settings', label: 'Settings', Icon: IconSettings },
 ]
@@ -22,21 +19,7 @@ const RAIL_CIRCLE =
  *  with a 72px icon rail on desktop; floating glass dock on mobile. */
 export function AppShell() {
   const { dark, toggle } = useTheme()
-  const navigate = useNavigate()
-  const [signOutError, setSignOutError] = useState<string | null>(null)
   const { profile, avatarUrl } = useProfileContext()
-
-  async function signOut() {
-    setSignOutError(null)
-    try {
-      const sb = getSupabase()
-      const { error } = await sb.auth.signOut()
-      if (error) throw error
-      navigate('/login', { replace: true })
-    } catch (err) {
-      setSignOutError(err instanceof Error ? err.message : 'Sign out failed')
-    }
-  }
 
   function railClass({ isActive }: { isActive: boolean }): string {
     return isActive
@@ -101,15 +84,6 @@ export function AppShell() {
             >
               {dark ? <IconSun className="size-5" /> : <IconMoon className="size-5" />}
             </button>
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              aria-label="Sign out"
-              title="Sign out"
-              className={`${RAIL_CIRCLE}bg-surface-raised text-fg-secondary hover:text-danger`}
-            >
-              <IconLogout className="size-5" />
-            </button>
           </div>
         </aside>
 
@@ -140,13 +114,6 @@ export function AppShell() {
           </NavLink>
         ))}
       </nav>
-
-      {/* Visible sign-out error — never swallowed. */}
-      {signOutError && (
-        <p role="alert" className="text-caption fixed bottom-24 left-4 z-40 max-w-[90vw] rounded-pill bg-danger/10 px-3 py-2 text-danger lg:bottom-6">
-          {signOutError}
-        </p>
-      )}
     </div>
   )
 }

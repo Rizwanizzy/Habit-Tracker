@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { extractError } from '../hooks/useHabits'
+import { getSupabase } from '../lib/supabase'
 import type { ProfileInput } from '../lib/profile'
 import { ProfileBanner } from '../components/ProfileBanner'
 import { ProfileDetails } from '../components/ProfileDetails'
-import { IconUser } from '../components/icons'
+import { IconUser, IconLogout } from '../components/icons'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { useProfileContext } from '../contexts/ProfileContext'
 
 type Notice = { kind: 'success' | 'danger'; text: string } | null
@@ -28,6 +31,19 @@ export function Profile() {
   } = useProfileContext()
   const [editing, setEditing] = useState(false)
   const [notice, setNotice] = useState<Notice>(null)
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const navigate = useNavigate()
+
+  async function signOut() {
+    try {
+      const sb = getSupabase()
+      const { error } = await sb.auth.signOut()
+      if (error) throw error
+      navigate('/login', { replace: true })
+    } catch (err) {
+      setNotice({ kind: 'danger', text: err instanceof Error ? err.message : 'Sign out failed' })
+    }
+  }
 
   useEffect(() => {
     if (!notice) return
@@ -72,6 +88,13 @@ export function Profile() {
           Profile
         </span>
       </nav>
+      <button
+        type="button"
+        onClick={() => setConfirmSignOut(true)}
+        className="relative shrink-0"
+      >
+        <IconLogout className="size-6" />
+      </button>
     </header>
   )
 
@@ -154,6 +177,16 @@ export function Profile() {
           </p>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmSignOut}
+        onClose={() => setConfirmSignOut(false)}
+        title="Sign out?"
+        description="You'll need to sign in again to see your habits."
+        cancelLabel="Cancel"
+        confirmLabel="Sign out"
+        danger
+        onConfirm={signOut}
+      />
     </section>
   )
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { initialsFrom } from '../lib/profile'
+import { ConfirmDialog } from './ConfirmDialog'
 import { IconCamera, IconUser } from './icons'
 
 interface Props {
@@ -31,7 +32,7 @@ export function ProfileBanner({
   const avatarRef = useRef<HTMLDivElement>(null)
   const [imgBroken, setImgBroken] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
-  const [confirmRemove, setConfirmRemove] = useState(false)
+  const [confirmRemoveDialog, setConfirmRemoveDialog] = useState(false)
   const hasPhoto = avatarPath != null && avatarUrl != null && !imgBroken
   const displayName = name?.trim() || email?.split('@')[0] || 'Profile'
   const initials = initialsFrom(name, email)
@@ -44,7 +45,7 @@ export function ProfileBanner({
     function handleClickOutside(e: MouseEvent) {
       if (popoverOpen && avatarRef.current && !avatarRef.current.contains(e.target as Node)) {
         setPopoverOpen(false)
-        setConfirmRemove(false)
+        setConfirmRemoveDialog(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -56,7 +57,7 @@ export function ProfileBanner({
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         setPopoverOpen(false)
-        setConfirmRemove(false)
+        setConfirmRemoveDialog(false)
       }
     }
     document.addEventListener('keydown', handleKeyDown)
@@ -64,7 +65,7 @@ export function ProfileBanner({
   }, [])
 
   async function handleConfirmRemove() {
-    setConfirmRemove(false)
+    setConfirmRemoveDialog(false)
     setPopoverOpen(false)
     onRemove()
   }
@@ -157,41 +158,22 @@ export function ProfileBanner({
                 Change photo
               </button>
               {hasPhoto && (
-                <>
-                  <div className="border-t border-border" />
-                  {confirmRemove ? (
-                    <>
-                      <p className="px-4 py-2 text-caption text-fg-secondary">Remove this photo?</p>
-                      <div className="flex gap-2 px-4 py-2">
-                        <button
-                          type="button"
-                          onClick={() => setConfirmRemove(false)}
-                          className="flex-1 py-1.5 text-caption text-fg-secondary hover:bg-surface-raised rounded-pill"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleConfirmRemove}
-                          className="flex-1 py-1.5 text-caption text-danger hover:bg-danger/10 rounded-pill"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmRemove(true)}
-                      className="flex items-center gap-2 px-4 py-2 text-body text-danger hover:bg-danger/10"
-                    >
-                      <span className="size-4" aria-hidden="true">
-                        🗑️
-                      </span>
-                      Remove photo
-                    </button>
-                  )}
-                </>
+                <div className="border-t border-border" />
+              )}
+              {hasPhoto && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPopoverOpen(false)
+                    setConfirmRemoveDialog(true)
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-body text-danger hover:bg-danger/10"
+                >
+                  <span className="size-4" aria-hidden="true">
+                    🗑️
+                  </span>
+                  Remove photo
+                </button>
               )}
             </div>
           )}
@@ -221,6 +203,17 @@ export function ProfileBanner({
         </p>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmRemoveDialog}
+        onClose={() => setConfirmRemoveDialog(false)}
+        title="Remove photo?"
+        description="This will delete your profile picture and cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel="Remove"
+        danger
+        onConfirm={handleConfirmRemove}
+      />
     </section>
   )
 }

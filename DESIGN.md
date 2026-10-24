@@ -109,3 +109,16 @@ Layout from the reference, in the Aurora Glass theme (same tokens, glass cards, 
   - `public/apple-touch-icon.png` (180x180, solid #070A12, no transparency)
 - `index.html`: favicon links (SVG + ICO), apple-touch-icon, theme-color meta `#070A12`, title "Habit Tracker".
 - `vite.config.ts` PWA manifest: name "Habit Tracker", short_name "Habits", theme_color/background_color `#070A12`, display standalone, start_url "/", icons 192/512/maskable-512.
+
+## 13. Dialogs
+All confirmation dialogs use the shared `ConfirmDialog` component (`src/components/ConfirmDialog.tsx`), rendered via `createPortal` into `document.body` so no parent with `backdrop-filter`, `transform`, `filter`, or `overflow` can break the blur.
+
+- **Scrim:** full-screen layer behind the dialog. `rgba(4,6,14,0.55)` in dark, `rgba(15,23,42,0.28)` in light, plus `backdrop-filter: blur(10px) saturate(120%)`. Fades in over 160ms. Clicking the scrim cancels.
+- **Dialog panel:** glass, not solid. Width `min(420px, calc(100vw - 32px))`, radius 28px, padding 24px.
+  - Dark: background `linear-gradient(145deg, rgba(34,38,64,0.78), rgba(14,18,36,0.72))`; border `1px solid rgba(255,255,255,0.14)`; `backdrop-filter: blur(28px) saturate(150%)`; shadow `inset 0 1px 0 rgba(255,255,255,0.10), 0 30px 80px -20px rgba(0,0,0,0.7), 0 0 60px -20px color-mix(in srgb, var(--accent) 35%, transparent)`.
+  - Light: background `linear-gradient(145deg, rgba(255,255,255,0.88), rgba(241,244,246,0.80))`; border `1px solid rgba(15,23,42,0.10)`; same blur; shadow `0 24px 60px -24px rgba(15,23,42,0.30)`.
+  - `@supports not (backdrop-filter: blur(1px))` raises panel background opacity to 0.94 so content never shows through in browsers without blur.
+  - A thin 2px gradient line (accent-gradient, 40% opacity) along the top edge; hidden for the danger variant, which uses a soft danger-colored glow instead.
+- **Content:** title in heading font at 22px; description in sentence case at 15px, `text-secondary` (not uppercase, no letter-spacing). Buttons right-aligned in a row: Cancel as secondary ghost pill, confirm as danger pill (soft danger tint `rgba(251,113,133,0.14)`, danger border and text, stronger hover fill). Both 44px high. Under 400px, buttons stack full width, confirm on top.
+- **Behavior & accessibility:** `role="alertdialog"` with `aria-labelledby` and `aria-describedby`; focus moves to Cancel on open; focus trap inside; Escape cancels; focus returns to opener on close; body scroll locked while open. Entry animation: scale 0.96 to 1 plus fade over 200ms with cubic-bezier(0.2, 0.8, 0.2, 1); disabled under `prefers-reduced-motion`.
+- Used for: sign-out confirmation on the Profile page, remove-photo confirmation in the Profile banner.
