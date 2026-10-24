@@ -323,6 +323,14 @@ body {
   background-repeat: no-repeat, no-repeat, repeat, repeat;
 }
 
+/* Banner background layer: full-width grid + aurora, fading out toward the
+   bottom and sides via a radial mask so it blends into the page background. */
+.banner-bg {
+  position: relative;
+  mask-image: radial-gradient(circle at 50% 25%, black 35%, transparent 100%);
+  -webkit-mask-image: radial-gradient(circle at 50% 25%, black 35%, transparent 100%);
+}
+
 /* Indeterminate spinner ring shown on the avatar while uploading. */
 @keyframes spin {
   to {

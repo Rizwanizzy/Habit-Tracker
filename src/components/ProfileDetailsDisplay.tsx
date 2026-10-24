@@ -47,7 +47,7 @@ export function ProfileDetailsDisplay({
         <button
           type="button"
           onClick={onEdit}
-          className="glass-pill inline-flex h-9 items-center rounded-pill px-4 text-body font-medium text-fg transition-colors duration-150 hover:bg-surface-raised active:scale-95"
+          className="glass-pill inline-flex h-9 items-center rounded-pill px-3 text-body font-medium text-fg-secondary transition-colors duration-150 hover:text-fg hover:bg-surface-raised focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
         >
           Edit
         </button>
@@ -61,7 +61,7 @@ export function ProfileDetailsDisplay({
         <Row label="Address" value={profile?.address ?? null} />
         <Row label="Phone number" value={profile?.phone ?? null} />
         {/* Email comes from the auth session and is read-only. */}
-        <div className="grid grid-cols-1 gap-0.5 py-4 sm:grid-cols-[35%_1fr] sm:items-center sm:gap-2">
+        <div className="grid grid-cols-1 gap-0.5 border-b border-dashed border-border py-4 sm:grid-cols-[35%_1fr] sm:items-center sm:gap-2">
           <dt className="text-caption text-fg-secondary">Email</dt>
           <dd className="text-body flex min-w-0 items-center gap-1.5 text-fg">
             <IconLock className="size-3.5 shrink-0 text-fg-muted" aria-hidden="true" />

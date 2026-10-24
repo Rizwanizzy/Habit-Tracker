@@ -8,9 +8,9 @@ import { IconUser } from '../components/icons'
 
 type Notice = { kind: 'success' | 'danger'; text: string } | null
 
-/** Profile page (DESIGN.md §11): breadcrumb header with an "Edit profile"
- *  pill, glass banner + overlapping avatar, and the Personal details card.
- *  Owns edit mode, toasts, and the loading / error states. */
+/** Profile page (DESIGN.md §11): breadcrumb header, glass banner + avatar on
+ *  top of the grid, and the Personal details card. Owns edit mode, toasts,
+ *  and the loading / error states. */
 export function Profile() {
   const {
     profile,
@@ -72,15 +72,6 @@ export function Profile() {
           Profile
         </span>
       </nav>
-      {!editing && (
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="bg-accent-gradient glow-accent inline-flex h-12 shrink-0 items-center rounded-pill px-5 text-body font-semibold text-white transition-all duration-150 hover:-translate-y-px hover:brightness-110 active:scale-95"
-        >
-          Edit profile
-        </button>
-      )}
     </header>
   )
 
@@ -88,8 +79,8 @@ export function Profile() {
     return (
       <section aria-busy="true">
         {header}
-        <div className="skeleton h-[120px] rounded-card lg:h-[160px]" />
-        <div className="mx-auto -mt-12 flex w-full max-w-[720px] flex-col items-center gap-3 lg:mt-[-60px]">
+        <div className="skeleton h-[120px] lg:h-[160px]" />
+        <div className="mx-auto mt-6 flex w-full max-w-[720px] flex-col items-center gap-4 lg:mt-8">
           <div className="skeleton size-24 rounded-full ring-4 ring-background lg:size-[120px]" />
           <div className="skeleton h-8 w-56 rounded-pill" />
           <div className="skeleton h-4 w-64 max-w-full rounded-pill" />

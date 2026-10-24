@@ -92,7 +92,7 @@ export function ProfileDetailsEdit({
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className="inline-flex h-10 items-center rounded-pill px-4 text-body font-medium text-fg transition-colors duration-150 hover:bg-surface-raised active:scale-95 disabled:opacity-60"
+            className="inline-flex h-12 items-center rounded-pill px-4 text-body font-medium text-fg transition-colors duration-150 hover:bg-surface-raised active:scale-95 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
           >
             Cancel
           </button>
@@ -100,7 +100,7 @@ export function ProfileDetailsEdit({
             type="button"
             onClick={() => void handleSave()}
             disabled={saving}
-            className="bg-accent-gradient glow-accent inline-flex h-10 items-center rounded-pill px-5 text-body font-semibold text-white transition-all duration-150 hover:-translate-y-px hover:brightness-110 active:scale-95 disabled:opacity-60"
+            className="bg-accent-gradient glow-accent inline-flex h-12 items-center rounded-pill px-5 text-body font-semibold text-white transition-all duration-150 hover:-translate-y-px hover:brightness-110 active:scale-95 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
           >
             {saving ? 'Saving…' : 'Save'}
           </button>

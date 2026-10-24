@@ -41,7 +41,7 @@ export function RangeSwitch({ options, value, onChange, ariaLabel, dense }: Prop
           aria-pressed={i === idx}
           className={`relative z-10 h-8 flex-1 rounded-pill font-medium transition-colors duration-150 after:absolute after:inset-x-0 after:inset-y-[-6px] after:content-[''] ${
             dense ? 'text-caption px-1' : 'text-body px-2'
-          } ${i === idx ? 'text-white' : 'text-fg-secondary hover:text-fg'}`}
+          } ${i === idx ? 'text-white' : 'text-fg-secondary hover:text-fg'} focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none`}
         >
           {opt.label}
         </button>

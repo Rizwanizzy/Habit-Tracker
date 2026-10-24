@@ -13,9 +13,10 @@ interface Props {
   onRemove: () => void
 }
 
-/** Profile banner (DESIGN.md §11): glass banner with a square-grid pattern and
- *  an aurora fade, overlapping avatar with camera button, name + verified
- *  badge, email, and a remove-photo action. */
+/** Profile banner (DESIGN.md §11): full-width grid background with a radial
+ *  mask fade, avatar sitting on top of the grid (~24px from top), name +
+ *  verified badge + email below it. The camera button opens a keyboard-
+ *  accessible popover with "Change photo" and "Remove photo" actions. */
 export function ProfileBanner({
   name,
   email,
@@ -27,7 +28,10 @@ export function ProfileBanner({
   onRemove,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const avatarRef = useRef<HTMLDivElement>(null)
   const [imgBroken, setImgBroken] = useState(false)
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
   const hasPhoto = avatarPath != null && avatarUrl != null && !imgBroken
   const displayName = name?.trim() || email?.split('@')[0] || 'Profile'
   const initials = initialsFrom(name, email)
@@ -35,22 +39,43 @@ export function ProfileBanner({
   // Reset the broken-image fallback whenever a new photo arrives.
   useEffect(() => setImgBroken(false), [avatarUrl, avatarPath])
 
+  // Close popover on outside click.
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (popoverOpen && avatarRef.current && !avatarRef.current.contains(e.target as Node)) {
+        setPopoverOpen(false)
+        setConfirmRemove(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [popoverOpen])
+
+  // Close popover on Escape.
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setPopoverOpen(false)
+        setConfirmRemove(false)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  async function handleConfirmRemove() {
+    setConfirmRemove(false)
+    setPopoverOpen(false)
+    onRemove()
+  }
+
   return (
     <section aria-label="Profile header">
-      {/* Banner: 120px mobile / 160px desktop, grid pattern + aurora fade */}
-      <div className="banner-grid glass-card relative h-[120px] overflow-hidden rounded-card lg:h-[160px]">
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(180deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent 78%)',
-          }}
-        />
-      </div>
+      {/* Banner: full-width grid background, no border, no glass-card, no radius */}
+      <div className="banner-grid banner-bg w-full h-[120px] lg:h-[160px]" />
 
-      {/* Overlapping avatar + identity block, centered like the 720px card */}
-      <div className="mx-auto -mt-12 flex w-full max-w-[720px] flex-col items-center gap-2 lg:mt-[-60px]">
+      {/* Avatar + identity block on top of the grid, ~24px from the top */}
+      <div className="mx-auto mt-6 flex w-full max-w-[720px] flex-col items-center gap-4 lg:mt-8" ref={avatarRef}>
         <div className="relative shrink-0">
           {hasPhoto ? (
             <img
@@ -86,14 +111,16 @@ export function ProfileBanner({
               />
             </svg>
           )}
-          {/* 36px camera button; invisible pseudo extends the hit area to 44px */}
+          {/* Camera button: opens the popover menu */}
           <button
             type="button"
-            onClick={() => inputRef.current?.click()}
+            onClick={() => setPopoverOpen((p) => !p)}
             disabled={uploading}
             aria-label={hasPhoto ? 'Change photo' : 'Upload photo'}
             title={hasPhoto ? 'Change photo' : 'Upload photo'}
-            className="glass-pill absolute bottom-1 right-1 z-10 grid size-9 place-items-center rounded-full text-fg-secondary transition-colors duration-150 after:absolute after:-inset-1 after:content-[''] hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none active:scale-95 disabled:opacity-60"
+            aria-haspopup="menu"
+            aria-expanded={popoverOpen}
+            className="glass-pill absolute bottom-1 right-1 z-20 grid size-9 place-items-center rounded-full text-fg-secondary transition-colors duration-150 after:absolute after:-inset-1 after:content-[''] hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none active:scale-95 disabled:opacity-60"
           >
             <IconCamera className="size-4" />
           </button>
@@ -110,6 +137,62 @@ export function ProfileBanner({
               e.target.value = ''
             }}
           />
+          {/* Popover menu: Change photo / Remove photo */}
+          {popoverOpen && (
+            <div
+              className="glass-pill absolute bottom-[-56px] right-0 z-20 w-48 rounded-pill border border-border shadow-lg flex flex-col"
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  inputRef.current?.click()
+                  setPopoverOpen(false)
+                }}
+                className="flex items-center gap-2 px-4 py-2 text-body text-fg hover:bg-surface-raised"
+              >
+                <IconCamera className="size-4" />
+                Change photo
+              </button>
+              {hasPhoto && (
+                <>
+                  <div className="border-t border-border" />
+                  {confirmRemove ? (
+                    <>
+                      <p className="px-4 py-2 text-caption text-fg-secondary">Remove this photo?</p>
+                      <div className="flex gap-2 px-4 py-2">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmRemove(false)}
+                          className="flex-1 py-1.5 text-caption text-fg-secondary hover:bg-surface-raised rounded-pill"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleConfirmRemove}
+                          className="flex-1 py-1.5 text-caption text-danger hover:bg-danger/10 rounded-pill"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmRemove(true)}
+                      className="flex items-center gap-2 px-4 py-2 text-body text-danger hover:bg-danger/10"
+                    >
+                      <span className="size-4" aria-hidden="true">
+                        🗑️
+                      </span>
+                      Remove photo
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-1 flex min-w-0 items-center gap-2 px-4 text-center">
@@ -134,17 +217,6 @@ export function ProfileBanner({
             <span className="truncate">{email}</span>
           </span>
         </p>
-
-        {avatarPath != null && (
-          <button
-            type="button"
-            onClick={onRemove}
-            disabled={uploading}
-            className="text-body mt-1 inline-flex h-11 items-center rounded-pill px-4 font-medium text-danger transition-colors duration-150 hover:bg-danger/10 focus-visible:ring-2 focus-visible:ring-danger focus-visible:outline-none active:scale-95 disabled:opacity-60"
-          >
-            Remove photo
-          </button>
-        )}
       </div>
     </section>
   )
