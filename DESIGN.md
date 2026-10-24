@@ -1,93 +1,82 @@
-1. Overall feel
+# Design Spec: "Aurora Glass" habit tracker
 
-Calm, focused, and intentionally low-density. The interface uses dark surfaces as the default mood, with deep charcoal backgrounds and generous whitespace so progress stands out without visual clutter. Habit colors are the only vivid accents; every neutral element stays muted so the user's chosen habit color carries meaning. Designed mobile-first, the same components scale cleanly to desktop with consistent proportions and tap targets.
+Futuristic, calm, high-contrast. Bento-grid layout, glass cards, soft glow. Dark theme is the default. Light theme follows the pastel look: white cards, big radii, soft tinted tiles. Each habit's own color is the only strong color on screen; everything else is neutral.
 
-2. Color tokens
+## 1. Color tokens
+| Token | Dark | Light |
+|---|---|---|
+| bg-base | #070A12 | #DCE8EE |
+| bg-aurora | radial-gradient(60% 50% at 12% 0%, rgba(99,102,241,.28), transparent), radial-gradient(50% 40% at 92% 8%, rgba(34,211,238,.20), transparent), radial-gradient(50% 50% at 50% 100%, rgba(236,72,153,.14), transparent) | radial-gradient(60% 50% at 10% 0%, rgba(125,211,252,.55), transparent), radial-gradient(50% 50% at 95% 100%, rgba(190,242,100,.35), transparent) |
+| surface (glass) | rgba(255,255,255,.05) | rgba(255,255,255,.80) |
+| surface-2 | rgba(255,255,255,.08) | #F1F4F6 |
+| border | rgba(255,255,255,.10) | rgba(15,23,42,.08) |
+| text-primary | #F4F6FB | #0F1217 |
+| text-secondary | #A3ACC2 | #5B6472 |
+| text-muted | #6B7490 | #98A1AF |
+| accent | #7C83FF | #4F46E5 |
+| accent-gradient | linear-gradient(135deg,#7C83FF,#22D3EE) | linear-gradient(135deg,#4F46E5,#0EA5E9) |
+| success | #34D399 | #16A34A |
+| danger | #FB7185 | #E11D48 |
+| chart-grid | rgba(255,255,255,.06) | rgba(15,23,42,.06) |
+| chart-axis | #6B7490 | #98A1AF |
 
-Token	Light value	Dark value
-background	#ffffff	#0f0f13 (estimated)
-surface	#f8fafc	#16161d (estimated)
-surface-raised	#ffffff	#1f1f26 (estimated)
-border	#e2e8f0	#33333a (estimated)
-text-primary	#0f172a	#e4e4e7 (estimated)
-text-secondary	#475569	#a8a8b2 (estimated)
-text-muted	#94a3b8	#71717a (estimated)
-accent	#3b82f6 (estimated)	#6366f1 (estimated)
-success	#22c55e	#22c55e
-danger	#ef4444	#ef4444
-chart-grid	#e2e8f0	#33333a
-chart-axis	#94a3b8	#71717a
+Glass recipe (dark): background surface, 1px border, backdrop-filter: blur(20px) saturate(140%), inset 0 1px 0 rgba(255,255,255,.08), shadow 0 24px 60px -24px rgba(0,0,0,.65).
+Glass recipe (light): same blur, shadow 0 20px 50px -24px rgba(15,23,42,.18).
 
-3. Typography
+## 2. Habit color rules (important)
+- Habit color is used for: check ring/fill, progress bars, chart lines, heatmap cells, dots, tile tint, glow.
+- Habit color is NEVER used for body text on a surface. Names stay text-primary.
+- `readableColor(hex, theme)` in src/lib/color.ts: if contrast against the surface is below 3:1, raise lightness (dark theme) or lower it (light theme) until it passes. Use this for every foreground use of a habit color, so very dark or very light custom colors still show up.
+- Tints: `color-mix(in srgb, <color> 22%, transparent)` for tile backgrounds, 35% for borders, 55% for glows.
 
-Font family: Inter (free Google Font), with system-ui as fallback. All text uses clean sans-serif letterforms.
-- Page title: 32px, weight 700, line-height 1.2
-- Section title: 22px, weight 600, line-height 1.3
-- Habit name: 17px, weight 500, line-height 1.4
-- Body: 15px, weight 400, line-height 1.5
-- Caption: 12px, weight 400, line-height 1.4
-- Big stat number: 34px, weight 700, line-height 1.1
+## 3. Typography
+- Headings and big numbers: "Space Grotesk" (Google Font). Body and UI: "DM Sans".
+- Greeting/page title 32/40, weight 700. Hero numeral 56/56, weight 700, tabular-nums. Section title 18/24, 600. Habit name 17/24, 600. Body 15/22, 400. Caption 12/16, uppercase, tracking .08em, text-muted.
 
-4. Spacing, radius, elevation
+## 4. Shape, spacing, depth
+- Radius: app shell 32px, cards 28px, tiles 24px, inputs 16px, buttons/chips/pills fully round.
+- 4px spacing scale. Card padding 20px mobile, 24px desktop. Grid gap 16px mobile, 20px desktop. Page padding 16px mobile, 32px desktop. Max content width 1280px.
+- Never use flat black cards with only a border. Every card has glass + soft shadow.
 
-Spacing scale (px): 4, 8, 12, 16, 20, 24, 32, 40, 48, 64.
-- Page padding mobile: 16px on each side.
-- Page padding desktop: 24px on each side, with content centered in a max-width container of about 800px.
-- Card radius: 16px.
-- Button radius: 12px.
-- Pill / chip radius: full (9999px).
-- Elevation: primarily expressed through a 1px border in the border token rather than heavy shadows. If a shadow is used on raised cards, keep it soft (estimated: 0 1px 3px rgba(0,0,0,0.08) in light mode, 0 1px 3px rgba(0,0,0,0.4) in dark mode).
+## 5. Layout shell
+- Desktop (>=1024px): floating rounded shell inset 16px from the viewport edges over the aurora background. Slim 72px left rail with circular 48px icon buttons (Today, Overview, Settings). Active button: accent-gradient fill with glow. Inactive: surface-2 circle. Theme toggle and sign-out as circle buttons at the bottom of the rail.
+- Mobile: no rail. Floating bottom dock, glass pill, 64px high, 16px from bottom and sides, 3 icon buttons, respects safe-area inset. Content gets bottom padding so the dock never covers it.
+- Header on every page: greeting or page title on the left, date caption beneath, primary action pill on the right.
 
-5. Components
+## 6. Components
+- **Primary button:** 48px, accent-gradient, white text, glow shadow (0 10px 30px -8px accent at 60%). Hover: brightness 1.08 and translateY(-1px).
+- **Secondary button:** glass pill, border, same height.
+- **Habit tile (Today):** min-height 132px, background linear-gradient(145deg, habit 22%, habit 6%), border habit 35%. Top-left 44px circular check button: pending = 2px habit-color ring; done = filled habit color, white check, glow. Habit name below, then streak chip (flame icon + number) on the right. Numeric habits show a 6px rounded progress bar in the habit color plus "12 / 30 min" (value / target unit, never repeat the number). Edit icon appears on hover and is always visible on mobile. Hover: lift 2px, border brighter.
+- **Progress rings (hero):** concentric SVG rings, one per habit, each in its habit color, outermost = first habit. Stroke 10px, 6px gap, round caps, 12% opacity track. Center shows the big numeral "3/4" and caption "done today". Max 7 rings.
+- **Stat tile:** glass, caption label on top, big numeral, small delta chip with arrow (success or danger).
+- **Chips (habit toggles):** 36px pill, small dot in habit color. Selected: habit 20% fill and habit 40% border. Unselected: 50% opacity.
+- **Range switch:** segmented control with a sliding accent pill behind the active option, 36px high.
+- **Color picker:** 10 preset round swatches (32px) with a ring on the selected one, plus a "custom" swatch that opens the native color input.
+- **Inputs:** 52px, surface-2, 16px radius, 1px border, accent focus ring with glow.
 
-*Habit row on the Today screen*
-A full-width surface-raised card, 16px radius, with 16px internal padding. On the left is a circular checkbox (about 24px diameter). When completed, the ring fills with the habit's color and shows a white check; when pending, it is a thin ring in border color. Next to it, the habit name sits at 17px, weight 500, in the habit's color. On the right is a streak badge: a pill-shaped badge with surface background, a small colored dot in the habit's color, and the streak number at 12px, weight 600, in text-secondary. Hover state subtly lightens the card background; pressed state scales to 0.98.
+## 7. Charts
+- Line chart: monotone smooth curves, 2.5px stroke in the habit color, gradient area fill (habit 30% to 0%), soft glow via drop-shadow(0 0 8px habit 50%). Horizontal grid only, dashed, chart-grid color. No vertical grid, no axis lines. Axis labels 12px chart-axis.
+- Active point: 8px dot with a 3px white ring, as in the reference. Tooltip: glass card, 16px radius, colored dot, habit name, value.
+- Bars: 10px wide, fully rounded tops, 6px gap, habit color; today's bar glows.
+- Heatmap: 14px cells, 4px radius, 4px gap; levels at habit 12%, 35%, 65%, 100%; the top level has a small glow. Month labels above, weekday labels left.
+- Charts always have an empty state (soft illustration-free message plus "Check in a habit to see your score").
 
-*Primary and secondary buttons*
-Primary button: filled with the habit color or accent token, white text at 15px weight 600, 12px radius, 48px height. Hover reduces opacity slightly; pressed scales to 0.98. Secondary button: transparent background, 1px border in border color, text in text-primary at 15px weight 500, 12px radius, 48px height. Hover fills with surface-raised color.
+## 8. Page layouts
+- **Today (bento):** desktop 12-column grid. Row 1: Hero card (rings + "3/4 done" + motivational line + overall streak, 5 cols), Weekly completion card (7 smooth-curve/bar mini chart, 7 cols). Row 2: habit tiles in a responsive grid (3 columns desktop, 2 tablet, 1 mobile). Date navigation is a pill with prev/next arrows and a calendar button, placed in the header.
+- **Overview:** header with range switch. Row 1: three stat tiles (average score, best habit, needs attention). Row 2: large chart card with the chip row inside it. Row 3: per-habit mini cards, each with a sparkline in its color.
+- **Settings:** two-column on desktop. Appearance card (theme toggle with a sun/moon animation), Habits card (list with color dot, edit, archive), Account card. Sign-out is a subtle danger-outline button.
+- **Login:** centered glass card over the aurora background, logo mark above, gradient primary button.
 
-*Cards and stat tiles*
-Surface background, 16px radius, 1px border in border color, 16–20px padding. Stat tiles show a large number at 34px weight 700 in text-primary, with a small label beneath at 12px weight 400 in text-muted.
+## 9. Motion
+- Easing cubic-bezier(.2,.8,.2,1). Durations: hover 160ms, page content 300ms.
+- Page load: cards fade up 12px with 40ms stagger.
+- Check-in: ring-pop (scale 1 to 1.15 to 1 in 280ms) plus a short burst of 6 small dots in the habit color; the hero rings animate to their new value over 700ms; big numbers count up.
+- Rings and chart lines draw in on first render (900ms).
+- Respect prefers-reduced-motion: disable bursts and draw-ins.
 
-*Color picker*
-A horizontal row of circular swatches, about 32px diameter, spaced 8px apart. The active swatch shows a 2px white outer ring with a 2px inner ring in the selected habit color. The custom option is a rectangular input about 40px wide showing the current hex value, paired with a native color input control.
-
-*Bottom or top navigation*
-Mobile: fixed bottom bar, surface background, height about 72px, with a 1px border at the top. Contains three to five icon buttons (icons about 24px) with labels beneath at 10px weight 500. Active item tints with the habit color or accent; inactive items use text-muted. Desktop: a top header row with the same styling laid out horizontally instead of a bottom bar.
-
-6. Charts
-
-*Score-over-time line chart*
-Line width about 2.5px (estimated), drawn with a smooth monotone curve rather than sharp angles. Fill under the line at about 8–10% opacity in the habit's color. Horizontal gridlines only, 1px in chart-grid color. Axis labels at 11px in chart-axis color. Tooltip: a surface-raised card with 10px radius, 8px vertical and 12px horizontal padding, showing a colored dot matching the habit, the date, and the value.
-
-*Bar charts (weekly / monthly)*
-Bars about 14px wide (estimated), with 6px corner radius on the top corners, and 10px gaps between bars. Bars are filled in the habit's color. Value labels sit above each bar at 11px in text-secondary.
-
-*Calendar heatmap*
-Cells are squares about 32px (estimated), with a 5px gap and 6px radius. A completed day shows the full habit color. A missed day shows surface-raised (dark gray on dark mode, light gray on light mode). Partial completion is shown by mixing the habit color with transparent at about 40% intensity. Month labels appear above their column group at 10px in text-muted. Weekday labels appear on the right edge at 10px in text-muted.
-
-*Legend and habit toggle chips*
-Pill-shaped chips, height 28px, padding 0 12px, with a 1.5px border in the habit's color. Text at 12px weight 500 in the habit's color. The active/selected chip is filled with the habit's color and shows white text.
-
-7. Layout
-
-*Today*
-Mobile: sticky header (about 56px) with the page title, followed by stat tiles in a two-column grid, then a scrollable list of habit rows, and the fixed bottom navigation at the very bottom. Desktop: centered container with a top header row instead of bottom navigation; the habit list occupies the full content width.
-
-*Overview*
-Mobile: stat tiles in a scrollable horizontal row or two-column grid, then the score line chart full width, then the calendar heatmap full width. Desktop: stat tiles and charts arranged side by side with wider chart areas and more whitespace between sections.
-
-*Habit detail*
-Mobile: header with a back arrow on the left, the habit name centered, and an edit action on the right. Below, stacked vertically: overview stat tiles, score line chart, calendar heatmap, and a best-streaks section. Desktop: same stacked order but in a centered max-width column (about 700px), with more horizontal breathing room around charts.
-
-8. Motion and feedback
-
-Check-in animation: when a habit is toggled, the checkbox scales down to 0.8 over 100ms, then expands back to 1.0 while the checkmark draws itself over 200ms, using an ease-out curve. Page transitions last about 220ms with ease-out. Hover states transition over 150ms. Optimistic updates appear immediately in the UI; if sync fails, the UI rolls back with a brief shake animation (about 400ms total) and shows a visible error message.
-
-9. Do and don't
-
-    1. Do read every habit color from the habit record; never hardcode a fixed color for a specific habit.
-    2. Do keep neutral UI (borders, surfaces, text) consistent across light and dark modes using the token pairs above.
-    3. Do express card elevation mainly with a 1px border; keep shadows soft and minimal if used at all.
-    4. Do not apply more than one habit color to a single neutral element; each habit appears in exactly one user-chosen color.
-    5. Do not use UTC date strings for display; always show local YYYY-MM-DD in the user's timezone.
+## 10. Do and don't
+- Do keep neutral surfaces and let the habit colors carry the color.
+- Do keep tap targets at least 44px.
+- Don't use habit colors for text, uppercase habit names, or flat black card backgrounds.
+- Don't add new dependencies except an icon set already in use. Animations are CSS and SVG only.
+- Don't leave a page as one narrow centered column on desktop; use the grid.

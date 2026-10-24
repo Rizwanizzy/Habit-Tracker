@@ -67,3 +67,45 @@ export function IconMoon({ className }: { className?: string }) {
     </svg>
   )
 }
+
+export function IconLogout({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  )
+}
+
+export function IconFlame({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="M12 22c4.42 0 8-3.58 8-8 0-5-4-7-5-9-1.5 2-2 3.5-2 5 0 .5.5 2-1 2-1 0-1.5-1-1.5-2.5C8.5 11 4 13 4 17a7 7 0 0 0 6.66 7" />
+    </svg>
+  )
+}
+
+export function IconChevronLeft({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  )
+}
+
+export function IconChevronRight({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  )
+}
+
+export function IconPencil({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+    </svg>
+  )
+}

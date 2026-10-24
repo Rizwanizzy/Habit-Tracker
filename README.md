@@ -1,14 +1,16 @@
 # Habit Tracker
 
-A personal, single-user habit tracking website, inspired by Loop Habit Tracker. Web-first and mobile-first, with a PWA install coming later — no native app.
+A personal, single-user habit tracking website, inspired by Loop Habit Tracker. Web-first and mobile-first, installable to a phone home screen as a PWA — no native app.
 
-Track habits with one-tap check-ins, streaks, scores, and charts. Every habit gets its own color, and the whole UI (checkboxes, charts, heatmaps) follows it. Light and dark themes included.
+Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses the **Aurora Glass** design system: a soft aurora background, glass cards, and each habit's own color carrying the rings, charts, heatmaps, and tiles. Light and dark themes included.
 
 ## Features
 
-- **Today page** — one-tap check-in with optimistic updates, streak badge per habit, and easy backfilling of past dates
+- **Today page (bento)** — hero card with concentric progress rings (one per habit, in its own color), a weekly completion bar chart, and responsive habit tiles with a one-tap check ring (pop + burst animation)
+- **Optimistic check-ins** — update instantly, roll back with a visible message on sync errors, and backfill any past date via the date pill
 - **Habit management** — yes/no or numeric habits (with target + unit), frequency (e.g., 2 times per 7 days), archive/restore with history kept
-- **Color picker** — preset swatches, native color input, and custom hex per habit
+- **Stats & charts** — score line chart, weekly/monthly completion bars, and a calendar heatmap on each habit's detail page; multi-habit score chart on Overview
+- **Color picker** — preset swatches, native color input, and custom hex per habit; every foreground use stays readable in both themes
 - **Auth** — Supabase email/password sign in, session guard, sign out
 - **Theming** — light/dark with a toggle; design tokens from `DESIGN.md`
 
@@ -18,8 +20,9 @@ Track habits with one-tap check-ins, streaks, scores, and charts. Every habit ge
 - Tailwind CSS v4 (`@tailwindcss/vite` plugin)
 - Supabase (Auth, Postgres with RLS)
 - React Router
+- Recharts (line, area and bar charts)
 - Vitest
-- PWA support planned (`vite-plugin-pwa`)
+- Installable PWA (`vite-plugin-pwa` — manifest + service worker)
 
 ## Getting started
 
@@ -32,7 +35,7 @@ Track habits with one-tap check-ins, streaks, scores, and charts. Every habit ge
    VITE_SUPABASE_URL=<your-project-url>
    VITE_SUPABASE_ANON_KEY=<your-anon-key>
    ```
-3. **Create the database tables** — run `supabase/schema.sql` in the Supabase SQL editor (creates `habits` and `entries` with row-level security enabled).
+3. **Create the database tables** — run `supabase/schema.sql` in the Supabase SQL editor (creates `habits` and `entries` with row-level security enabled). Skip this if the tables already exist in your project.
 4. **Run the app**
    ```bash
    npm run dev
@@ -51,10 +54,10 @@ Track habits with one-tap check-ins, streaks, scores, and charts. Every habit ge
 
 ```
 src/
-  lib/        pure logic (score, dates, supabase client)
-  hooks/      data hooks (useHabits, useEntries, useAuth, useTheme)
-  components/ reusable UI (AppShell, HabitRow, ColorPicker, ThemeToggle)
-  pages/      Today, Overview, Settings, HabitForm, Login
+  lib/        pure logic (score, dates, color, supabase client)
+  hooks/      data hooks (useHabits, useEntries, useAuth, useTheme, useThemeName)
+  components/ reusable UI (AppShell, HabitTile, ProgressRings, WeeklyCompletion, Heatmap, ColorPicker, ThemeToggle)
+  pages/      Today (bento), Overview, Settings, HabitForm, HabitDetail, Login
 ```
 
 ## Documentation

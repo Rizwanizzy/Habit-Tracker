@@ -1,5 +1,8 @@
-import { NavLink, Outlet } from 'react-router-dom'
-import { IconOverview, IconSettings, IconToday } from './icons'
+import { useState } from 'react'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { IconLogout, IconMoon, IconOverview, IconSettings, IconSun, IconToday } from './icons'
+import { useTheme } from '../hooks/useTheme'
+import { getSupabase } from '../lib/supabase'
 import type { ComponentType } from 'react'
 
 type NavItem = { to: string; label: string; Icon: ComponentType<{ className?: string }> }
@@ -10,59 +13,103 @@ const NAV: NavItem[] = [
   { to: '/settings', label: 'Settings', Icon: IconSettings },
 ]
 
-/** App chrome: fixed bottom nav on mobile, sidebar on desktop. Content in between. */
+/** Rounded 48px circles used by the rail (DESIGN.md §5). */
+const RAIL_CIRCLE =
+  'grid size-12 place-items-center rounded-full transition-all duration-150 active:scale-95 '
+
+/** App shell (DESIGN.md §5): floating rounded shell over the aurora background
+ *  with a 72px icon rail on desktop; floating glass dock on mobile. */
 export function AppShell() {
+  const { dark, toggle } = useTheme()
+  const navigate = useNavigate()
+  const [signOutError, setSignOutError] = useState<string | null>(null)
+
+  async function signOut() {
+    setSignOutError(null)
+    try {
+      const sb = getSupabase()
+      const { error } = await sb.auth.signOut()
+      if (error) throw error
+      navigate('/login', { replace: true })
+    } catch (err) {
+      setSignOutError(err instanceof Error ? err.message : 'Sign out failed')
+    }
+  }
+
+  function railClass({ isActive }: { isActive: boolean }): string {
+    return isActive
+      ? `${RAIL_CIRCLE}bg-accent-gradient text-white glow-accent`
+      : `${RAIL_CIRCLE}bg-surface-raised text-fg-secondary hover:text-fg`
+  }
+
   return (
-    <div className="min-h-dvh bg-background text-fg">
-      {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r border-border bg-surface p-4 md:flex">
-        <h1 className="text-section-title px-2">Habit Tracker</h1>
-        <nav className="mt-6 flex flex-col gap-1">
-          {NAV.map(({ to, label, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                `flex h-11 items-center gap-3 rounded-button px-3 text-body font-medium transition-colors duration-150 ${
-                  isActive
-                    ? 'bg-surface-raised text-accent'
-                    : 'text-fg-secondary hover:bg-surface-raised hover:text-fg'
-                }`
-              }
+    <div className="mx-auto w-full max-w-[1280px] lg:p-4">
+      <div className="glass-card flex min-h-dvh overflow-hidden lg:rounded-shell lg:min-h-[calc(100dvh-2rem)]">
+        {/* Desktop rail: 72px wide column of circular icon buttons */}
+        <aside aria-label="Primary" className="hidden w-[72px] shrink-0 flex-col items-center border-r border-border py-5 lg:flex">
+          <nav className="flex flex-col items-center gap-3">
+            {NAV.map(({ to, label, Icon }) => (
+              <NavLink key={to} to={to} end={to === '/'} aria-label={label} title={label} className={railClass}>
+                <Icon className="size-5" />
+              </NavLink>
+            ))}
+          </nav>
+          <div className="mt-auto flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
+              title={dark ? 'Light theme' : 'Dark theme'}
+              className={`${RAIL_CIRCLE}bg-surface-raised text-fg-secondary hover:text-fg`}
             >
-              <Icon className="size-5" />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+              {dark ? <IconSun className="size-5" /> : <IconMoon className="size-5" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              aria-label="Sign out"
+              title="Sign out"
+              className={`${RAIL_CIRCLE}bg-surface-raised text-fg-secondary hover:text-danger`}
+            >
+              <IconLogout className="size-5" />
+            </button>
+          </div>
+        </aside>
 
-      {/* Main content */}
-      <main className="px-4 pt-5 pb-28 md:pb-10 md:pl-60">
-        <div className="mx-auto w-full max-w-3xl">
+        {/* Content */}
+        <main className="min-w-0 flex-1 px-4 py-4 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:px-8 lg:py-6 lg:pb-6">
           <Outlet />
-        </div>
-      </main>
+        </main>
+      </div>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-10 flex h-[72px] border-t border-border bg-surface md:hidden">
+      {/* Mobile dock: floating glass pill, 64px high, 16px inset, safe-area aware */}
+      <nav
+        aria-label="Primary"
+        className="glass-pill fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center justify-center gap-2 rounded-pill px-3 lg:hidden"
+      >
         {NAV.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex flex-1 flex-col items-center justify-center gap-1 transition-colors duration-150 ${
-                isActive ? 'text-accent' : 'text-fg-muted'
+              `flex size-11 place-items-center rounded-pill transition-all duration-150 active:scale-95 ${
+                isActive ? 'bg-accent-gradient text-white glow-accent' : 'text-fg-secondary'
               }`
             }
           >
-            <Icon className="size-6" />
-            <span className="text-[10px] font-medium">{label}</span>
+            <Icon className="size-5" />
+            <span className="sr-only">{label}</span>
           </NavLink>
         ))}
       </nav>
+
+      {/* Visible sign-out error — never swallowed. */}
+      {signOutError && (
+        <p role="alert" className="text-caption fixed bottom-24 left-4 z-40 max-w-[90vw] rounded-pill bg-danger/10 px-3 py-2 text-danger lg:bottom-6">
+          {signOutError}
+        </p>
+      )}
     </div>
   )
 }
