@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { initialsFrom } from '../lib/profile'
 import { ConfirmDialog } from './ConfirmDialog'
 import { IconCamera, IconUser } from './icons'
+import { VerifiedBadge } from './VerifiedBadge'
 
 interface Props {
   name: string | null
@@ -179,30 +180,20 @@ export function ProfileBanner({
           )}
         </div>
 
-        <div className="mt-1 flex min-w-0 items-center gap-2 px-4 text-center">
-          <h1 className="text-page-title truncate">{displayName}</h1>
-          {emailConfirmed && (
-            <svg viewBox="0 0 24 24" className="size-4 shrink-0" role="img" aria-label="Email verified">
-              <circle cx="12" cy="12" r="10" fill="#3B82F6" />
-              <path
-                d="m8.4 12.4 2.4 2.4 4.8-5.2"
-                fill="none"
-                stroke="white"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          )}
-        </div>
-        <p className="max-w-full px-4 text-center text-body text-fg-secondary">
-          <span className="inline-flex min-w-0 max-w-full items-center gap-1">
-            <IconUser className="size-3.5 shrink-0 text-fg-muted" />
-            <span className="truncate">{email}</span>
-          </span>
-        </p>
+        <div className="mt-1 flex flex-col items-center gap-2 px-4 w-full text-center">
+          <div className="inline-flex items-center justify-center gap-2 min-w-0 w-full">
+            <h1 className="text-page-title truncate overflow-hidden whitespace-nowrap min-w-0 max-w-[calc(100%-26px)]">{displayName}</h1>
+            {emailConfirmed && <VerifiedBadge size={22} className="shrink-0" />}
+          </div>
+          <p className="text-center text-body text-fg-secondary w-full min-w-0 overflow-hidden whitespace-nowrap truncate">
+            <span className="inline-flex items-center gap-1 min-w-0">
+              <IconUser className="size-3.5 shrink-0 text-fg-muted" />
+              <span className="truncate">{email}</span>
+            </span>
+          </p>
         </div>
       </div>
+    </div>
 
       <ConfirmDialog
         open={confirmRemoveDialog}
