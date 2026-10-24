@@ -193,7 +193,7 @@ export function Overview() {
                 }
                 aria-pressed={!isOff}
                 title={habit.name}
-                className="text-body flex h-9 max-w-[12rem] items-center gap-2 rounded-pill px-3 font-medium transition-all duration-150 hover:brightness-110"
+                className="text-body relative flex h-9 max-w-[12rem] items-center gap-2 rounded-pill px-3 font-medium transition-all duration-150 after:absolute after:inset-x-0 after:inset-y-[-4px] after:content-[''] hover:brightness-110"
                 style={
                   isOff
                     ? { opacity: 0.5, border: '1px solid var(--border)' }

@@ -121,7 +121,7 @@ export function Today() {
           <button
             type="button"
             onClick={() => void reload()}
-            className="mt-4 h-11 rounded-pill border border-danger px-4 text-body font-medium text-danger"
+            className="mt-4 h-11 rounded-pill border border-danger px-4 text-body font-medium text-danger transition-colors duration-150 hover:bg-danger/10"
           >
             Retry
           </button>
@@ -226,7 +226,7 @@ export function Today() {
       )}
 
       {actionError && (
-        <p role="alert" className="text-caption mb-4 rounded-pill bg-danger/10 px-3 py-2 text-danger">
+        <p role="alert" className="text-body mb-4 rounded-input bg-danger/10 px-3 py-2 text-danger">
           {actionError}
         </p>
       )}

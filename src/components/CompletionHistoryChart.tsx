@@ -18,6 +18,9 @@ import { tint } from '../lib/color'
 type Range = 'week' | 'month'
 type Bucket = { label: string; count: number }
 
+/** Honors prefers-reduced-motion: skip Recharts draw-ins (DESIGN.md §9). */
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 const DAY_FMT = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' })
 const MONTH_FMT = new Intl.DateTimeFormat('en', { month: 'short' })
 
@@ -109,7 +112,7 @@ export function CompletionHistoryChart({ habit, entries }: { habit: Habit; entri
                 onClick={() => setRange(r)}
                 aria-pressed={on}
                 title={r === 'week' ? 'Weekly totals' : 'Monthly totals'}
-                className="text-body flex h-9 items-center rounded-pill px-4 font-medium capitalize transition-all duration-150"
+                className="text-body relative flex h-9 items-center rounded-pill px-4 font-medium capitalize transition-all duration-150 after:absolute after:inset-x-0 after:inset-y-[-4px] after:content-['']"
                 style={
                   on
                     ? { backgroundColor: tint(color, 20), border: `1px solid ${tint(color, 40)}` }
@@ -148,7 +151,7 @@ export function CompletionHistoryChart({ habit, entries }: { habit: Habit; entri
                 cursor={{ fill: 'var(--chart-grid)', opacity: 0.4 }}
                 content={(props: TipProps) => <CompletionTip {...props} range={range} color={color} />}
               />
-              <Bar dataKey="count" fill={color} barSize={10} radius={[5, 5, 0, 0]}>
+              <Bar dataKey="count" fill={color} barSize={10} radius={[5, 5, 0, 0]} isAnimationActive={!REDUCED_MOTION}>
                 {data.map((_, i) => (
                   <Cell
                     key={i}

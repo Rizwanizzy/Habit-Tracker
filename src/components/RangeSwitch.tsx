@@ -37,7 +37,7 @@ export function RangeSwitch({ options, value, onChange, ariaLabel }: Props) {
           type="button"
           onClick={() => onChange(opt.key)}
           aria-pressed={i === idx}
-          className={`text-body relative z-10 h-8 flex-1 rounded-pill px-2 font-medium transition-colors duration-150 ${
+          className={`text-body relative z-10 h-8 flex-1 rounded-pill px-2 font-medium transition-colors duration-150 after:absolute after:inset-x-0 after:inset-y-[-6px] after:content-[''] ${
             i === idx ? 'text-white' : 'text-fg-secondary hover:text-fg'
           }`}
         >

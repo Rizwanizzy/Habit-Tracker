@@ -25,7 +25,7 @@ function ManageRow({
       />
       <Link
         to={`/habits/${habit.id}/edit`}
-        className="text-body min-w-0 flex-1 truncate font-medium text-fg hover:underline"
+        className="text-body flex h-11 min-w-0 flex-1 items-center truncate font-medium text-fg hover:underline"
         title={habit.name}
       >
         {habit.name}

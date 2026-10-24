@@ -127,7 +127,7 @@ export function Login() {
           type="button"
           onClick={signUp}
           disabled={busy}
-          className="glass-pill mt-3 h-12 w-full rounded-pill text-body font-medium text-fg transition-colors duration-150 hover:text-white disabled:opacity-60"
+          className="glass-pill mt-3 h-12 w-full rounded-pill text-body font-medium text-fg transition-colors duration-150 hover:bg-surface-raised disabled:opacity-60"
         >
           Create account
         </button>

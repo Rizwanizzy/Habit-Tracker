@@ -24,6 +24,9 @@ import { extractError } from '../hooks/useHabits'
 
 const DAY_FMT = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' })
 
+/** Honors prefers-reduced-motion: skip Recharts draw-ins (DESIGN.md §9). */
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 interface TipProps {
   active?: boolean
   label?: string | number
@@ -145,7 +148,7 @@ export function HabitDetail() {
         <h1 className="text-page-title">Habit</h1>
         <div className="glass-card mt-6 rounded-card p-6 text-center">
           <p className="text-body text-fg-secondary">Habit not found.</p>
-          <Link to="/" className="text-body mt-4 inline-block font-medium text-accent">
+          <Link to="/" className="text-body mt-4 inline-flex h-11 items-center font-medium text-accent">
             Back to Today
           </Link>
         </div>
@@ -262,6 +265,7 @@ export function HabitDetail() {
                     dot={false}
                     activeDot={{ r: 4, stroke: '#ffffff', strokeWidth: 3, fill: color }}
                     connectNulls
+                    isAnimationActive={!REDUCED_MOTION}
                   />
                 </AreaChart>
               </ResponsiveContainer>

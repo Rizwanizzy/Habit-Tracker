@@ -44,7 +44,7 @@ export function ColorPicker({ color, onChange }: Props) {
               aria-label={`Use color ${hex}`}
               aria-pressed={selected}
               onClick={() => onChange(hex)}
-              className="size-8 rounded-full transition-transform duration-150 hover:scale-105 active:scale-95"
+              className="relative size-8 rounded-full transition-transform duration-150 hover:scale-105 active:scale-95 after:absolute after:-inset-1.5 after:content-['']"
               style={{ backgroundColor: hex, boxShadow: ringFor(selected, hex) }}
             />
           )
@@ -56,7 +56,7 @@ export function ColorPicker({ color, onChange }: Props) {
           aria-label="Pick a custom color"
           aria-pressed={!isPreset && isHex(color)}
           onClick={() => inputRef.current?.click()}
-          className="relative size-8 rounded-full transition-transform duration-150 hover:scale-105 active:scale-95"
+          className="relative size-8 rounded-full transition-transform duration-150 hover:scale-105 active:scale-95 after:absolute after:-inset-1.5 after:content-['']"
           style={{
             background:
               'conic-gradient(from 45deg, #ef4444, #f59e0b, #84cc16, #22d3ee, #6366f1, #ec4899, #ef4444)',

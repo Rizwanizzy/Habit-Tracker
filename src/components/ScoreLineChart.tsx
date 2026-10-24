@@ -11,6 +11,9 @@ import type { Habit } from '../lib/score'
 
 export type ChartRow = { date: string; [key: string]: string | number | null }
 
+/** Honors prefers-reduced-motion: skip Recharts draw-ins (DESIGN.md §9). */
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 const DAY_FMT = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' })
 
 interface TipProps {
@@ -109,6 +112,7 @@ export function ScoreLineChart({ data, visible, names }: Props) {
                 dot={false}
                 activeDot={{ r: 4, stroke: '#ffffff', strokeWidth: 3, fill: c }}
                 connectNulls
+                isAnimationActive={!REDUCED_MOTION}
                 animationDuration={900}
                 legendType="none"
               />
