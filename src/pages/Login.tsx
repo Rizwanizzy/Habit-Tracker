@@ -47,21 +47,36 @@ export function Login() {
     }
   }
 
-  const inputClass =
-    'mt-2 h-11 w-full rounded-button border border-border bg-surface px-3 text-body text-fg placeholder:text-fg-muted focus:border-accent focus:outline-none'
-
   return (
-    <div className="grid min-h-dvh place-items-center bg-background px-4 text-fg">
+    <div className="grid min-h-dvh place-items-center px-4 py-10">
       <form
         onSubmit={signIn}
-        className="w-full max-w-sm rounded-card border border-border bg-surface-raised p-6"
+        className="glass-card fade-up w-full max-w-sm rounded-card p-6 sm:p-8"
       >
-        <h1 className="text-page-title">Sign in</h1>
-        <p className="mt-1 text-caption text-fg-muted">
-          Sign in to sync your habits across devices.
-        </p>
+        {/* Gradient logo mark above the card content (DESIGN.md §8). */}
+        <div className="flex flex-col items-center text-center">
+          <span
+            aria-hidden="true"
+            className="bg-accent-gradient glow-accent grid size-16 place-items-center rounded-[20px]"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="size-8"
+              fill="none"
+              stroke="white"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="9" strokeWidth={2} />
+              <path d="m8 12.5 2.5 2.5L16 9.5" />
+            </svg>
+          </span>
+          <h1 className="text-page-title mt-4">Sign in</h1>
+          <p className="text-caption mt-1 text-fg-muted">Sync your habits across devices</p>
+        </div>
 
-        <label htmlFor="email" className="mt-6 block font-medium text-fg-secondary text-body">
+        <label htmlFor="email" className="text-caption mt-6 block text-fg-muted">
           Email
         </label>
         <input
@@ -71,11 +86,11 @@ export function Login() {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={inputClass}
+          className="input-field mt-2"
           placeholder="you@example.com"
         />
 
-        <label htmlFor="password" className="mt-4 block font-medium text-fg-secondary text-body">
+        <label htmlFor="password" className="text-caption mt-4 block text-fg-muted">
           Password
         </label>
         <input
@@ -86,17 +101,17 @@ export function Login() {
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className={inputClass}
+          className="input-field mt-2"
           placeholder="At least 6 characters"
         />
 
         {error && (
-          <p role="alert" className="mt-4 rounded-button bg-danger/10 px-3 py-2 text-caption text-danger">
+          <p role="alert" className="mt-4 rounded-input bg-danger/10 px-3 py-2 text-body text-danger">
             {error}
           </p>
         )}
         {message && (
-          <p role="status" className="mt-4 rounded-button bg-success/10 px-3 py-2 text-caption text-success">
+          <p role="status" className="mt-4 rounded-input bg-success/10 px-3 py-2 text-body text-success">
             {message}
           </p>
         )}
@@ -104,7 +119,7 @@ export function Login() {
         <button
           type="submit"
           disabled={busy}
-          className="mt-6 h-11 w-full rounded-button bg-accent text-white text-body font-semibold transition-colors duration-150 hover:opacity-90 disabled:opacity-60"
+          className="bg-accent-gradient glow-accent mt-6 h-12 w-full rounded-pill text-body font-semibold text-white transition-all duration-150 hover:-translate-y-px hover:brightness-110 disabled:opacity-60"
         >
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
@@ -112,7 +127,7 @@ export function Login() {
           type="button"
           onClick={signUp}
           disabled={busy}
-          className="mt-3 h-11 w-full rounded-button border border-border text-body font-medium text-fg transition-colors duration-150 hover:bg-surface disabled:opacity-60"
+          className="glass-pill mt-3 h-12 w-full rounded-pill text-body font-medium text-fg transition-colors duration-150 hover:text-white disabled:opacity-60"
         >
           Create account
         </button>

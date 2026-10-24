@@ -9,10 +9,10 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 - **Today page (bento)** — hero card with concentric progress rings (one per habit, in its own color), a weekly completion bar chart, and responsive habit tiles with a one-tap check ring (pop + burst animation)
 - **Optimistic check-ins** — update instantly, roll back with a visible message on sync errors, and backfill any past date via the date pill
 - **Habit management** — yes/no or numeric habits (with target + unit), frequency (e.g., 2 times per 7 days), archive/restore with history kept
-- **Stats & charts** — score line chart, weekly/monthly completion bars, and a calendar heatmap on each habit's detail page; Overview with stat tiles (average score, best habit, needs attention), a glowing multi-line score chart with habit toggle chips, and per-habit sparkline cards
+- **Stats & charts** — glass stat tiles, a glowing gradient score line chart, 10px rounded completion bars, and a 14px-cell calendar heatmap on each habit's detail page; Overview with stat tiles (average score, best habit, needs attention), a glowing multi-line score chart with habit toggle chips, and per-habit sparkline cards
 - **Color picker** — preset swatches, native color input, and custom hex per habit; every foreground use stays readable in both themes
 - **Auth** — Supabase email/password sign in, session guard, sign out
-- **Theming** — light/dark with a toggle; design tokens from `DESIGN.md`
+- **Theming** — light/dark via a sliding sun/moon switch; design tokens from `DESIGN.md`
 
 ## Tech stack
 

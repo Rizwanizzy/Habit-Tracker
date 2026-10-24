@@ -2,8 +2,8 @@ import type { CSSProperties } from 'react'
 import type { Entry, Habit } from '../lib/score'
 import { addDays, parseLocalDate, todayString } from '../lib/dates'
 
-const CELL = 28
-const GAP = 5
+const CELL = 14
+const GAP = 4
 const ROW_LABEL_W = 34
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTH_FMT = new Intl.DateTimeFormat('en', { month: 'short' })
@@ -15,35 +15,45 @@ interface Props {
   onToggle?: (date: string) => void
 }
 
-/** 0 = missed, 1 = partial (~40%), 2 = mostly (~70%), 3 = done (full color). */
+/** Levels per DESIGN.md §7 heatmap intensities (12/35/65/100%):
+ *  1 = trace (12%), 2 = partial (35%), 3 = almost (65%), 4 = done (100%). */
 function levelFor(habit: Habit, entry: Entry | undefined): number {
   if (!entry || entry.value <= 0) return 0
-  if (habit.type === 'boolean') return 3
+  if (habit.type === 'boolean') return 4
   const ratio = entry.value / Math.max(1, habit.target)
-  if (ratio >= 1) return 3
-  if (ratio >= 0.66) return 2
+  if (ratio >= 1) return 4
+  if (ratio >= 0.66) return 3
+  if (ratio >= 0.33) return 2
   return 1
 }
 
 function levelStyle(habit: Habit, level: number): CSSProperties {
   const color = habit.color ?? '#3B82F6'
-  if (level === 3) return { backgroundColor: color }
-  if (level === 2) return { backgroundColor: `color-mix(in srgb, ${color} 70%, transparent)` }
-  if (level === 1) return { backgroundColor: `color-mix(in srgb, ${color} 40%, transparent)` }
-  return { backgroundColor: 'var(--surface)' }
+  if (level === 4)
+    return {
+      backgroundColor: color,
+      boxShadow: `0 0 6px color-mix(in srgb, ${color} 55%, transparent)`,
+    }
+  if (level === 3) return { backgroundColor: `color-mix(in srgb, ${color} 65%, transparent)` }
+  if (level === 2) return { backgroundColor: `color-mix(in srgb, ${color} 35%, transparent)` }
+  if (level === 1) return { backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)` }
+  return { backgroundColor: 'var(--surface-2)' }
 }
 
 function statusText(level: number, future: boolean): string {
   if (future) return 'Not started yet'
   if (level === 0) return 'Not completed'
-  if (level === 1) return 'Partial progress'
-  if (level === 2) return 'Almost at target'
+  if (level === 1) return 'Trace progress'
+  if (level === 2) return 'Partial progress'
+  if (level === 3) return 'Almost at target'
   return 'Completed'
 }
 
 type Cell = { date: string; level: number; future: boolean }
 
-/** Loop-style calendar heatmap: weeks as columns, Sun–Sat as rows, month labels on top. Tapping a day toggles it. */
+/** Loop-style calendar heatmap (DESIGN.md §7): weeks as columns, Sun–Sat as
+ *  rows, 14px cells with 4px radius and gap, month labels on top, weekday
+ *  labels left. Tapping a day toggles it. */
 export function Heatmap({ habit, entries, weeks = 18, onToggle }: Props) {
   const today = todayString()
   const byDate = new Map(entries.map((e) => [e.date, e]))
@@ -80,13 +90,13 @@ export function Heatmap({ habit, entries, weeks = 18, onToggle }: Props) {
         {/* Month labels */}
         <div
           className="grid"
-          style={{ gridTemplateColumns: gridTemplate, columnGap: GAP, height: CELL * 0.9 }}
+          style={{ gridTemplateColumns: gridTemplate, columnGap: GAP, height: CELL + 2 }}
         >
           <span />
           {monthLabels.map(({ col, text }) => (
             <span
               key={col}
-              className="text-caption text-fg-muted"
+              className="text-[11px] uppercase tracking-wide text-fg-muted"
               style={{ gridColumn: `${col + 2} / span 1`, alignSelf: 'end' }}
             >
               {text}
@@ -107,10 +117,10 @@ export function Heatmap({ habit, entries, weeks = 18, onToggle }: Props) {
           {WEEKDAYS.map((wd, r) => (
             <div key={wd} style={{ display: 'contents' }}>
               <span
-                className="text-caption text-fg-muted"
+                className="text-[11px] uppercase tracking-wide text-fg-muted"
                 style={{ alignSelf: 'center', justifySelf: 'end', width: ROW_LABEL_W - GAP }}
               >
-                {wd}
+                {wd.slice(0, 2)}
               </span>
               {columns.map((col, w) => {
                 const cell = col[r]
@@ -119,7 +129,7 @@ export function Heatmap({ habit, entries, weeks = 18, onToggle }: Props) {
                     <div
                       key={`${w}-${r}`}
                       title={`${cell.date} — ${statusText(cell.level, cell.future)}`}
-                      className="rounded-[6px]"
+                      className="rounded-[4px]"
                       style={{ backgroundColor: 'transparent' }}
                     />
                   )
@@ -130,7 +140,7 @@ export function Heatmap({ habit, entries, weeks = 18, onToggle }: Props) {
                     type="button"
                     title={`${cell.date} — ${statusText(cell.level, cell.future)}`}
                     onClick={() => onToggle?.(cell.date)}
-                    className="cursor-pointer rounded-[6px] transition-transform duration-150 active:scale-90"
+                    className="cursor-pointer rounded-[4px] transition-transform duration-150 active:scale-90"
                     style={levelStyle(habit, cell.level)}
                     aria-label={`${cell.date}: ${statusText(cell.level, cell.future)}`}
                   />

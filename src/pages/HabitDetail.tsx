@@ -4,6 +4,7 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -11,6 +12,9 @@ import {
 } from 'recharts'
 import { Heatmap } from '../components/Heatmap'
 import { CompletionHistoryChart } from '../components/CompletionHistoryChart'
+import { RangeSwitch } from '../components/RangeSwitch'
+import { StatTile } from '../components/StatTile'
+import { IconChevronLeft, IconPencil } from '../components/icons'
 import { useHabits } from '../hooks/useHabits'
 import { useEntries } from '../hooks/useEntries'
 import { bestStreak, completionRate, currentStreak, scoreSeries } from '../lib/score'
@@ -23,16 +27,31 @@ const DAY_FMT = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }
 interface TipProps {
   active?: boolean
   label?: string | number
-  payload?: ReadonlyArray<{ value?: unknown }>
+  payload?: ReadonlyArray<{
+    dataKey?: unknown
+    value?: unknown
+  }>
 }
 
-function ScoreTip({ active, label, payload }: TipProps) {
+function ScoreTip({
+  active,
+  label,
+  payload,
+  name,
+  color,
+}: TipProps & { name: string; color: string }) {
   if (!active || !payload || payload.length === 0) return null
+  // Ignore the wide "glow" halo line (g: prefix).
+  const row = payload.find((e) => !String(e.dataKey ?? '').startsWith('g:'))
+  if (!row) return null
   return (
-    <div className="rounded-[10px] border border-border bg-surface-raised px-3 py-2">
-      <p className="text-caption text-fg-secondary">
-        {String(label)}: <span className="font-semibold text-fg">{String(payload[0].value)}%</span> score
+    <div className="glass-card rounded-input px-3 py-2">
+      <p className="text-body flex items-center gap-2">
+        <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+        <span className="text-fg-secondary">{name}</span>
+        <span className="pl-2 font-semibold tabular-nums text-fg">{String(row.value)}%</span>
       </p>
+      {label !== undefined && <p className="text-caption mt-1 text-fg-muted">{String(label)}</p>}
     </div>
   )
 }
@@ -43,15 +62,6 @@ function upsertEntry(list: Entry[], entry: Entry): Entry[] {
   const copy = list.slice()
   copy[i] = entry
   return copy
-}
-
-function StatTile({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="min-w-0 rounded-card border border-border bg-surface-raised p-4 text-center">
-      <p className="text-stat truncate">{value}</p>
-      <p className="text-caption mt-1 text-fg-muted">{label}</p>
-    </div>
-  )
 }
 
 export function HabitDetail() {
@@ -72,6 +82,7 @@ export function HabitDetail() {
   const habit = habits.find((h) => h.id === id)
   const entries = id ? (entriesByHabit[id] ?? []) : []
   const color = habit?.color ?? '#3B82F6'
+  const name = habit?.name ?? 'Habit'
 
   async function toggleDay(date: string) {
     if (!habit || !id || date > today) return
@@ -93,18 +104,20 @@ export function HabitDetail() {
     }
   }
 
+  /** One row per date; a `g:score` duplicate key feeds the wide glow line the
+   *  tooltip filters out, same technique as the Overview chart. */
   const series = useMemo(() => {
     if (!habit) return []
     const start = addDays(today, -(Number(scoreWindow) - 1))
-    return scoreSeries(habit, entries, start, today).map((p) => ({
-      date: p.date,
-      score: Math.round(p.score * 100),
-    }))
+    return scoreSeries(habit, entries, start, today).map((p) => {
+      const score = Math.round(p.score * 100)
+      return { date: p.date, score, 'g:score': score }
+    })
   }, [habit, entries, today, scoreWindow])
 
   if (loading || entriesLoading) {
     return (
-      <div className="grid place-items-center rounded-card border border-border bg-surface-raised p-10" role="status">
+      <div className="glass-card grid min-h-40 place-items-center rounded-card p-10" role="status">
         <span className="text-body text-fg-muted">Loading…</span>
       </div>
     )
@@ -113,12 +126,12 @@ export function HabitDetail() {
   if (error ?? entriesError) {
     const msg = error ?? entriesError
     return (
-      <div className="rounded-card border border-danger bg-danger/10 p-6 text-center" role="alert">
+      <div className="glass-card rounded-card p-6 text-center" role="alert">
         <p className="text-body text-danger">{msg}</p>
         <button
           type="button"
           onClick={() => void reload()}
-          className="mt-4 h-11 rounded-button border border-danger px-4 text-body font-medium text-danger"
+          className="glass-pill mt-4 h-12 rounded-pill px-5 text-body font-medium text-fg"
         >
           Retry
         </button>
@@ -130,9 +143,9 @@ export function HabitDetail() {
     return (
       <section>
         <h1 className="text-page-title">Habit</h1>
-        <div className="mt-6 rounded-card border border-border bg-surface-raised p-6 text-center">
+        <div className="glass-card mt-6 rounded-card p-6 text-center">
           <p className="text-body text-fg-secondary">Habit not found.</p>
-          <Link to="/" className="mt-4 inline-block text-body font-medium text-accent">
+          <Link to="/" className="text-body mt-4 inline-block font-medium text-accent">
             Back to Today
           </Link>
         </div>
@@ -146,127 +159,137 @@ export function HabitDetail() {
 
   return (
     <section>
-      <header className="flex items-center gap-1">
+      <header className="flex items-center gap-2">
         <Link
           to="/"
           aria-label="Back to Today"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-fg-secondary transition-colors duration-150 hover:bg-surface hover:text-fg"
+          className="glass-pill grid size-11 shrink-0 place-items-center rounded-full text-fg-secondary transition-colors duration-150 hover:text-fg"
         >
-          <svg
-            viewBox="0 0 24 24"
-            className="size-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="m15 18-6-6 6-6" />
-          </svg>
+          <IconChevronLeft className="size-5" />
         </Link>
+        <span
+          aria-hidden="true"
+          className="size-3 shrink-0 rounded-full"
+          style={{ backgroundColor: color }}
+        />
         <h1 className="text-page-title min-w-0 flex-1 truncate">{habit.name}</h1>
         <Link
           to={`/habits/${habit.id}/edit`}
           aria-label={`Edit ${habit.name}`}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-fg-secondary transition-colors duration-150 hover:bg-surface hover:text-fg"
+          className="glass-pill grid size-11 shrink-0 place-items-center rounded-full text-fg-secondary transition-colors duration-150 hover:text-fg"
         >
-          <svg
-            viewBox="0 0 24 24"
-            className="size-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-          </svg>
+          <IconPencil className="size-4" />
         </Link>
       </header>
 
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        <StatTile value={String(cur)} label="Current streak" />
-        <StatTile value={String(best)} label="Best streak" />
-        <StatTile value={`${rate}%`} label="30-day rate" />
+      {/* Stat tiles: caption on top, big numeral (DESIGN.md §6). */}
+      <div className="mt-4 grid grid-cols-3 gap-3 lg:gap-5">
+        <StatTile label="Current streak" numeral={String(cur)} />
+        <StatTile label="Best streak" numeral={String(best)} delay={40} />
+        <StatTile label="30-day rate" numeral={`${rate}%`} delay={80} />
       </div>
 
-      <div className="mt-4 rounded-card border border-border bg-surface-raised p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-section-title">Score</h2>
-          <div className="flex gap-2" role="group" aria-label="Score range">
-            {(['30', '90'] as const).map((w) => (
-              <button
-                key={w}
-                type="button"
-                onClick={() => setScoreWindow(w)}
-                aria-pressed={scoreWindow === w}
-                className="text-caption h-7 rounded-full px-3 font-medium"
-                style={
-                  scoreWindow === w
-                    ? { backgroundColor: color, color: 'white' }
-                    : { border: `1.5px solid ${color}`, color }
-                }
-              >
-                {w}d
-              </button>
-            ))}
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
+        {/* Score chart (DESIGN.md §7): monotone line, gradient area fill in
+            the habit color, halo glow, dashed grid, glass tooltip. */}
+        <section className="glass-card fade-up rounded-card p-5 lg:p-6" style={{ animationDelay: '120ms' }}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-section-title">Score</h2>
+            <RangeSwitch
+              options={[
+                { key: '30', label: '30 days' },
+                { key: '90', label: '90 days' },
+              ]}
+              value={scoreWindow}
+              onChange={(k) => setScoreWindow(k as '90' | '30')}
+              ariaLabel="Score range"
+            />
           </div>
-        </div>
-        <div className="mt-3 h-48">
-          <ResponsiveContainer>
-            <AreaChart data={series} margin={{ top: 8, right: 8, left: -22 }}>
-              <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
-              <XAxis
-                dataKey="date"
-                tickFormatter={(v: string) => DAY_FMT.format(new Date(`${v}T12:00:00`))}
-                tick={{ fill: 'var(--chart-axis)', fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                minTickGap={30}
-              />
-              <YAxis
-                domain={[0, 100]}
-                ticks={[0, 20, 40, 60, 80, 100]}
-                tickFormatter={(v: number) => (v > 0 ? `${v}%` : '0%')}
-                tick={{ fill: 'var(--chart-axis)', fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip content={ScoreTip} cursor={{ stroke: 'var(--chart-grid)' }} />
-              <Area
-                type="monotone"
-                dataKey="score"
-                stroke={color}
-                strokeWidth={2.5}
-                fill={color}
-                fillOpacity={0.08}
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+          {series.length === 0 ? (
+            <div className="mt-3 grid h-48 place-items-center text-center">
+              <p className="text-body text-fg-secondary">Check in a habit to see your score.</p>
+            </div>
+          ) : (
+            <div className="mt-3 h-48">
+              <ResponsiveContainer>
+                <AreaChart data={series} margin={{ top: 8, right: 8, left: -22 }}>
+                  <defs>
+                    <linearGradient id={`area-${habit.id}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+                      <stop offset="100%" stopColor={color} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="var(--chart-grid)" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(v: string) => DAY_FMT.format(new Date(`${v}T12:00:00`))}
+                    tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={30}
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    ticks={[0, 20, 40, 60, 80, 100]}
+                    tickFormatter={(v: number) => `${v}%`}
+                    tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    content={(props: TipProps) => <ScoreTip {...props} name={name} color={color} />}
+                    cursor={{ stroke: 'var(--chart-axis)', strokeDasharray: '3 3' }}
+                  />
+                  <Line
+                    key="glow"
+                    type="monotone"
+                    dataKey="g:score"
+                    stroke={color}
+                    strokeWidth={9}
+                    strokeOpacity={0.18}
+                    dot={false}
+                    activeDot={false}
+                    connectNulls
+                    isAnimationActive={false}
+                    legendType="none"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="score"
+                    stroke={color}
+                    strokeWidth={2.5}
+                    fill={`url(#area-${habit.id})`}
+                    dot={false}
+                    activeDot={{ r: 4, stroke: '#ffffff', strokeWidth: 3, fill: color }}
+                    connectNulls
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </section>
+
+        {/* Weekly/monthly completion bars (§7) in habit color. */}
+        <section className="glass-card fade-up rounded-card p-5 lg:p-6" style={{ animationDelay: '160ms' }}>
+          <CompletionHistoryChart habit={habit} entries={entries} />
+        </section>
       </div>
 
-      <div className="mt-4 rounded-card border border-border bg-surface-raised p-4">
-        <CompletionHistoryChart habit={habit} entries={entries} />
-      </div>
-
-      <div className="mt-4 rounded-card border border-border bg-surface-raised p-4">
-        <h2 className="text-section-title">Calendar</h2>
-        <p className="mt-1 text-caption text-fg-muted">Last 18 weeks — intensity shows progress toward target.</p>
+      {/* Calendar heatmap full width below (§7). */}
+      <section className="glass-card fade-up mt-4 rounded-card p-5 lg:mt-5 lg:p-6" style={{ animationDelay: '200ms' }}>
+        <p className="text-section-title">Calendar</p>
+        <p className="text-caption mt-1 text-fg-muted">
+          Last 18 weeks — cell brightness shows progress toward the daily target; tap a day to toggle it.
+        </p>
         <div className="mt-3">
           <Heatmap habit={habit} entries={entries} onToggle={(d) => void toggleDay(d)} />
         </div>
         {actionError && (
-          <p role="alert" className="mt-2 rounded-button bg-danger/10 px-3 py-2 text-caption text-danger">
+          <p role="alert" className="mt-3 rounded-input bg-danger/10 px-3 py-2 text-body text-danger">
             {actionError}
           </p>
         )}
-      </div>
+      </section>
     </section>
   )
 }

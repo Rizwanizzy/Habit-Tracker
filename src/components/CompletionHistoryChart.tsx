@@ -3,6 +3,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   LabelList,
   ResponsiveContainer,
   Tooltip,
@@ -12,6 +13,7 @@ import {
 import type { Entry, Habit } from '../lib/score'
 import { isDone } from '../lib/score'
 import { addDays, parseLocalDate, todayString } from '../lib/dates'
+import { tint } from '../lib/color'
 
 type Range = 'week' | 'month'
 type Bucket = { label: string; count: number }
@@ -25,12 +27,20 @@ interface TipProps {
   payload?: ReadonlyArray<{ value?: unknown }>
 }
 
-function CompletionTip({ active, label, payload }: TipProps) {
+function CompletionTip({
+  active,
+  label,
+  payload,
+  range,
+  color,
+}: TipProps & { range: Range; color: string }) {
   if (!active || !payload || payload.length === 0) return null
   return (
-    <div className="rounded-[10px] border border-border bg-surface-raised px-3 py-2">
-      <p className="text-caption text-fg-secondary">
-        Week of {String(label)}: <span className="font-semibold text-fg">{String(payload[0].value)}</span> completions
+    <div className="glass-card rounded-input px-3 py-2">
+      <p className="text-body flex items-center gap-2">
+        <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+        <span className="text-fg-secondary">{range === 'week' ? `Week of ${String(label)}` : String(label)}</span>
+        <span className="pl-2 font-semibold tabular-nums text-fg">{String(payload[0].value)}</span>
       </p>
     </div>
   )
@@ -74,7 +84,8 @@ function monthlyBuckets(habit: Habit, entries: Entry[]): Bucket[] {
   return out
 }
 
-/** Weekly/monthly completion bar chart, toggleable via habit-colored chips. */
+/** Weekly/monthly completion bars (DESIGN.md §7): 10px habit-color bars with
+ *  fully rounded tops; the latest (current) bucket glows. */
 export function CompletionHistoryChart({ habit, entries }: { habit: Habit; entries: Entry[] }) {
   const [range, setRange] = useState<Range>('week')
   const color = habit.color ?? '#3B82F6'
@@ -86,55 +97,72 @@ export function CompletionHistoryChart({ habit, entries }: { habit: Habit; entri
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-section-title">History</h3>
         <div className="flex gap-2" role="group" aria-label="History range">
-          {(['week', 'month'] as const).map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => setRange(r)}
-              aria-pressed={range === r}
-              className="text-caption h-7 rounded-full px-3 font-medium capitalize"
-              style={
-                range === r
-                  ? { backgroundColor: color, color: 'white' }
-                  : { border: `1.5px solid ${color}`, color }
-              }
-            >
-              {r}
-            </button>
-          ))}
+          {(['week', 'month'] as const).map((r) => {
+            const on = range === r
+            return (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRange(r)}
+                aria-pressed={on}
+                title={r === 'week' ? 'Weekly totals' : 'Monthly totals'}
+                className="text-body flex h-9 items-center rounded-pill px-4 font-medium capitalize transition-all duration-150"
+                style={
+                  on
+                    ? { backgroundColor: tint(color, 20), border: `1px solid ${tint(color, 40)}` }
+                    : { opacity: 0.5, border: '1px solid var(--border)' }
+                }
+              >
+                {r}
+              </button>
+            )
+          })}
         </div>
       </div>
 
       {entries.length === 0 ? (
-        <p className="mt-4 text-caption text-fg-muted">No check-ins yet.</p>
+        <p className="mt-4 text-body text-fg-secondary">No check-ins yet.</p>
       ) : (
         <div className="mt-3 h-52">
           <ResponsiveContainer>
-            <BarChart data={data} margin={{ top: 18, right: 8, left: -20 }}>
-              <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
+            <BarChart data={data} margin={{ top: 18, right: 8, left: -20 }} barCategoryGap="24%">
+              <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="var(--chart-grid)" />
               <XAxis
                 dataKey="label"
                 interval={0}
-                tick={{ fill: 'var(--chart-axis)', fontSize: 11 }}
+                tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
                 allowDecimals={false}
-                width={48}
-                tick={{ fill: 'var(--chart-axis)', fontSize: 11 }}
+                width={44}
+                tick={{ fill: 'var(--chart-axis)', fontSize: 12 }}
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip content={CompletionTip} cursor={{ fill: 'var(--chart-grid)', opacity: 0.4 }} />
-              <Bar dataKey="count" fill={color} radius={[6, 6, 0, 0]} maxBarSize={28}>
+              <Tooltip
+                cursor={{ fill: 'var(--chart-grid)', opacity: 0.4 }}
+                content={(props: TipProps) => <CompletionTip {...props} range={range} color={color} />}
+              />
+              <Bar dataKey="count" fill={color} barSize={10} radius={[5, 5, 0, 0]}>
+                {data.map((_, i) => (
+                  <Cell
+                    key={i}
+                    style={
+                      i === data.length - 1
+                        ? { filter: `drop-shadow(0 0 6px color-mix(in srgb, ${color} 60%, transparent))` }
+                        : undefined
+                    }
+                  />
+                ))}
                 <LabelList
                   dataKey="count"
                   position="top"
-                  style={{ fill: 'var(--chart-axis)', fontSize: 11 }}
+                  style={{ fill: 'var(--chart-axis)', fontSize: 12 }}
                 />
               </Bar>
             </BarChart>
