@@ -56,13 +56,13 @@ export function ProfileBanner({
             <img
               src={avatarUrl}
               alt="Profile photo"
-              className="size-24 rounded-full object-cover ring-4 ring-bg-base lg:size-[120px]"
+              className="size-24 rounded-full object-cover ring-4 ring-background lg:size-[120px]"
               onError={() => setImgBroken(true)}
             />
           ) : (
             <div
               aria-hidden="true"
-              className="bg-accent-gradient glow-accent grid size-24 place-items-center rounded-full ring-4 ring-bg-base lg:size-[120px]"
+              className="bg-accent-gradient glow-accent grid size-24 place-items-center rounded-full ring-4 ring-background lg:size-[120px]"
             >
               <span className="text-stat text-white">{initials}</span>
             </div>
@@ -93,7 +93,7 @@ export function ProfileBanner({
             disabled={uploading}
             aria-label={hasPhoto ? 'Change photo' : 'Upload photo'}
             title={hasPhoto ? 'Change photo' : 'Upload photo'}
-            className="glass-pill absolute bottom-1 right-1 z-10 grid size-9 place-items-center rounded-full text-fg-secondary transition-colors duration-150 after:absolute after:-inset-1 after:content-[''] hover:text-fg active:scale-95 disabled:opacity-60"
+            className="glass-pill absolute bottom-1 right-1 z-10 grid size-9 place-items-center rounded-full text-fg-secondary transition-colors duration-150 after:absolute after:-inset-1 after:content-[''] hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none active:scale-95 disabled:opacity-60"
           >
             <IconCamera className="size-4" />
           </button>
@@ -128,8 +128,8 @@ export function ProfileBanner({
             </svg>
           )}
         </div>
-        <p className="px-4 text-center text-body text-fg-secondary">
-          <span className="inline-flex items-center gap-1">
+        <p className="max-w-full px-4 text-center text-body text-fg-secondary">
+          <span className="inline-flex min-w-0 max-w-full items-center gap-1">
             <IconUser className="size-3.5 shrink-0 text-fg-muted" />
             <span className="truncate">{email}</span>
           </span>
@@ -140,7 +140,7 @@ export function ProfileBanner({
             type="button"
             onClick={onRemove}
             disabled={uploading}
-            className="text-body mt-1 inline-flex h-11 items-center rounded-pill px-4 font-medium text-danger transition-colors duration-150 hover:bg-danger/10 active:scale-95 disabled:opacity-60"
+            className="text-body mt-1 inline-flex h-11 items-center rounded-pill px-4 font-medium text-danger transition-colors duration-150 hover:bg-danger/10 focus-visible:ring-2 focus-visible:ring-danger focus-visible:outline-none active:scale-95 disabled:opacity-60"
           >
             Remove photo
           </button>

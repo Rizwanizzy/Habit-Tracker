@@ -90,7 +90,7 @@ export function Profile() {
         {header}
         <div className="skeleton h-[120px] rounded-card lg:h-[160px]" />
         <div className="mx-auto -mt-12 flex w-full max-w-[720px] flex-col items-center gap-3 lg:mt-[-60px]">
-          <div className="skeleton size-24 rounded-full ring-4 ring-bg-base lg:size-[120px]" />
+          <div className="skeleton size-24 rounded-full ring-4 ring-background lg:size-[120px]" />
           <div className="skeleton h-8 w-56 rounded-pill" />
           <div className="skeleton h-4 w-64 max-w-full rounded-pill" />
         </div>
