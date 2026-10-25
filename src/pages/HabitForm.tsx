@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ColorPicker } from '../components/ColorPicker'
 import { RangeSwitch } from '../components/RangeSwitch'
 import { createHabit, extractError, updateHabit, type HabitInput } from '../hooks/useHabits'
+import { useHabitsContext } from '../contexts/HabitsContext'
 import { getSupabase } from '../lib/supabase'
 import { tint } from '../lib/color'
 
@@ -37,6 +38,7 @@ const Label = ({ htmlFor, children }: { htmlFor: string; children: string }) => 
 export function HabitForm() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { reload } = useHabitsContext()
   const editing = Boolean(id)
 
   const [form, setForm] = useState<FormState | null>(editing ? null : BLANK)
@@ -131,6 +133,10 @@ export function HabitForm() {
     try {
       if (id) await updateHabit(id, values)
       else await createHabit(values)
+      // Refresh the shared habit list immediately so Today/Overview/Settings
+      // show the change; navigation happens right away (same loading state
+      // users saw when each page fetched on mount).
+      void reload()
       navigate('/', { replace: true })
     } catch (err) {
       setFormError(extractError(err))

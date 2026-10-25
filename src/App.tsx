@@ -9,6 +9,7 @@ import { HabitDetail } from './pages/HabitDetail'
 import { Profile } from './pages/Profile'
 import { Login } from './pages/Login'
 import { ProfileProvider } from './contexts/ProfileContext'
+import { HabitsProvider } from './contexts/HabitsContext'
 
 export function App() {
   return (
@@ -17,7 +18,13 @@ export function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<RequireAuth />}>
-            <Route element={<AppShell />}>
+            <Route
+              element={
+                <HabitsProvider>
+                  <AppShell />
+                </HabitsProvider>
+              }
+            >
               <Route index element={<Today />} />
               <Route path="overview" element={<Overview />} />
               <Route path="settings" element={<Settings />} />

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useHabits, extractError } from '../hooks/useHabits'
+import { extractError } from '../hooks/useHabits'
+import { useHabitsContext } from '../contexts/HabitsContext'
 import { useAuth } from '../hooks/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { IconPencil } from '../components/icons'
@@ -55,7 +56,7 @@ function ManageRow({
 
 export function Settings() {
   const { session } = useAuth()
-  const { habits, loading, error, reload, archiveHabit } = useHabits({ includeArchived: true })
+  const { habits, loading, error, reload, archiveHabit } = useHabitsContext()
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 

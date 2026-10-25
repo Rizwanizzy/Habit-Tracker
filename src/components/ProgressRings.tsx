@@ -63,6 +63,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
             return (
               <g key={habit.id} fill="none" strokeLinecap="round">
                 <circle
+                  className="ring-track"
                   cx={CENTER}
                   cy={CENTER}
                   r={r}

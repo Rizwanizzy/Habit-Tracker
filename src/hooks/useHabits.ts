@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Habit } from '../lib/score'
 import { getSupabase } from '../lib/supabase'
 import { toLocalDateString } from '../lib/dates'
+import { diffOrder, sortHabits } from '../lib/order'
 
 interface HabitRow {
   id: string
@@ -43,11 +44,13 @@ function mapHabit(row: HabitRow): Habit {
 
 async function fetchHabits(includeArchived: boolean): Promise<Habit[]> {
   const sb = getSupabase()
-  let query = sb.from('habits').select('*').order('sort_order')
+  let query = sb.from('habits').select('*')
   if (!includeArchived) query = query.eq('archived', false)
   const { data, error } = await query
   if (error) throw error
-  return (data as HabitRow[]).map(mapHabit)
+  // sort_order (then created_at, then id) is the single source of truth —
+  // the list is always passed through sortHabits, never DB order alone.
+  return sortHabits((data as HabitRow[]).map(mapHabit))
 }
 
 export async function createHabit(values: HabitInput): Promise<Habit> {
@@ -57,13 +60,15 @@ export async function createHabit(values: HabitInput): Promise<Habit> {
   const user = userData.user
   if (!user) throw new Error('You must be signed in to create a habit')
 
+  // New habits go to the end of the order: sort_order = max(existing) + 1
+  // (first habit ever = 1). RLS scopes the query to the user's own rows.
   const { data: last, error: lastError } = await sb
     .from('habits')
     .select('sort_order')
     .order('sort_order', { ascending: false })
     .limit(1)
   if (lastError) throw lastError
-  const nextOrder = last && last.length > 0 ? Number(last[0].sort_order) + 1 : 0
+  const nextOrder = last && last.length > 0 ? Number(last[0].sort_order) + 1 : 1
 
   const { data, error } = await sb
     .from('habits')
@@ -81,15 +86,19 @@ export async function updateHabit(id: string, values: HabitUpdate): Promise<Habi
   return mapHabit(data as HabitRow)
 }
 
-/** Active (or all) habits with explicit loading and error states. */
+/** Shared habit list state (all habits, archived included — views filter).
+ *  Consumed through HabitsContext so every page sees the same list at once;
+ *  always returned through sortHabits (sort_order → created_at → id). */
 export function useHabits(options: { includeArchived?: boolean } = {}) {
   const includeArchived = options.includeArchived === true
   const [habits, setHabits] = useState<Habit[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reorderError, setReorderError] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
     setError(null)
+    setReorderError(null)
     setLoading(true)
     try {
       setHabits(await fetchHabits(includeArchived))
@@ -119,5 +128,44 @@ export function useHabits(options: { includeArchived?: boolean } = {}) {
     [habits],
   )
 
-  return { habits, loading, error, reload, archiveHabit }
+  /** Reorder to `orderedIds` (dnd result). Applies the new order optimistically,
+   *  then saves only the rows whose position changed (one update().eq() per
+   *  changed row — never upsert, whose insert path would fail on the not-null
+   *  columns). On any save failure the previous order is restored and the
+   *  message is exposed via `reorderError` (not re-thrown). Habits not named
+   *  in orderedIds (e.g. archived) keep their relative order behind the
+   *  reordered block. */
+  const reorderHabits = useCallback(
+    async (orderedIds: string[]) => {
+      if (orderedIds.length === 0) return
+      setReorderError(null)
+      const snapshot = habits
+      const byId = new Map(habits.map((h) => [h.id, h] as const))
+      const reordered = orderedIds
+        .map((id) => byId.get(id))
+        .filter((h): h is Habit => h !== undefined)
+      const rest = habits.filter((h) => !orderedIds.includes(h.id))
+      // Renumber by position (1..n): the block order from the drag is
+      // authoritative, so re-sorting by the stale sort_order would undo it.
+      const next = [...reordered, ...rest].map((h, i) =>
+        h.sort_order === i + 1 ? h : { ...h, sort_order: i + 1 },
+      )
+      const changed = diffOrder(habits, next)
+      if (changed.length === 0) return
+      setHabits(next)
+      try {
+        await Promise.all(
+          changed.map((c) => updateHabit(c.id, { sort_order: c.sort_order })),
+        )
+      } catch (e) {
+        setHabits(snapshot)
+        setReorderError(extractError(e))
+      }
+    },
+    [habits],
+  )
+
+  return { habits, loading, error, reload, archiveHabit, reorderHabits, reorderError }
 }
+
+export type UseHabitsResult = ReturnType<typeof useHabits>

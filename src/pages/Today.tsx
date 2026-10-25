@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useHabits, extractError } from '../hooks/useHabits'
+import { extractError } from '../hooks/useHabits'
+import { useHabitsContext } from '../contexts/HabitsContext'
 import { useEntries } from '../hooks/useEntries'
 import { currentStreak, isDone, type Entry, type Habit } from '../lib/score'
 import { addDays, parseLocalDate, todayString } from '../lib/dates'
 import { ProgressRings } from '../components/ProgressRings'
 import { WeeklyCompletion } from '../components/WeeklyCompletion'
-import { HabitTile } from '../components/HabitTile'
+import { HabitReorderGrid } from '../components/HabitReorderGrid'
 import { IconChevronLeft, IconChevronRight, IconFlame } from '../components/icons'
 import { TodayGreeting } from '../components/TodayGreeting'
 
@@ -25,7 +26,12 @@ const DATE_FMT = new Intl.DateTimeFormat(undefined, {
 })
 
 export function Today() {
-  const { habits, loading: habitsLoading, error: habitsError, reload } = useHabits()
+  const shared = useHabitsContext()
+  const { loading: habitsLoading, error: habitsError, reload } = shared
+  const { reorderHabits, reorderError } = shared
+  // Shared list holds every habit; views filter archived (never re-sort —
+  // the context list is already in habit order).
+  const habits = useMemo(() => shared.habits.filter((h) => !h.archived), [shared.habits])
   const ids = habits.map((h) => h.id)
   const {
     entriesByHabit,
@@ -40,6 +46,36 @@ export function Today() {
   const [selectedDate, setSelectedDate] = useState(today)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+
+  // --- Reorder (jiggle) mode -------------------------------------------------
+  // Long-press (350ms, 8px tolerance on both pointer and touch) lifts the tile
+  // and enters the mode; Escape or the Done pill exits it. Drag/drop saves the
+  // new order through reorderHabits (optimistic, rolls back on failure).
+  const [reorderMode, setReorderMode] = useState(false)
+  const [notice, setNotice] = useState<{ kind: 'success' | 'danger'; text: string } | null>(null)
+
+  // Escape exits reorder mode.
+  useEffect(() => {
+    if (!reorderMode) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setReorderMode(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [reorderMode])
+
+  // Auto-dismiss toasts ("Order saved" / failure messages).
+  useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(null), 2600)
+    return () => window.clearTimeout(timer)
+  }, [notice])
+
+  // reorderHabits fails soft (it rolls back and exposes reorderError), so
+  // surface a failure toast when that state flips.
+  useEffect(() => {
+    if (reorderError) setNotice({ kind: 'danger', text: reorderError })
+  }, [reorderError])
 
   const isPast = selectedDate !== today
 
@@ -207,12 +243,25 @@ export function Today() {
               </button>
             )}
           </div>
-          <Link
-            to="/habits/new"
-            className="inline-flex h-12 shrink-0 items-center rounded-pill bg-accent-gradient glow-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 hover:translate-y-[-1px]"
-          >
-            Add habit
-          </Link>
+          {reorderMode ? (
+            <div className="flex items-center gap-3">
+              <span className="text-caption text-fg-muted">Drag to reorder</span>
+              <button
+                type="button"
+                onClick={() => setReorderMode(false)}
+                className="inline-flex h-12 shrink-0 items-center rounded-pill bg-accent-gradient glow-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 hover:translate-y-[-1px]"
+              >
+                Done
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/habits/new"
+              className="inline-flex h-12 shrink-0 items-center rounded-pill bg-accent-gradient glow-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 hover:translate-y-[-1px]"
+            >
+              Add habit
+            </Link>
+          )}
         </div>
       </header>
 
@@ -261,28 +310,35 @@ export function Today() {
         </div>
       </div>
 
-      {/* Bento row 2: habit tiles */}
-      <ul
-        aria-label="Habits"
-        className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-5 lg:grid-cols-3 lg:gap-5"
-      >
-        {habits.map((habit, i) => {
-          const list = entriesByHabit[habit.id] ?? []
-          const entry = list.find((e) => e.date === selectedDate)
-          return (
-            <HabitTile
-              key={habit.id}
-              habit={habit}
-              done={entry != null && isDone(habit, entry)}
-              streak={currentStreak(habit, list, today)}
-              value={entry ? entry.value : null}
-              index={i}
-              onToggle={() => toggle(habit)}
-              onLogValue={(v) => logValue(habit, v)}
-            />
-          )
-        })}
-      </ul>
+      {/* Bento row 2: habit tiles (sortable grid; long-press enters jiggle mode) */}
+      <HabitReorderGrid
+        habits={habits}
+        entriesByHabit={entriesByHabit}
+        selectedDate={selectedDate}
+        today={today}
+        reorderMode={reorderMode}
+        enterReorderMode={() => setReorderMode(true)}
+        reorderHabits={reorderHabits}
+        onNotice={(kind, text) => setNotice({ kind, text })}
+        onToggle={toggle}
+        onLogValue={logValue}
+      />
+
+      {/* Reorder toast: "Order saved" or the rollback error message. */}
+      {notice && (
+        <div
+          role="status"
+          className="pointer-events-none fixed inset-x-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-40 flex justify-center lg:bottom-6"
+        >
+          <p
+            className={`glass-pill rounded-pill px-5 py-2.5 text-body font-medium ${
+              notice.kind === 'success' ? 'text-success' : 'text-danger'
+            }`}
+          >
+            {notice.text}
+          </p>
+        </div>
+      )}
     </section>
   )
 }

@@ -73,6 +73,7 @@ Glass recipe (dark): background surface, 1px border, backdrop-filter: blur(20px)
 
 ## 8. Page layouts
 - **Today (bento):** desktop 12-column grid. Row 1: Hero card (rings + "3/4 done" + motivational line + overall streak, 5 cols), Weekly completion card (7 smooth-curve/bar mini chart, 7 cols). Row 2: habit tiles in a responsive grid (3 columns desktop, 2 tablet, 1 mobile). Date navigation is a pill with prev/next arrows and a calendar button, placed in the header.
+- **Today reorder (jiggle) mode:** a 350ms long-press (8px tolerance, mouse + touch sensors; keyboard drags supported) on a tile lifts it into reorder mode and enters the mode via `onDragStart`. All tiles wiggle ±1.2° at 140ms ease-in-out infinite alternate, desynced by negative per-tile delays; inside the mode drags start after a 4px nudge instead of the long-press. The dragged tile is a DragOverlay copy at 1.04 scale with a stronger habit-colored glow while its source slot dims. The sortable attributes/listeners live on the tile's wrapper `<li>` at all times (`aria-roledescription="sortable"` is always in the DOM), so plain taps still reach the check-in/edit/link controls outside the mode and a swallow window (~150ms, set on drop) eats the trailing click after a drag. The header "Add habit" pill becomes "Done" (accent gradient) with a "Drag to reorder" caption; Escape or Done exits. Check-in circles, edit buttons and tile links are disabled and dimmed; native selection/long-press chrome is suppressed on tiles (`touch-action: manipulation` outside the mode, `none` inside). A drop saves the new order via `reorderHabits` with an "Order saved" toast (error toast if it rolls back).
 - **Overview:** header with range switch. Row 1: three stat tiles (average score, best habit, needs attention). Row 2: large chart card with the chip row inside it. Row 3: per-habit mini cards, each with a sparkline in its color.
 - **Settings:** two-column on desktop. Appearance card (theme toggle with a sun/moon animation), Habits card (list with color dot, edit, archive), Account card (signed-in email + "View profile" link; no button row).
 - **Login:** centered glass card over the aurora background, logo mark above, gradient primary button.
@@ -82,7 +83,8 @@ Glass recipe (dark): background surface, 1px border, backdrop-filter: blur(20px)
 - Page load: cards fade up 12px with 40ms stagger.
 - Check-in: ring-pop (scale 1 to 1.15 to 1 in 280ms) plus a short burst of 6 small dots in the habit color; the hero rings animate to their new value over 700ms; big numbers count up.
 - Rings and chart lines draw in on first render (900ms).
-- Respect prefers-reduced-motion: disable bursts and draw-ins.
+- Reorder: other tiles slide to make room at 200ms (dnd-kit default easing); the hero rings animate to their new radius in 400ms.
+- Respect prefers-reduced-motion: disable bursts and draw-ins; in reorder mode the wiggle becomes a static dashed outline and drags still work.
 
 ## 10. Do and don't
 - Do keep neutral surfaces and let the habit colors carry the color.

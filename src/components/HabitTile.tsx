@@ -15,10 +15,15 @@ interface Props {
   index: number
   onToggle: () => void
   onLogValue: (value: number) => void
+  /** Reorder (jiggle) mode: check-in/edit/links are disabled and dimmed,
+   *  the wiggle runs out of sync via a negative per-tile delay. */
+  reorderMode?: boolean
+  /** DragOverlay preview: renders mid-drag, so skip the fade-up entry. */
+  overlay?: boolean
 }
 
 /** Route an object of string keys into React's style prop as CSS variables. */
-function cssVars(style: Record<string, string | number>): CSSProperties {
+function cssVars(style: Record<string, string | number | undefined>): CSSProperties {
   return style as unknown as CSSProperties
 }
 
@@ -46,7 +51,17 @@ function formatNumber(n: number): string {
 /** Habit tile (DESIGN.md §6): tinted gradient card, 44px check ring with a
  *  pop + burst of habit-colored dots, name (never habit-colored), streak chip,
  *  and for numeric habits a 6px progress bar plus "value / target unit". */
-export function HabitTile({ habit, done, streak, value, index, onToggle, onLogValue }: Props) {
+export function HabitTile({
+  habit,
+  done,
+  streak,
+  value,
+  index,
+  onToggle,
+  onLogValue,
+  reorderMode = false,
+  overlay = false,
+}: Props) {
   const c = habit.color ?? '#3B82F6'
   const theme = useThemeName()
   const isNumeric = habit.type === 'numeric'
@@ -80,10 +95,15 @@ export function HabitTile({ habit, done, streak, value, index, onToggle, onLogVa
   const valueLabel = isNumeric
     ? `${formatNumber(value ?? 0)} / ${formatNumber(habit.target)}${unit ? ` ${unit}` : ''}`
     : null
+  // The inline editor never opens in reorder mode (checkboxes/inputs are locked).
+  const showEditor = isNumeric && editing && !reorderMode
+  // Jiggle runs out of sync: negative per-tile delay beats the fade-up's
+  // positive stagger (the entry animation is long finished by then).
+  const stagger = overlay ? undefined : `${reorderMode ? (index % 6) * -37 : index * 40}ms`
 
   return (
-    <li
-      className="habit-tile fade-up group relative flex min-h-[132px] flex-col rounded-tile p-5"
+    <div
+      className={`habit-tile group relative flex h-full min-h-[132px] flex-col rounded-tile p-5 ${overlay ? '' : 'fade-up'}`}
       style={cssVars({
         // Light theme mixes the habit toward white (pastel); dark keeps the
         // transparent tints. '--tile-glow' feeds the light-only tile shadow.
@@ -95,7 +115,7 @@ export function HabitTile({ habit, done, streak, value, index, onToggle, onLogVa
           theme === 'light' ? `color-mix(in srgb, ${c} 35%, white)` : tint(c, 35),
         '--tile-border-hover': tint(c, 70),
         '--tile-glow': `color-mix(in srgb, ${c} 55%, transparent)`,
-        animationDelay: `${index * 40}ms`,
+        animationDelay: stagger,
       })}
     >
       <div className="flex items-start justify-between">
@@ -103,10 +123,11 @@ export function HabitTile({ habit, done, streak, value, index, onToggle, onLogVa
         <button
           type="button"
           onClick={onToggle}
+          disabled={reorderMode}
           aria-pressed={done}
           aria-label={done ? `Mark ${habit.name} not done` : `Mark ${habit.name} done`}
           onAnimationEnd={handleAnimationEnd}
-          className={`relative grid size-11 shrink-0 place-items-center rounded-full transition-all duration-150 active:scale-95 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+          className={`relative grid size-11 shrink-0 place-items-center rounded-full transition-all duration-150 active:scale-95 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${reorderMode ? 'cursor-grab opacity-60' : ''} ${
             popping ? 'ring-pop' : ''
           }`}
           style={
@@ -132,7 +153,10 @@ export function HabitTile({ habit, done, streak, value, index, onToggle, onLogVa
           to={`/habits/${habit.id}/edit`}
           aria-label={`Edit ${habit.name}`}
           title="Edit habit"
-          className="grid size-11 place-items-center rounded-pill text-fg-muted transition-opacity duration-150 hover:bg-surface hover:text-fg focus-visible:opacity-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+          draggable={false}
+          tabIndex={reorderMode ? -1 : undefined}
+          aria-disabled={reorderMode || undefined}
+          className={`grid size-11 place-items-center rounded-pill text-fg-muted transition-opacity duration-150 hover:bg-surface hover:text-fg focus-visible:opacity-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 ${reorderMode ? 'pointer-events-none opacity-60' : ''}`}
         >
           <IconPencil className="size-4" />
         </Link>
@@ -141,7 +165,10 @@ export function HabitTile({ habit, done, streak, value, index, onToggle, onLogVa
       <div className="mt-1 flex items-center gap-2">
         <Link
           to={`/habits/${habit.id}`}
-          className="text-habit-name min-w-0 flex-1 truncate text-fg decoration-1 underline-offset-2 hover:underline"
+          draggable={false}
+          tabIndex={reorderMode ? -1 : undefined}
+          aria-disabled={reorderMode || undefined}
+          className={`text-habit-name min-w-0 flex-1 truncate text-fg decoration-1 underline-offset-2 hover:underline ${reorderMode ? 'pointer-events-none opacity-60' : ''}`}
         >
           {habit.name}
         </Link>
@@ -164,7 +191,7 @@ export function HabitTile({ habit, done, streak, value, index, onToggle, onLogVa
               style={{ width: `${pct}%`, backgroundColor: c }}
             />
           </div>
-          {editing ? (
+          {showEditor ? (
             <form onSubmit={submitValue} className="mt-1 flex items-center gap-2">
               <input
                 autoFocus
@@ -201,13 +228,15 @@ export function HabitTile({ habit, done, streak, value, index, onToggle, onLogVa
                 setEditing(true)
               }}
               aria-label={`Log value for ${habit.name}`}
-              className="text-body tabular-nums -ml-1 mt-1 flex min-h-11 items-center rounded-pill px-1 text-fg-secondary duration-150 hover:bg-surface"
+              tabIndex={reorderMode ? -1 : undefined}
+              aria-disabled={reorderMode || undefined}
+              className={`text-body tabular-nums -ml-1 mt-1 flex min-h-11 items-center rounded-pill px-1 text-fg-secondary duration-150 hover:bg-surface ${reorderMode ? 'pointer-events-none opacity-60' : ''}`}
             >
               {valueLabel}
             </button>
           )}
         </div>
       )}
-    </li>
+    </div>
   )
 }

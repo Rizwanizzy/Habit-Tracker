@@ -279,10 +279,17 @@ body {
 }
 
 /* Habit tile (§6): tinted gradient background + habit border that brightens
-   on hover. Colors arrive as custom properties so the habit stays in charge. */
+   on hover. Colors arrive as custom properties so the habit stays in charge.
+   Selection/long-press chrome is suppressed on tiles at all times so a
+   long-press always belongs to the reorder sensors; touch-action stays
+   manipulable outside reorder mode so normal scrolling still works. */
 .habit-tile {
   background-image: var(--tile-bg, none);
   border: 1px solid var(--tile-border, var(--border));
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   transition:
     transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
     border-color 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -293,10 +300,17 @@ body {
   transform: translateY(-2px);
 }
 
-/* Hero rings: morph to a new value in 700ms; draw in at 900ms on first
-   render (the .ring-draw class is only present during the first 900ms). */
+/* Hero rings: morph to a new value in 700ms; the radius (ring position —
+   outermost = first habit, so a reorder moves a ring to its new slot in
+   400ms instead of jumping). Draw in at 900ms on first render. */
 .ring-progress {
-  transition: stroke-dashoffset 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition:
+    stroke-dashoffset 700ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    r 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ring-track {
+  transition: r 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .ring-draw {
@@ -651,5 +665,59 @@ body {
   :root:not(.dark) .glass-card,
   :root:not(.dark) .glass-pill {
     background: rgba(255, 255, 255, 0.92);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Reorder (jiggle) mode — Today tiles. Entered via a long-press handled by
+   @dnd-kit (Pointer/Touch sensors at 350ms with 8px tolerance + Keyboard,
+   see Today.tsx). Severity kept from the iOS-style reference: ±1.2° at 140ms.
+--------------------------------------------------------------------------- */
+@keyframes tile-jiggle {
+  from {
+    transform: rotate(-1.2deg);
+  }
+  to {
+    transform: rotate(1.2deg);
+  }
+}
+
+/* In mode: the grid grabs and the tiles jiggle out of sync (each tile carries
+   a negative per-tile animation-delay set inline); touch-action drops to
+   `none` so a press on a tile is never stolen by scrolling. */
+.reorder-grid {
+  cursor: grab;
+}
+
+.reorder-grid .habit-tile {
+  animation: tile-jiggle 140ms ease-in-out infinite alternate;
+  cursor: grab;
+  touch-action: none;
+}
+
+/* The tile being dragged: the source slot dims while its copy floats. */
+.reorder-grid .tile-ghost .habit-tile {
+  opacity: 0.45;
+  animation: none;
+}
+
+/* Dragged tile (DragOverlay): scale 1.04 + stronger habit-colored glow.
+   Declared per theme so it out-cascades the themed resting tile shadows. */
+:root:not(.dark) .tile-dragged .habit-tile,
+.dark .tile-dragged .habit-tile {
+  transform: scale(1.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 30px 60px -18px var(--tile-glow, rgba(15, 23, 42, 0.5)),
+    0 12px 28px -14px rgba(15, 23, 42, 0.4);
+}
+
+/* Reduced motion: no wiggle — a static dashed outline marks the mode instead.
+   Dragging still works; the motion-safety block already collapses durations. */
+@media (prefers-reduced-motion: reduce) {
+  .reorder-grid .habit-tile {
+    animation: none;
+    outline: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+    outline-offset: 3px;
   }
 }

@@ -56,10 +56,10 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 
 ```
 src/
-  lib/        pure logic (score, dates, color, profile, avatar, supabase client)
+  lib/        pure logic (score, dates, color, profile, order, avatar, supabase client)
   hooks/      data hooks (useHabits, useEntries, useProfile, useAuth, useTheme, useThemeName)
-  components/ reusable UI (AppShell, HabitTile, Heatmap, ColorPicker, Profile*, ThemeToggle)
-  contexts/   React context providers (ProfileContext)
+  components/ reusable UI (AppShell, HabitTile, HabitReorderGrid, Heatmap, ColorPicker, Profile*, ThemeToggle)
+  contexts/   React context providers (ProfileContext, HabitsContext)
   pages/      Today (bento), Overview, Profile, Settings, HabitForm, HabitDetail, Login
 ```
 

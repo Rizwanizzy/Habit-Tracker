@@ -15,7 +15,7 @@ import { CompletionHistoryChart } from '../components/CompletionHistoryChart'
 import { RangeSwitch } from '../components/RangeSwitch'
 import { StatTile } from '../components/StatTile'
 import { IconChevronLeft, IconPencil } from '../components/icons'
-import { useHabits } from '../hooks/useHabits'
+import { useHabitsContext } from '../contexts/HabitsContext'
 import { useEntries } from '../hooks/useEntries'
 import { bestStreak, completionRate, currentStreak, scoreSeries } from '../lib/score'
 import { isDone, type Entry } from '../lib/score'
@@ -69,7 +69,7 @@ function upsertEntry(list: Entry[], entry: Entry): Entry[] {
 
 export function HabitDetail() {
   const { id } = useParams()
-  const { habits, loading, error, reload } = useHabits({ includeArchived: true })
+  const { habits, loading, error, reload } = useHabitsContext()
   const {
     entriesByHabit,
     loading: entriesLoading,

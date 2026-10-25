@@ -69,9 +69,10 @@ VITE_SUPABASE_ANON_KEY=<anon key>
    - `dates.ts` — local `YYYY-MM-DD` helpers for `Asia/Kolkata` (`toLocalDateString`, `todayString`, `parseLocalDate`, `addDays`, `daysBetween`). Never `toISOString().slice(0,10)` — UTC date near midnight breaks the IST day.
    - `color.ts` — `readableColor(hex, theme)` (walks HSL lightness until WCAG contrast ≥ 3:1 against the theme's glass surface; dark raises lightness, light lowers it), `tint(hex, percent)` → `color-mix(in srgb, …, transparent)` strings, plus `contrast()` and `surfaceColor()` helpers. ✅ covered by `color.test.ts` (very dark color on dark theme, very light on light theme, 3-digit hex, invalid input).
    - `profile.ts` — `Profile`/`ProfileInput` types, `GENDERS`, `isGender`, `validateFullName` (≤ 80 chars), `validateDateOfBirth` (YYYY-MM-DD, on/after 1900, not future), `validatePhone` (7–15 digits, optional leading +, common separators), `validateGender`, `validateProfile` (aggregates), `initialsFrom(name, email)` for avatar fallback. Pure, no React/Supabase. ✅ covered by `profile.test.ts`.
+   - `order.ts` — habit ordering engine (pure, ✅ `order.test.ts`): `compareOrder`/`sortHabits` (sort_order asc → created_at asc → id asc, missing sort_order counts as 0 so legacy all-zero rows stay deterministic), `moveHabit(list, activeId, overId)` (new array, unknown ids/same position = untouched input), `diffOrder(before, after)` → only the `{ id, sort_order }` pairs whose position changed, numbered from 1.
    - `avatar.ts` — `prepareAvatar(file)`: rejects non-images and files over 2 MB, center-crops to a square, resizes to 512px, encodes as WebP via canvas, returns a Blob. Browser-only (canvas).
    - `supabase.ts` — lazy singleton `getSupabase()` from VITE_ env vars, clear error when missing.
-   - Tests: `dates.test.ts` (midnight boundary), `score.test.ts` (miss after long streak, numeric below target, created mid-range), `color.test.ts`, `profile.test.ts` (validation + initials). **All passing.**
+   - Tests: `dates.test.ts` (midnight boundary), `score.test.ts` (miss after long streak, numeric below target, created mid-range), `color.test.ts`, `profile.test.ts` (validation + initials), `order.test.ts` (first→last, last→first, same position, unknown ids, legacy all-zero rows). **All passing.**
 3. **Aurora Glass redesign (in progress, UI-only — no logic/DB changes):**
    - **Done — Aurora Glass redesign (in progress, UI-only — no logic/DB changes):**
    - **Done:** `index.css` rewritten to DESIGN.md §1/§3/§4 tokens (aurora bg, glass recipes, Space Grotesk/DM Sans, radii shell 28→32 scale, caption uppercase); `src/lib/color.ts`; **`AppShell.tsx` rebuilt** — floating rounded shell (inset 16px, max 1280px, radius 32px) with a 72px circular icon rail on desktop (logo mark at top, clickable → Today; Today/Overview/Settings in middle — Today reached via logo click since `/` is the default route; Profile avatar alone in the bottom group (NavLink, accent ring when /profile is active; no theme toggle in the rail — the theme switch lives in Settings); sign-out removed from rail, now on Profile header as an icon button opening `ConfirmDialog`); mobile = floating glass bottom dock (64px, 16px inset, safe-area padding, 3 items: Today, Overview, Settings); `index.html` loads the new fonts and `viewport-fit=cover`. **Cursor pointer rule added to `@layer base`** so all buttons, links, role="button" etc. show hand cursor; hover states + focus rings added to rail icons, theme toggle, range switch segments, habit check rings, color swatches, chips, and the sign-out icon.
@@ -85,7 +86,7 @@ VITE_SUPABASE_ANON_KEY=<anon key>
    - Login works end-to-end against the user's Supabase project.
 5. **Habit tracking features:**
    - `supabase/schema.sql` — `habits` + `entries` tables, RLS on, per-user policies, unique `(habit_id, date)`. Run once in the Supabase SQL editor (auth works end-to-end, which suggests the tables already exist — confirm before assuming).
-   - `useHabits.ts` — fetch active/all habits (`sort_order` order), `createHabit`, `updateHabit`, optimistic `archiveHabit` with rollback; `extractError` helper.
+   - `useHabits.ts` — the shared habit store hook (all habits for the user, consumed through `HabitsContext` so every page sees one list). Always returns the list through `sortHabits` (rule 8; DB `order('sort_order')` removed — JS order is the source of truth). `createHabit` sets `sort_order = max + 1` (first habit = 1), `updateHabit`, optimistic `archiveHabit` with rollback, and `reorderHabits(orderedIds)`: optimistic renumber 1..n by drag position, save only `diffOrder` rows via one `update({sort_order}).eq('id')` each in `Promise.all` (never upsert), roll back to the previous order and expose `reorderError` on failure. Also `extractError` helper.
    - `useEntries.ts` — entries grouped per habit (last 365 days), `saveEntry` (upsert on `habit_id,date`), `removeEntry`.
    - **Today page** — superseded by the Aurora Glass bento described in item 3 above (same data flow: optimistic one-tap check-in with rollback, inline numeric value input, loading/empty/error states, gentle >7-habits warning).
    - **HabitForm page** (`/habits/new`, `/habits/:id/edit`) — name, yes-no/numeric type (target + unit), frequency (times per N days), ColorPicker.
@@ -141,6 +142,20 @@ VITE_SUPABASE_ANON_KEY=<anon key>
 13. **Nav + Settings simplification (user request):**
     - **Rail:** desktop rail bottom group is now the Profile avatar alone — the theme toggle button was removed (the Settings Appearance card is the only theme switch). Cleaned up now-unused imports in `AppShell.tsx` (`useTheme`, `IconSun`, `IconMoon`). Mobile dock unchanged (Today / Overview / Settings).
     - **Settings:** Account card trimmed to signed-in email + "View profile" link; the Sign out button (and its `signOut`/`signOutError` logic + `getSupabase` import) was removed — sign-out stays only on the Profile header via the `ConfirmDialog` danger flow.
+14. **Shared habit order + reorder engine (no DB/schema changes; `sort_order` column already exists):**
+    - `src/lib/order.ts` (pure, 13 tests): `sortHabits` (sort_order asc → created_at asc → id asc; missing sort_order = 0 so legacy all-zero rows order by created_at then id), `moveHabit(list, activeId, overId)` (dnd-kit-shaped move; unknown ids / same position return the input untouched), `diffOrder(before, after)` (only changed `{id, sort_order}` pairs, numbered from 1). `score.ts`/`dates.ts` untouched.
+    - `HabitsProvider`/`useHabitsContext` (`src/contexts/HabitsContext.tsx`) mounts inside RequireAuth around `AppShell`; fetches all habits once (archived included) and shares one list — Today, hero/progress rings, Overview and Settings all read it (Today/Overview filter archived client-side; views never re-sort).
+    - `useHabits` rewrite: fetch goes through `sortHabits`; `createHabit` uses `sort_order = max(existing)+1` (first habit = 1); new `reorderHabits(orderedIds)` — optimistic renumber 1..n first, then save only changed rows via one `update({sort_order}).eq('id', id)` per row with `Promise.all` (upsert avoided on purpose), rollback + `reorderError` on failure. Failures are exposed, not thrown.
+    - `HabitForm` calls shared `reload()` after create/edit so the shared list is fresh when navigating back. `App.tsx` wraps the shell route in `HabitsProvider`.
+    - Drag-and-drop packages (`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`) are approved (AGENTS.md) but not installed yet — the drag UI on Today tiles is the next pass; the ordering engine above is its backend.
+15. **Today reorder (jiggle) mode (UI-only; `src/lib` + `src/hooks` untouched):**
+    - `HabitReorderGrid.tsx` (extracted so Today stays lean): DndContext with MouseSensor + TouchSensor and KeyboardSensor with `sortableKeyboardCoordinates`; SortableContext with `rectSortingStrategy` over the ordered active habits; `DragOverlay` sized from the source rect showing a `.tile-dragged` copy (1.04 scale + stronger `--tile-glow` shadow). Activation constraint is mode-dependent — `{ delay 350ms, tolerance 8 }` outside the mode (the long-press that enters it), `{ distance: 4 }` inside so drags feel immediate. Reordering the sensors on mode change is safe: dnd-kit's `useSensorSetup` effect only depends on the sensor classes and sensors are instantiated with current options at activation time. The long-press starts the drag AND enters jiggle mode via `onDragStart` (`navigator.vibrate?.(12)` on enter and drop); the mode stays on until Done/Escape. A drop sets a shared `swallowClickUntil` window (Date.now() + 150) before saving.
+    - `SortableHabitTile.tsx`: wrapper `<li>` owns the sortable ref/transform (so the tile inside keeps its own jiggle animation — element separation avoids transform conflicts); `useSortable` has NO `disabled` option and attributes/listeners are spread unconditionally, so `aria-roledescription="sortable"`, `role="button"` and `tabIndex` are always present and long-press can always activate a drag; a `swallowClickRef` capture-phase click handler eats the synthetic click that trails a drop; context menu prevented in mode; `draggable={false}` forfeits native image/link drag.
+    - `HabitTile.tsx`: root is now a `<div class="habit-tile">` (the sortable `<li>` owns the motion); `reorderMode` disables + dims check/edit/name/value controls (`disabled`/`tabIndex -1`/`pointer-events-none`/`opacity-60`), inline numeric editor never opens in mode; negative per-tile `animationDelay` desyncs the wiggle; `overlay` flag skips fade-up; `h-full` for grid row stretch.
+    - CSS (`index.css`, end-of-file section): `@keyframes tile-jiggle` (±1.2°, 140ms ease-in-out infinite alternate — tiles desynced via negative delays); `.reorder-grid` grab cursor + user-select/-webkit-touch-callout/touch-action none (no scroll hijack: only in mode); `.tile-ghost` dims the source; `.tile-dragged` themed shadows; reduced-motion swaps the wiggle for a static dashed accent outline (drags keep working).
+    - Today header: Add habit → Done (accent gradient pill) + "Drag to reorder" caption in mode; Escape and Done exit. Toasts (same pattern as Profile): "Order saved" after a successful drop, danger toast for `reorderError` from the hook's rollback; 2.6s auto-dismiss.
+    - Rings (item 5 of the spec): `ProgressRings` circles are keyed by habit id and share one r-per-index pitch; `.ring-progress`/`.ring-track` transition `r` at 400ms (plus dashoffset 700ms), so a reorder morphs each ring to its new slot instead of jumping. Overview chips/lines and the Settings list already read the ordered shared list.
+    - Tests/build green (57/57). dnd-kit was already in package.json.
 ### Remaining next steps (Aurora Glass passes still to do)
 - All main pages are implemented and the PWA is live (manifest + generated service worker, auto-update). Every page is restyled to DESIGN.md except one motion detail: big-numeral count-up on stat tiles.
 
@@ -178,12 +193,13 @@ src/
     supabase.ts       lazy Supabase client (getSupabase)
     color.ts          readableColor / tint / contrast (WCAG-3:1 habit color visibility)
     profile.ts        Profile type + validation + initialsFrom (pure)
+    order.ts          habit ordering engine: sortHabits/moveHabit/diffOrder (pure, numbered from 1)
     avatar.ts         prepareAvatar: crop/resize/encode WebP via canvas (browser-only)
   hooks/
     useAuth.ts        session via onAuthStateChange
     useTheme.ts       dark toggle + persistence (dispatches `themechange`)
     useThemeName.ts   reactive dark/light for readableColor (listens to `themechange`)
-    useHabits.ts      habits CRUD/archive + loading/error
+    useHabits.ts      shared habit store: sortHabits-ordered list, CRUD/archive, reorderHabits (optimistic + rollback, reorderError)
     useEntries.ts     entries per habit + save/remove
     useProfile.ts     profile row load/save (upsert), avatar upload/remove, signed URL (1h, auto-refresh)
   components/
@@ -191,6 +207,8 @@ src/
     RequireAuth.tsx   auth guard
     TodayGreeting.tsx greeting block: avatar + time-of-day greeting + "Hi, <name>" + date; avatar links to /profile
     HabitTile.tsx     Today habit tile (check ring + burst, streak chip, progress)
+    HabitReorderGrid.tsx  sortable tile grid: 350ms long-press jiggle mode, DragOverlay preview, drop → reorderHabits
+    SortableHabitTile.tsx  grid li wrapper for dnd (transforms live here, jiggle on the tile inside)
     ProgressRings.tsx hero concentric rings (one per habit, draw-in + morph)
     WeeklyCompletion.tsx  weekly completion mini bars (last 7 days, tooltips)
     StatTile.tsx      glass stat tile + DeltaChip (arrow chips) + HabitDotName
@@ -208,6 +226,7 @@ src/
     ProfileDetailsEdit.tsx     in-place edit form + sticky Save/Cancel header
   contexts/
     ProfileContext.tsx ProfileProvider wrapping useProfile — shared profile state across Today header, rail avatar, Profile page
+    HabitsContext.tsx  HabitsProvider wrapping useHabits (all habits incl. archived) — one ordered list for Today, rings, Overview, Settings; mounts inside RequireAuth around AppShell
   pages/
     Today.tsx         bento: hero rings + weekly bars + habit tiles (optimistic check-ins, date pill, backfill)
     HabitForm.tsx     add/edit habit

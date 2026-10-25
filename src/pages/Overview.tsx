@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useHabits } from '../hooks/useHabits'
+import { useHabitsContext } from '../contexts/HabitsContext'
 import { useEntries } from '../hooks/useEntries'
 import { scoreSeries } from '../lib/score'
 import { addDays, todayString } from '../lib/dates'
@@ -21,7 +21,9 @@ const RANGES: { key: RangeKey; label: string; short: string }[] = [
 const pct = (score: number) => Math.round(score * 100)
 
 export function Overview() {
-  const { habits, loading, error, reload } = useHabits()
+  const shared = useHabitsContext()
+  const { loading, error, reload } = shared
+  const habits = useMemo(() => shared.habits.filter((h) => !h.archived), [shared.habits])
   const ids = habits.map((h) => h.id)
   const { entriesByHabit, loading: entriesLoading, error: entriesError } = useEntries(ids, 400)
 
