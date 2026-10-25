@@ -175,14 +175,14 @@ src/
     useEntries.ts     entries per habit + save/remove
     useProfile.ts     profile row load/save (upsert), avatar upload/remove, signed URL (1h, auto-refresh)
   components/
-    AppShell.tsx      floating shell: icon rail (desktop) / glass dock (mobile); logo mark at rail top (clickable → Today); Today/Overview/Settings in middle; Profile avatar at rail bottom; theme toggle; sign-out removed from rail, now on Profile header
+    AppShell.tsx      floating shell: icon rail (desktop) / glass dock (mobile); logo mark at rail top (clickable → Today, has focus ring); Overview/Settings in the rail middle; Today/Overview/Settings (3) in the dock; Profile avatar at rail bottom (NavLink — accent ring when /profile is active); rail active states come from NavLink's own isActive (reactive); theme toggle at rail bottom; sign-out on the Profile header
     RequireAuth.tsx   auth guard
     TodayGreeting.tsx greeting block: avatar + time-of-day greeting + "Hi, <name>" + date; avatar links to /profile
     HabitTile.tsx     Today habit tile (check ring + burst, streak chip, progress)
     ProgressRings.tsx hero concentric rings (one per habit, draw-in + morph)
     WeeklyCompletion.tsx  weekly completion mini bars (last 7 days, tooltips)
     StatTile.tsx      glass stat tile + DeltaChip (arrow chips) + HabitDotName
-    RangeSwitch.tsx   segmented sliding accent-pill range switch (40px, equal-width grid segments, translateX pill, short labels under 400px)
+    RangeSwitch.tsx   segmented sliding accent-pill range switch (40px, equal-width segments, translateX pill, short labels under 400px via reactive matchMedia hook)
     Sparkline.tsx     pure SVG per-habit sparkline with white-ringed end dot
     ScoreLineChart.tsx  multi-line chart: halo glow, dashed grid, glass tooltip
     Heatmap.tsx       custom calendar heatmap (color-mix intensity levels)

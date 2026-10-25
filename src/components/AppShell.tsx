@@ -1,14 +1,23 @@
-import { NavLink, Link, Outlet } from 'react-router-dom'
-import { IconMoon, IconOverview, IconSettings, IconSun, IconUser } from './icons'
+import { Link, NavLink, Outlet } from 'react-router-dom'
+import { IconMoon, IconOverview, IconSettings, IconSun, IconToday, IconUser } from './icons'
 import { useTheme } from '../hooks/useTheme'
 import { useProfileContext } from '../contexts/ProfileContext'
 import type { ComponentType } from 'react'
 
-type NavItem = { to: string; label: string; Icon: ComponentType<{ className?: string }> }
+type NavItem = {
+  to: string
+  label: string
+  Icon: ComponentType<{ className?: string }>
+  /** Shown in the desktop rail (Today lives in the logo link there). */
+  rail?: boolean
+  /** Shown in the mobile dock (all three, per DESIGN.md §5/§11). */
+  dock?: boolean
+}
 
 const NAV: NavItem[] = [
-  { to: '/overview', label: 'Overview', Icon: IconOverview },
-  { to: '/settings', label: 'Settings', Icon: IconSettings },
+  { to: '/', label: 'Today', Icon: IconToday, dock: true },
+  { to: '/overview', label: 'Overview', Icon: IconOverview, rail: true, dock: true },
+  { to: '/settings', label: 'Settings', Icon: IconSettings, rail: true, dock: true },
 ]
 
 /** Rounded 48px circles used by the rail (DESIGN.md §5). */
@@ -27,15 +36,17 @@ export function AppShell() {
       : `${RAIL_CIRCLE}bg-surface-raised text-fg-secondary hover:text-fg`
   }
 
-  const activePath = window.location.pathname
-
   return (
     <div className="mx-auto w-full max-w-[1280px] lg:p-4">
       <div className="glass-card flex min-h-dvh overflow-hidden lg:rounded-shell lg:min-h-[calc(100dvh-2rem)]">
         {/* Desktop rail: 72px wide column */}
         <aside aria-label="Primary" className="hidden w-[72px] shrink-0 flex-col items-center border-r border-border py-5 lg:flex">
           {/* Top: logo mark (no border/background, matches Sign in page) */}
-          <Link to="/" className="mb-6 inline-flex shrink-0" aria-label="Go to Today">
+          <Link
+            to="/"
+            className="mb-6 inline-flex shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            aria-label="Go to Today"
+          >
             <img
               src="/logo.png"
               alt="Habit Tracker"
@@ -44,37 +55,40 @@ export function AppShell() {
             />
           </Link>
           <nav className="flex flex-col items-center gap-3">
-            {NAV.map(({ to, label, Icon }) => (
+            {/* NavLink supplies isActive itself — reactive on every navigation. */}
+            {NAV.filter(({ rail }) => rail).map(({ to, label, Icon }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={to === '/'}
                 aria-label={label}
                 title={label}
-                className={railClass({ isActive: activePath === to || (to === '/' && activePath === '/') })}
+                className={railClass}
               >
-                <Icon className="size-5 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none" />
+                <Icon className="size-5" />
               </NavLink>
             ))}
           </nav>
           <div className="mt-auto flex flex-col items-center gap-3">
-            {/* Profile avatar button (48px, active state with accent ring) */}
-            <Link
+            {/* Profile avatar button (48px, accent ring when /profile is open) */}
+            <NavLink
               to="/profile"
-              className="relative shrink-0"
+              aria-label="Profile"
+              title="Profile"
+              className={({ isActive }) =>
+                `relative inline-flex shrink-0 rounded-full transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                  isActive ? 'ring-2 ring-accent' : ''
+                }`
+              }
             >
-              <div className="relative">
-                <div
-                  className="grid size-12 place-items-center rounded-full bg-surface-raised border border-border hover:bg-surface hover:text-fg transition-colors duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-                >
-                  {avatarUrl && profile?.avatar_path ? (
-                    <img src={avatarUrl} alt="Profile" className="size-[40px] rounded-full object-cover" />
-                  ) : (
-                    <IconUser className="size-5" />
-                  )}
-                </div>
+              <div className="grid size-12 place-items-center rounded-full bg-surface-raised border border-border hover:bg-surface hover:text-fg transition-colors duration-150">
+                {avatarUrl && profile?.avatar_path ? (
+                  <img src={avatarUrl} alt="Profile" className="size-[40px] rounded-full object-cover" />
+                ) : (
+                  <IconUser className="size-5" />
+                )}
               </div>
-            </Link>
+            </NavLink>
             <button
               type="button"
               onClick={toggle}
@@ -93,18 +107,19 @@ export function AppShell() {
         </main>
       </div>
 
-      {/* Mobile dock: floating glass pill, 64px high, 16px inset, safe-area aware */}
+      {/* Mobile dock: floating glass pill, 64px high, 16px inset, safe-area aware.
+          3 items (Today, Overview, Settings) — Today uses end so "/" alone matches. */}
       <nav
         aria-label="Primary"
         className="glass-pill fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center justify-center gap-2 rounded-pill px-3 lg:hidden"
       >
-        {NAV.map(({ to, label, Icon }) => (
+        {NAV.filter(({ dock }) => dock).map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex size-11 place-items-center rounded-pill transition-all duration-150 active:scale-95 ${
+              `flex size-11 place-items-center rounded-pill transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                 isActive ? 'bg-accent-gradient text-white glow-accent' : 'text-fg-secondary'
               }`
             }

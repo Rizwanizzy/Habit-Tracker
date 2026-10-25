@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react'
+
 interface Option {
   key: string
   label: string
@@ -12,7 +14,25 @@ interface Props {
   ariaLabel: string
 }
 
-/** Segmented range switch (DESIGN.md §6): 40px high, 3-column equal-width grid,
+const NARROW_QUERY = '(max-width: 399px)'
+
+function subscribeNarrow(callback: () => void): () => void {
+  const mql = window.matchMedia(NARROW_QUERY)
+  mql.addEventListener('change', callback)
+  return () => mql.removeEventListener('change', callback)
+}
+
+/** Reactive narrow-viewport check via matchMedia, so short labels swap live
+ *  on resize/rotation instead of waiting for an unrelated re-render. */
+function useNarrowViewport(): boolean {
+  return useSyncExternalStore(
+    subscribeNarrow,
+    () => window.matchMedia(NARROW_QUERY).matches,
+    () => false,
+  )
+}
+
+/** Segmented range switch (DESIGN.md §6): 40px high, equal-width segments,
  *  with a sliding accent pill sized to exactly one segment. Under 400px uses
  *  short labels (e.g. "30d", "90d", "1y"). */
 export function RangeSwitch({ options, value, onChange, ariaLabel }: Props) {
@@ -20,7 +40,7 @@ export function RangeSwitch({ options, value, onChange, ariaLabel }: Props) {
     0,
     options.findIndex((o) => o.key === value),
   )
-  const isNarrow = typeof window !== 'undefined' && window.innerWidth < 400
+  const isNarrow = useNarrowViewport()
 
   return (
     <div
