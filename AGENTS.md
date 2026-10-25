@@ -23,7 +23,7 @@ Read DESIGN.md before building or changing any UI.
 - `npm run icons` generate PWA icons and favicons from `public/logo.png` (uses `@vite-pwa/assets-generator`, see `pwa-assets.config.js`)
 
 ## Folder structure
-- `src/lib/` pure logic: `score.ts`, `dates.ts`, `supabase.ts`, `color.ts`, `profile.ts`, `avatar.ts`
+- `src/lib/` pure logic: `score.ts`, `dates.ts`, `supabase.ts`, `color.ts`, `profile.ts`, `avatar.ts`, `order.ts`, `rings.ts`
 - `src/hooks/` data hooks (`useHabits`, `useEntries`, `useTheme`, `useProfile`)
 - `src/contexts/` React context providers (`ProfileContext` shares profile state across Today header, rail avatar, and Profile page)
 - `src/components/` reusable UI (HabitRow, Heatmap, ScoreChart, ColorPicker, TodayGreeting, RangeSwitch, ProfileBanner, ...)
@@ -49,7 +49,7 @@ Read DESIGN.md before building or changing any UI.
    - A habit's score and stats only count from its `created_at` date onward.
    - Numeric habits count as done when `value >= target`.
 5. **Check-ins** are one tap, optimistic (update the UI first, then sync, roll back on error). Backfilling past dates must be easy.
-6. **Habit limit:** warn gently when the user has more than 7 active habits.
+6. **Habit limit:** warn gently when the user has more than 7 active habits. The progress rings always use at most 7 rings; beyond 7 habits the rings are shared (see rule 8).
 7. **Archived habits:** hidden from Today and Overview but their history is kept.
 8. **Habit order:** `habits.sort_order` ascending, ties by `created_at`, is the single source of truth. Every view that lists habits (Today tiles, progress rings, Overview chips and lines, Settings list) must use the ordered list from `useHabits` and never re-sort on its own. New habits get `sort_order = max + 1`.
 9. **PROJECT_CONTEXT.md (always do this):** maintain a `PROJECT_CONTEXT.md` file that documents everything done in the project so far — concept, purpose, stack, features, current progress, and how things fit together — so any other AI model or application can read it and fully understand the project. After completing each task, check that `PROJECT_CONTEXT.md` is up to date and update it if it is not. Also maintain a `README.md` for GitHub.

@@ -194,6 +194,7 @@ src/
     color.ts          readableColor / tint / contrast (WCAG-3:1 habit color visibility)
     profile.ts        Profile type + validation + initialsFrom (pure)
     order.ts          habit ordering engine: sortHabits/moveHabit/diffOrder (pure, numbered from 1)
+    rings.ts          ring layout logic: layoutRings/ringGeometry/segmentArcs (pure, MAX_RINGS=7, MAX_PER_RING=4, MAX_HABITS_SHOWN=28)
     avatar.ts         prepareAvatar: crop/resize/encode WebP via canvas (browser-only)
   hooks/
     useAuth.ts        session via onAuthStateChange
