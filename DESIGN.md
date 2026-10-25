@@ -49,7 +49,7 @@ Glass recipe (dark): background surface, 1px border, backdrop-filter: blur(20px)
 - Desktop (>=1024px): floating rounded shell inset 16px from the viewport edges over the aurora background. Slim 72px left rail with:
   - Top: logo mark (48px) in a glass tile; wordmark "Habit Tracker" present but visually hidden on the narrow rail.
   - Middle: Today, Overview, Settings as circular 48px icon buttons. Active: accent-gradient fill with glow. Inactive: surface-2 circle.
-  - Bottom group: Profile (user's 48px avatar circle, active state with accent-gradient ring when on /profile), theme toggle, sign-out as circle buttons.
+  - Bottom: Profile — the user's 48px avatar circle (icon fallback), active state with an accent-gradient ring when on /profile. No theme toggle in the rail; the theme switch lives in Settings' Appearance card.
 - Mobile: no rail. Floating bottom dock, glass pill, 64px high, 16px from bottom and sides, 3 icon buttons (Today, Overview, Settings), respects safe-area inset. Content gets bottom padding so the dock never covers it. Profile is reached via the avatar in the Today header; Settings has a "View profile" link.
 - Header on every page: greeting block (avatar, time-of-day greeting, "Hi, <name>", date) on the left, primary action pill on the right.
 
@@ -74,7 +74,7 @@ Glass recipe (dark): background surface, 1px border, backdrop-filter: blur(20px)
 ## 8. Page layouts
 - **Today (bento):** desktop 12-column grid. Row 1: Hero card (rings + "3/4 done" + motivational line + overall streak, 5 cols), Weekly completion card (7 smooth-curve/bar mini chart, 7 cols). Row 2: habit tiles in a responsive grid (3 columns desktop, 2 tablet, 1 mobile). Date navigation is a pill with prev/next arrows and a calendar button, placed in the header.
 - **Overview:** header with range switch. Row 1: three stat tiles (average score, best habit, needs attention). Row 2: large chart card with the chip row inside it. Row 3: per-habit mini cards, each with a sparkline in its color.
-- **Settings:** two-column on desktop. Appearance card (theme toggle with a sun/moon animation), Habits card (list with color dot, edit, archive), Account card. Sign-out is a subtle danger-outline button.
+- **Settings:** two-column on desktop. Appearance card (theme toggle with a sun/moon animation), Habits card (list with color dot, edit, archive), Account card (signed-in email + "View profile" link; no button row).
 - **Login:** centered glass card over the aurora background, logo mark above, gradient primary button.
 
 ## 9. Motion

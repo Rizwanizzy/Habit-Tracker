@@ -1,6 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { IconMoon, IconOverview, IconSettings, IconSun, IconToday, IconUser } from './icons'
-import { useTheme } from '../hooks/useTheme'
+import { IconOverview, IconSettings, IconToday, IconUser } from './icons'
 import { useProfileContext } from '../contexts/ProfileContext'
 import type { ComponentType } from 'react'
 
@@ -27,7 +26,6 @@ const RAIL_CIRCLE =
 /** App shell (DESIGN.md §5): floating rounded shell over the aurora background
  *  with a 72px icon rail on desktop; floating glass dock on mobile. */
 export function AppShell() {
-  const { dark, toggle } = useTheme()
   const { profile, avatarUrl } = useProfileContext()
 
   function railClass({ isActive }: { isActive: boolean }): string {
@@ -89,15 +87,6 @@ export function AppShell() {
                 )}
               </div>
             </NavLink>
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
-              title={dark ? 'Light theme' : 'Dark theme'}
-              className={`${RAIL_CIRCLE}bg-surface-raised text-fg-secondary hover:text-fg`}
-            >
-              {dark ? <IconSun className="size-5" /> : <IconMoon className="size-5" />}
-            </button>
           </div>
         </aside>
 

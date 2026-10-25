@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useHabits, extractError } from '../hooks/useHabits'
-import { getSupabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { IconPencil } from '../components/icons'
@@ -59,7 +58,6 @@ export function Settings() {
   const { habits, loading, error, reload, archiveHabit } = useHabits({ includeArchived: true })
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [signOutError, setSignOutError] = useState<string | null>(null)
 
   const active = habits.filter((h) => !h.archived)
   const archived = habits.filter((h) => h.archived)
@@ -71,21 +69,6 @@ export function Settings() {
       await archiveHabit(h.id, !h.archived)
     } catch (e) {
       setActionError(extractError(e))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function signOut() {
-    setSignOutError(null)
-    setBusy(true)
-    try {
-      const sb = getSupabase()
-      const { error } = await sb.auth.signOut()
-      if (error) throw error
-      // RequireAuth listens to onAuthStateChange and redirects to /login.
-    } catch (err) {
-      setSignOutError(extractError(err))
     } finally {
       setBusy(false)
     }
@@ -119,19 +102,6 @@ export function Settings() {
             >
               View profile
             </Link>
-            {signOutError && (
-              <p role="alert" className="mt-4 rounded-input bg-danger/10 px-3 py-2 text-body text-danger">
-                {signOutError}
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              disabled={busy}
-              className="mt-4 h-12 rounded-pill border border-danger px-5 text-body font-medium text-danger transition-colors duration-150 hover:bg-danger/10 disabled:opacity-60"
-            >
-              {busy ? 'Signing out…' : 'Sign out'}
-            </button>
           </div>
         </div>
 
