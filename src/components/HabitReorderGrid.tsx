@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   DndContext,
   DragOverlay,
@@ -125,6 +126,10 @@ export function HabitReorderGrid({
   return (
     <DndContext
       sensors={sensors}
+      // Autoscroll while dragging near the viewport edges: default scroller
+      // detection finds the window (main is not its own scroll container).
+      // threshold y = 20% of the viewport height, x = 0 (no horizontal edge).
+      autoScroll={{ threshold: { x: 0, y: 0.2 }, acceleration: 10 }}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={(e) => void handleDragEnd(e)}
@@ -133,7 +138,7 @@ export function HabitReorderGrid({
       <SortableContext items={habits.map((h) => h.id)} strategy={rectSortingStrategy}>
         <ul
           aria-label="Habits"
-          className={`mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-5 lg:grid-cols-3 lg:gap-5 ${reorderMode ? 'reorder-grid' : ''}`}
+          className={`mt-4 grid grid-cols-1 gap-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:grid-cols-2 lg:mt-5 lg:grid-cols-3 lg:gap-5 lg:pb-0 ${reorderMode ? 'reorder-grid' : ''}`}
         >
           {habits.map((habit, i) => {
             const list = entriesByHabit[habit.id] ?? []
@@ -156,7 +161,13 @@ export function HabitReorderGrid({
         </ul>
       </SortableContext>
 
-      {/* Drag preview: a floating copy of the tile, lifted 4% with a glow. */}
+      {/* Drag preview: a floating copy of the tile, lifted 4% with a glow.
+          Portalled to document.body because the fixed overlay's ancestors
+          (`glass-card app-shell` in AppShell) carry backdrop-filter — which
+          creates a containing block for fixed descendants and would anchor
+          the overlay to the shell box instead of the viewport (top of the
+          page when scrolled). Outside the shell it also keeps full theme
+          tokens (:root/<html class="dark">) above the dock and toasts. */}
       {activeId &&
         (() => {
           const index = habits.findIndex((h) => h.id === activeId)
@@ -164,8 +175,20 @@ export function HabitReorderGrid({
           if (!habit) return null
           const list = entriesByHabit[habit.id] ?? []
           const entry = list.find((e) => e.date === selectedDate)
-          return (
-            <DragOverlay style={{ width: tileSize.width, height: tileSize.height }}>
+          return createPortal(
+            <DragOverlay
+              // dnd-kit itself applies top/left and the measured width/height
+              // of the active tile (active.rect.current.initial) — the same
+              // rect captured in handleDragStart is repeated here as an
+              // explicit guarantee. zIndex 999 is the default and sits above
+              // the dock (z-30) and toasts (z-40); the overlay must never
+              // intercept pointer events (it's a ghost).
+              style={{
+                width: tileSize.width,
+                height: tileSize.height,
+                pointerEvents: 'none',
+              }}
+            >
               <div className="tile-dragged h-full w-full">
                 <HabitTile
                   habit={habit}
@@ -178,7 +201,8 @@ export function HabitReorderGrid({
                   onLogValue={() => {}}
                 />
               </div>
-            </DragOverlay>
+            </DragOverlay>,
+            document.body,
           )
         })()}
     </DndContext>
