@@ -5,23 +5,30 @@ Futuristic, calm, high-contrast. Bento-grid layout, glass cards, soft glow. Dark
 ## 1. Color tokens
 | Token | Dark | Light |
 |---|---|---|
-| bg-base | #070A12 | #DCE8EE |
-| bg-aurora | radial-gradient(60% 50% at 12% 0%, rgba(99,102,241,.28), transparent), radial-gradient(50% 40% at 92% 8%, rgba(34,211,238,.20), transparent), radial-gradient(50% 50% at 50% 100%, rgba(236,72,153,.14), transparent) | radial-gradient(60% 50% at 10% 0%, rgba(125,211,252,.55), transparent), radial-gradient(50% 50% at 95% 100%, rgba(190,242,100,.35), transparent) |
-| surface (glass) | rgba(255,255,255,.05) | rgba(255,255,255,.80) |
-| surface-2 | rgba(255,255,255,.08) | #F1F4F6 |
-| border | rgba(255,255,255,.10) | rgba(15,23,42,.08) |
-| text-primary | #F4F6FB | #0F1217 |
-| text-secondary | #A3ACC2 | #5B6472 |
-| text-muted | #6B7490 | #98A1AF |
+| bg-base | #070A12 | #E6EEF8 |
+| bg-aurora | radial-gradient(60% 50% at 12% 0%, rgba(99,102,241,.28), transparent), radial-gradient(50% 40% at 92% 8%, rgba(34,211,238,.20), transparent), radial-gradient(50% 50% at 50% 100%, rgba(236,72,153,.14), transparent) | radial-gradient(55% 45% at 8% 0%, rgba(125,211,252,.75), transparent 70%), radial-gradient(45% 40% at 95% 6%, rgba(196,181,253,.65), transparent 70%), radial-gradient(50% 45% at 88% 100%, rgba(253,186,160,.55), transparent 70%), radial-gradient(45% 45% at 10% 95%, rgba(167,243,208,.55), transparent 70%) |
+| surface (glass) | rgba(255,255,255,.05) | linear-gradient(145deg, rgba(255,255,255,.62), rgba(255,255,255,.34)) |
+| surface-2 | rgba(255,255,255,.08) | rgba(255,255,255,.40) rows/chrome (skeleton keeps flat #F1F4F6) |
+| border | rgba(255,255,255,.10) | hairlines rgba(15,23,42,.08) · glass rims rgba(255,255,255,.75) |
+| text-primary | #F4F6FB | #0F172A |
+| text-secondary | #A3ACC2 | #475569 |
+| text-muted | #6B7490 | #64748B |
 | accent | #7C83FF | #4F46E5 |
 | accent-gradient | linear-gradient(135deg,#7C83FF,#22D3EE) | linear-gradient(135deg,#4F46E5,#0EA5E9) |
 | success | #34D399 | #16A34A |
 | danger | #FB7185 | #E11D48 |
 | chart-grid | rgba(255,255,255,.06) | rgba(15,23,42,.06) |
-| chart-axis | #6B7490 | #98A1AF |
+| chart-axis | #6B7490 | #64748B |
 
 Glass recipe (dark): background surface, 1px border, backdrop-filter: blur(20px) saturate(140%), inset 0 1px 0 rgba(255,255,255,.08), shadow 0 24px 60px -24px rgba(0,0,0,.65).
-Glass recipe (light): same blur, shadow 0 20px 50px -24px rgba(15,23,42,.18).
+
+### Light theme glass ("liquid glass" pass — light only, dark theme untouched)
+- Background: #E6EEF8 under four pastel radial glows (sky, lavender, peach, mint), plus two fixed ~420px blurred orbs behind the shell (lavender top-right, sky blue bottom-left; blur 80px, opacity .5, below all content; 24s ease-in-out alternate drift, static under prefers-reduced-motion) so the glass has color to refract.
+- Glass surfaces (shell, cards, tiles, dialogs, popovers): fill linear-gradient(145deg, rgba(255,255,255,.62), rgba(255,255,255,.34)), backdrop-filter blur(24px) saturate(180%), border 1px rgba(255,255,255,.75), box-shadow inset 0 1px 0 rgba(255,255,255,.95), inset 0 -1px 0 rgba(99,102,241,.06), 0 24px 60px -24px rgba(79,70,229,.28), 0 2px 6px rgba(15,23,42,.04). Without backdrop-filter support: flat rgba(255,255,255,.92).
+- Shell: 1px gradient border (white → rgba(125,211,252,.6) → rgba(196,181,253,.6), mask/clip technique) plus outer shadow 0 40px 100px -30px rgba(79,70,229,.30).
+- Habit tiles on Today: fill linear-gradient(145deg, color-mix(habit 20%, white), color-mix(habit 7%, white)), border color-mix(habit 35%, white), colored shadow 0 16px 36px -18px habit 55%; readableColor still guards every habit-colored foreground.
+- Inner rows / chrome: fill rgba(255,255,255,.40) with a rgba(255,255,255,.6) rim — never the flat gray fill. Controls (inputs, range switch, toggle track, chips): fill rgba(255,255,255,.55), white border, inset top highlight, accent focus ring with soft glow. Accent glow (active nav, primary buttons): 0 10px 28px -8px rgba(79,70,229,.55).
+- Text on glass: headings #0F172A, secondary #475569, muted #64748B — all ≥ 4.5:1; chart axis labels use #64748B. Layout, sizes, animation and behavior are identical to dark.
 
 ## 2. Habit color rules (important)
 - Habit color is used for: check ring/fill, progress bars, chart lines, heatmap cells, dots, tile tint, glow.

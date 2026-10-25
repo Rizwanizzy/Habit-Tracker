@@ -38,7 +38,7 @@ export function AppShell() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] lg:p-4">
-      <div className="glass-card flex min-h-dvh overflow-hidden lg:rounded-shell lg:min-h-[calc(100dvh-2rem)]">
+      <div className="glass-card app-shell flex min-h-dvh overflow-hidden lg:rounded-shell lg:min-h-[calc(100dvh-2rem)]">
         {/* Desktop rail: 72px wide column */}
         <aside aria-label="Primary" className="hidden w-[72px] shrink-0 flex-col items-center border-r border-border py-5 lg:flex">
           {/* Top: logo mark (no border/background, matches Sign in page) */}

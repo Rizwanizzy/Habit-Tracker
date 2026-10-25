@@ -85,9 +85,16 @@ export function HabitTile({ habit, done, streak, value, index, onToggle, onLogVa
     <li
       className="habit-tile fade-up group relative flex min-h-[132px] flex-col rounded-tile p-5"
       style={cssVars({
-        '--tile-bg': `linear-gradient(145deg, ${tint(c, 22)}, ${tint(c, 6)})`,
-        '--tile-border': tint(c, 35),
+        // Light theme mixes the habit toward white (pastel); dark keeps the
+        // transparent tints. '--tile-glow' feeds the light-only tile shadow.
+        '--tile-bg':
+          theme === 'light'
+            ? `linear-gradient(145deg, color-mix(in srgb, ${c} 20%, white), color-mix(in srgb, ${c} 7%, white))`
+            : `linear-gradient(145deg, ${tint(c, 22)}, ${tint(c, 6)})`,
+        '--tile-border':
+          theme === 'light' ? `color-mix(in srgb, ${c} 35%, white)` : tint(c, 35),
         '--tile-border-hover': tint(c, 70),
+        '--tile-glow': `color-mix(in srgb, ${c} 55%, transparent)`,
         animationDelay: `${index * 40}ms`,
       })}
     >

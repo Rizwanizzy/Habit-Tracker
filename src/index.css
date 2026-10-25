@@ -8,22 +8,24 @@
    Light values on :root, dark values on .dark.
 --------------------------------------------------------------------------- */
 :root {
-  --bg-base: #dce8ee;
+  --bg-base: #e6eef8;
   --surface: rgba(255, 255, 255, 0.8);
   --surface-2: #f1f4f6;
   --border: rgba(15, 23, 42, 0.08);
-  --text-primary: #0f1217;
-  --text-secondary: #5b6472;
-  --text-muted: #98a1af;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
   --accent: #4f46e5;
   --accent-gradient: linear-gradient(135deg, #4f46e5, #0ea5e9);
   --success: #16a34a;
   --danger: #e11d48;
   --chart-grid: rgba(15, 23, 42, 0.06);
-  --chart-axis: #98a1af;
+  --chart-axis: #64748b;
   --bg-aurora:
-    radial-gradient(60% 50% at 10% 0%, rgba(125, 211, 252, 0.55), transparent),
-    radial-gradient(50% 50% at 95% 100%, rgba(190, 242, 100, 0.35), transparent);
+    radial-gradient(55% 45% at 8% 0%, rgba(125, 211, 252, 0.75), transparent 70%),
+    radial-gradient(45% 40% at 95% 6%, rgba(196, 181, 253, 0.65), transparent 70%),
+    radial-gradient(50% 45% at 88% 100%, rgba(253, 186, 160, 0.55), transparent 70%),
+    radial-gradient(45% 45% at 10% 95%, rgba(167, 243, 208, 0.55), transparent 70%);
   --shadow-glass: 0 20px 50px -24px rgba(15, 23, 42, 0.18);
   --shadow-pill: 0 12px 30px -14px rgba(15, 23, 42, 0.25);
   --inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.9);
@@ -416,13 +418,15 @@ body {
   overflow-y: auto;
   padding: 28px 28px 24px;
   border-radius: 28px;
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(241, 244, 246, 0.80));
-  -webkit-backdrop-filter: blur(28px) saturate(150%);
-  backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.34));
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.10),
-    0 24px 60px -24px rgba(15, 23, 42, 0.30);
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(99, 102, 241, 0.06),
+    0 24px 60px -24px rgba(79, 70, 229, 0.28),
+    0 2px 6px rgba(15, 23, 42, 0.04);
   opacity: 0;
   transform: scale(0.96);
   transition:
@@ -477,7 +481,7 @@ body {
 
 @supports not (backdrop-filter: blur(1px)) {
   .dialog-panel {
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(241, 244, 246, 0.94));
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92));
   }
   .dark .dialog-panel {
     background: linear-gradient(145deg, rgba(34, 38, 64, 0.94), rgba(14, 18, 36, 0.94));
@@ -495,5 +499,157 @@ body {
   .dialog-panel.dialog-in {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Light theme "liquid glass" pass (see the "Light theme glass" note in
+   DESIGN.md §1). Everything here is scoped with :root:not(.dark) so the
+   dark theme is untouched.
+--------------------------------------------------------------------------- */
+
+/* Pastel orbs behind the shell: the glass needs color to refract. Fixed,
+   blurred, pointer-transparent, painted under all content (negative z-index;
+   body's background propagates to the canvas, so orbs still sit above it).
+   The drift is very slow and stops under prefers-reduced-motion. */
+:root:not(.dark) body::before,
+:root:not(.dark) body::after {
+  content: '';
+  position: fixed;
+  width: 420px;
+  height: 420px;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: -1;
+}
+
+:root:not(.dark) body::before {
+  top: -110px;
+  right: -90px;
+  background: #a78bfa; /* lavender */
+  animation: orb-drift 24s ease-in-out infinite alternate;
+}
+
+:root:not(.dark) body::after {
+  bottom: -110px;
+  left: -90px;
+  background: #38bdf8; /* sky blue */
+  animation: orb-drift 24s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes orb-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(36px, 26px, 0) scale(1.08);
+  }
+}
+
+/* Glass surfaces (shell, cards, tiles, dialogs, popovers): gradient fill,
+   stronger blur/saturation, white rim, inset highlights, indigo shadow. */
+:root:not(.dark) .glass-card,
+:root:not(.dark) .glass-pill {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.34));
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-color: rgba(255, 255, 255, 0.75);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(99, 102, 241, 0.06),
+    0 24px 60px -24px rgba(79, 70, 229, 0.28),
+    0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+/* App shell: 1px gradient border (white → sky → lavender, mask technique)
+   plus the stronger outer shadow. Placed after .glass-card so it wins. */
+:root:not(.dark) .app-shell {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(99, 102, 241, 0.06),
+    0 24px 60px -24px rgba(79, 70, 229, 0.28),
+    0 40px 100px -30px rgba(79, 70, 229, 0.30),
+    0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+:root:not(.dark) .app-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(125, 211, 252, 0.6) 45%,
+    rgba(196, 181, 253, 0.6)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Inner rows and small chrome: translucent white fill + soft white rim,
+   never the flat gray fill. */
+:root:not(.dark) .bg-surface-raised {
+  background-color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Controls: translucent white fills, white borders, inset highlight. */
+:root:not(.dark) .bg-surface {
+  background-color: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+:root:not(.dark) .hover\:bg-surface-raised:hover {
+  background-color: rgba(255, 255, 255, 0.55);
+}
+
+:root:not(.dark) .hover\:bg-surface:hover {
+  background-color: rgba(255, 255, 255, 0.55);
+}
+
+:root:not(.dark) .input-field {
+  background-color: rgba(255, 255, 255, 0.55);
+  border-color: rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Keep the accent focus ring working where the white border rules above
+   would otherwise out-cascade the utilities, and add the soft glow. */
+:root:not(.dark) .input-field:focus,
+:root:not(.dark) .bg-surface:focus,
+:root:not(.dark) .bg-surface-raised:focus {
+  border-color: var(--accent);
+}
+
+:root:not(.dark) .input-field:focus {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* Accent glow (active nav, primary buttons, toggle knob) — light value. */
+:root:not(.dark) .glow-accent {
+  box-shadow: 0 10px 28px -8px rgba(79, 70, 229, 0.55);
+}
+
+/* Habit tiles: colored resting shadow. The tile fill/border themselves are
+   mixed toward white by the component when the theme is light. */
+:root:not(.dark) .habit-tile {
+  box-shadow: 0 16px 36px -18px var(--tile-glow, rgba(79, 70, 229, 0.35));
+}
+
+/* Fallback when backdrop-filter is unsupported (light). */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root:not(.dark) .glass-card,
+  :root:not(.dark) .glass-pill {
+    background: rgba(255, 255, 255, 0.92);
   }
 }
