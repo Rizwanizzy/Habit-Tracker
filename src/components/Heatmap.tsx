@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { Entry, Habit } from '../lib/score'
 import { addDays, parseLocalDate, todayString } from '../lib/dates'
+import { sparseMonthLabels } from '../lib/completion'
 
 const CELL = 14
 const GAP = 4
@@ -81,6 +82,9 @@ export function Heatmap({ habit, entries, weeks = 18, onToggle }: Props) {
     prevMonth = month
     columns.push(col)
   }
+  // Thin the labels: months that start only a column or two after the
+  // previous one (Jun→Jul shift, December sliver) would collide.
+  const visibleMonthLabels = sparseMonthLabels(monthLabels)
 
   const gridTemplate = `${ROW_LABEL_W}px repeat(${weeks}, ${CELL}px)`
 
@@ -93,7 +97,7 @@ export function Heatmap({ habit, entries, weeks = 18, onToggle }: Props) {
           style={{ gridTemplateColumns: gridTemplate, columnGap: GAP, height: CELL + 2 }}
         >
           <span />
-          {monthLabels.map(({ col, text }) => (
+          {visibleMonthLabels.map(({ col, text }) => (
             <span
               key={col}
               className="text-[11px] uppercase tracking-wide text-fg-muted"

@@ -137,3 +137,14 @@ export function IconLock({ className }: { className?: string }) {
     </svg>
   )
 }
+
+export function IconPalette({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.12a1.64 1.64 0 0 1 1.68-1.69h1.96C19.76 16.37 22 13.69 22 10.37 22 4.5 17.6 2 12 2Z" />
+      <circle cx="7.5" cy="10.5" r="1" />
+      <circle cx="12" cy="7.5" r="1" />
+      <circle cx="16.5" cy="10.5" r="1" />
+    </svg>
+  )
+}

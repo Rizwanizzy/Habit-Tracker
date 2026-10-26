@@ -8,7 +8,7 @@ import { addDays, parseLocalDate, todayString } from '../lib/dates'
 import { layoutRings } from '../lib/rings'
 import { ThemeIconButton } from '../components/ThemeIconButton'
 import { ProgressRings } from '../components/ProgressRings'
-import { WeeklyCompletion } from '../components/WeeklyCompletion'
+import { CompletionCard } from '../components/CompletionCard'
 import { HabitReorderGrid } from '../components/HabitReorderGrid'
 import { IconChevronLeft, IconChevronRight, IconFlame } from '../components/icons'
 import { TodayGreeting } from '../components/TodayGreeting'
@@ -315,7 +315,7 @@ export function Today() {
         </section>
 
         <div className="lg:col-span-7">
-          <WeeklyCompletion habits={habits} entriesByHabit={entriesByHabit} today={today} />
+          <CompletionCard habits={habits} entriesByHabit={entriesByHabit} today={today} />
         </div>
       </div>
 

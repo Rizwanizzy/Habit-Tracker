@@ -1,0 +1,74 @@
+import { readableColor } from '../lib/color'
+import { intensityPct, type CalendarCell, type DayCompletion } from '../lib/completion'
+import { parseLocalDate } from '../lib/dates'
+import { useThemeName } from '../hooks/useThemeName'
+
+const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+const TITLE_FMT = new Intl.DateTimeFormat('en', { weekday: 'short', month: 'short', day: 'numeric' })
+
+interface Props {
+  /** 7-column Sun–Sat calendar weeks around the current month (null = blank). */
+  weeks: CalendarCell[][]
+  completions: Map<string, DayCompletion>
+  color: string
+  today: string
+}
+
+/** Month view (DESIGN.md §8): calendar grid for the current month — one cell
+ *  per day, filled with the chosen color at an intensity that follows the
+ *  day's completion share (lighter = less, darker = more), blank cells
+ *  for days before/after the month. Rows share the card body's leftover
+ *  height (the card never grows taller than the week view). */
+export function CompletionMonth({ weeks, completions, color, today }: Props) {
+  const theme = useThemeName()
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center">
+      <div className="flex h-full min-h-0 w-full max-w-[420px] flex-col">
+        <div className="grid grid-cols-7 gap-1 pb-1" aria-hidden="true">
+          {WEEKDAYS.map((wd) => (
+            <span key={wd} className="text-[10px] select-none text-center uppercase tracking-wide text-fg-muted">
+              {wd}
+            </span>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1" style={{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }}>
+          {weeks.flatMap((row, r) =>
+            row.map((date, col) => {
+              const key = `${r}-${col}`
+              if (!date) return <span key={key} aria-hidden="true" />
+              if (date > today) return <span key={key} aria-hidden="true" />
+              const c = completions.get(date)
+              const pct = c ? intensityPct(c.frac) : 0
+              const label = c
+                ? `${TITLE_FMT.format(parseLocalDate(date))} — ${c.done} of ${c.eligible} done`
+                : `${TITLE_FMT.format(parseLocalDate(date))} — no habits yet`
+              const filled = pct > 0
+              return (
+                <div
+                  key={key}
+                  title={label}
+                  aria-label={label}
+                  className={`w-full rounded-lg border p-1 text-[11px] leading-none ${
+                    filled ? 'border-transparent' : 'border-border/40'
+                  }`}
+                  style={{
+                    backgroundColor: filled
+                      ? `color-mix(in srgb, ${color} ${pct}%, transparent)`
+                      : 'var(--surface-2)',
+                  }}
+                >
+                  <span
+                    className="select-none"
+                    style={filled ? { color: readableColor(color, theme) } : undefined}
+                  >
+                    {parseLocalDate(date).getDate()}
+                  </span>
+                </div>
+              )
+            }),
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
