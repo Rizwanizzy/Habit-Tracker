@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
   DndContext,
@@ -28,6 +28,8 @@ interface Props {
   entriesByHabit: Record<string, Entry[]>
   selectedDate: string
   today: string
+  /** Tiles per row the user picked (1–6, persisted on the Today page). */
+  perRow: number
   /** Jiggle mode state, owned by the page (the header reacts to it). */
   reorderMode: boolean
   enterReorderMode: () => void
@@ -47,6 +49,7 @@ export function HabitReorderGrid({
   entriesByHabit,
   selectedDate,
   today,
+  perRow,
   reorderMode,
   enterReorderMode,
   reorderHabits,
@@ -77,9 +80,21 @@ export function HabitReorderGrid({
 
   function handleDragStart(event: DragStartEvent) {
     console.debug('[reorder] drag start:', String(event.active.id))
+    // Size the DragOverlay copy from the dragged tile's <li>. Never let the
+    // overlay fall back to width:auto: dnd-kit builds its style as
+    // `{ ...rect, ...userStyle }`, so a user style of `width: undefined`
+    // would cancel its rect width and the fixed-position ghost would
+    // shrink-to-fit (collapse to ~content width). Measure the li ourselves
+    // (closest('.tile-cell') — handles mouse, touch AND keyboard activation)
+    // and only set the keys we actually have.
+    const li =
+      event.activatorEvent && 'target' in event.activatorEvent
+        ? ((event.activatorEvent.target as Element | null)?.closest('.tile-cell') as HTMLElement | null)
+        : null
+    const liRect = li?.getBoundingClientRect()
     setTileSize({
-      width: event.active.rect.current.initial?.width,
-      height: event.active.rect.current.initial?.height,
+      width: liRect?.width ?? event.active.rect.current.initial?.width,
+      height: liRect?.height ?? event.active.rect.current.initial?.height,
     })
     if (!reorderMode) {
       console.debug('[reorder] activating reorder mode')
@@ -138,7 +153,8 @@ export function HabitReorderGrid({
       <SortableContext items={habits.map((h) => h.id)} strategy={rectSortingStrategy}>
         <ul
           aria-label="Habits"
-          className={`mt-4 grid grid-cols-1 gap-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:grid-cols-2 lg:mt-5 lg:grid-cols-3 lg:gap-5 lg:pb-0 xl:grid-cols-5 xl:gap-3 ${reorderMode ? 'reorder-grid' : ''}`}
+          className={`tile-grid mt-4 grid grid-cols-1 gap-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:grid-cols-2 lg:mt-5 lg:gap-5 lg:pb-0 ${reorderMode ? 'reorder-grid' : ''}`}
+          style={{ '--tile-cols': perRow } as CSSProperties}
         >
           {habits.map((habit, i) => {
             const list = entriesByHabit[habit.id] ?? []
@@ -175,6 +191,12 @@ export function HabitReorderGrid({
           if (!habit) return null
           const list = entriesByHabit[habit.id] ?? []
           const entry = list.find((e) => e.date === selectedDate)
+          // Only set width/height when measured (undefined would cancel
+          // dnd-kit's rect width and shrink-to-fit the overlay — see
+          // handleDragStart).
+          const overlayStyle: CSSProperties = { pointerEvents: 'none' }
+          if (tileSize.width != null) overlayStyle.width = tileSize.width
+          if (tileSize.height != null) overlayStyle.height = tileSize.height
           return createPortal(
             <DragOverlay
               // dnd-kit itself applies top/left and the measured width/height
@@ -183,11 +205,7 @@ export function HabitReorderGrid({
               // explicit guarantee. zIndex 999 is the default and sits above
               // the dock (z-30) and toasts (z-40); the overlay must never
               // intercept pointer events (it's a ghost).
-              style={{
-                width: tileSize.width,
-                height: tileSize.height,
-                pointerEvents: 'none',
-              }}
+              style={overlayStyle}
             >
               <div className={`tile-dragged tile-cell h-full w-full`}>
                 <HabitTile

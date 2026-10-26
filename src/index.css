@@ -300,7 +300,23 @@ body {
   transform: translateY(-2px);
 }
 
-/* Dense grid cells: Today tiles go 5-up (xl) and Settings manage rows go
+/* User-controlled tile density (Today grid): the "Per row" stepper writes
+   --tile-cols (1–6) inline on the <ul>; unlayered CSS beats Tailwind's
+   layered utilities, so from lg up the grid columns follow the variable
+   instead of a hardcoded count. Below 1 column the tiles are full width;
+   more columns → narrower tiles → the .tile-cell container compacts. */
+.tile-grid {
+  --tile-cols: 5;
+}
+
+@media (min-width: 1024px) {
+  .tile-grid {
+    grid-template-columns: repeat(var(--tile-cols), minmax(0, 1fr));
+  }
+}
+
+/* Dense grid cells: Today tiles compact when a column runs narrow and
+   Settings manage rows go
    2-up (sm+). The grid item is a CSS container, so when its column runs
    narrow the card content compacts automatically — full density stays on
    1-up mobile and wider columns. ::after hit pads keep every compacted

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { extractError } from '../hooks/useHabits'
 import { useHabitsContext } from '../contexts/HabitsContext'
@@ -9,6 +9,7 @@ import { layoutRings } from '../lib/rings'
 import { ThemeIconButton } from '../components/ThemeIconButton'
 import { ProgressRings } from '../components/ProgressRings'
 import { CompletionCard } from '../components/CompletionCard'
+import { TileDensity } from '../components/TileDensity'
 import { HabitReorderGrid } from '../components/HabitReorderGrid'
 import { IconChevronLeft, IconChevronRight, IconFlame } from '../components/icons'
 import { TodayGreeting } from '../components/TodayGreeting'
@@ -46,8 +47,25 @@ export function Today() {
 
   const today = todayString()
   const [selectedDate, setSelectedDate] = useState(today)
-  const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+
+  // Tiles-per-row density (1–6): the user's grid-width preference — no code
+  // changes needed to rearrange rows. Persisted, validated on read.
+  const [perRow, setPerRow] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem('tile-columns')
+      return stored && /^[1-6]$/.test(stored) ? Number(stored) : 5
+    } catch {
+      return 5
+    }
+  })
+  useEffect(() => {
+    try {
+      localStorage.setItem('tile-columns', String(perRow))
+    } catch {
+      // Storage disabled: the choice just doesn't persist.
+    }
+  }, [perRow])
 
   // --- Reorder (jiggle) mode -------------------------------------------------
   // Long-press (350ms, 8px tolerance on both pointer and touch) lifts the tile
@@ -81,25 +99,36 @@ export function Today() {
 
   const isPast = selectedDate !== today
 
-  /** Optimistic apply; revert the snapshot and surface the error if sync fails. */
-  async function applyLocal(
+  /** Optimistic apply + per-habit remote queue. The UI updates instantly
+   *  (before syncing), so rapid check→uncheck taps never sit inside a
+   *  "busy" window that would silently drop clicks (the old global `busy`
+   *  guard made unchecking need 2–3 taps while a sync was in flight). Each
+   *  habit's remote ops chain in click order, so the LAST tap's state is the
+   *  final one; a failure only rolls back and errors that habit's pending
+   *  ops — blockers for other habits don't exist anymore. */
+  const remoteQueues = useRef(new Map<string, Promise<void>>())
+
+  function applyLocal(
     habit: Habit,
     mutate: (prev: Entry[]) => Entry[],
     remote: () => Promise<unknown>,
   ) {
-    if (busy) return
-    setBusy(true)
     setActionError(null)
     const prev = entriesByHabit[habit.id] ?? []
     setEntriesByHabit((map) => ({ ...map, [habit.id]: mutate(prev) }))
-    try {
-      await remote()
-    } catch (e) {
-      setEntriesByHabit((map) => ({ ...map, [habit.id]: prev }))
-      setActionError(extractError(e))
-    } finally {
-      setBusy(false)
-    }
+    const previous = remoteQueues.current.get(habit.id) ?? Promise.resolve()
+    const queued = previous.then(async () => {
+      try {
+        await remote()
+      } catch (e) {
+        // Roll back this habit and surface the error; later queued ops (from
+        // even newer taps) run on top of the rolled-back state.
+        setEntriesByHabit((map) => ({ ...map, [habit.id]: prev }))
+        setActionError(extractError(e))
+      }
+    })
+    // Store a never-rejecting tail so one failure doesn't poison the chain.
+    remoteQueues.current.set(habit.id, queued.catch(() => undefined))
   }
 
   function toggle(habit: Habit) {
@@ -272,14 +301,17 @@ export function Today() {
         </div>
       </header>
 
-      {habits.length > 7 && (
-        <p className="text-caption mb-4 text-fg-muted">
-          You have {habits.length} active habits. Rings are shared from here on (up to 4 habits per
-          ring). Fewer habits are easier to stick to.
-          {ringLayout.hiddenCount > 0 &&
-            ` +${ringLayout.hiddenCount} more habits are not shown in the rings.`}
-        </p>
-      )}
+      <div className="mb-3 mt-1 flex flex-wrap items-end justify-between gap-3 lg:mt-0">
+        {habits.length > 7 && (
+          <p className="text-caption max-w-[70%] text-fg-muted">
+            You have {habits.length} active habits. Rings are shared from here on (up to 4 habits
+            per ring). Fewer habits are easier to stick to.
+            {ringLayout.hiddenCount > 0 &&
+              ` +${ringLayout.hiddenCount} more habits are not shown in the rings.`}
+          </p>
+        )}
+        <TileDensity value={perRow} onChange={setPerRow} />
+      </div>
 
       {actionError && (
         <p role="alert" className="text-body mb-4 rounded-input bg-danger/10 px-3 py-2 text-danger">
@@ -325,6 +357,7 @@ export function Today() {
         entriesByHabit={entriesByHabit}
         selectedDate={selectedDate}
         today={today}
+        perRow={perRow}
         reorderMode={reorderMode}
         enterReorderMode={() => setReorderMode(true)}
         reorderHabits={reorderHabits}

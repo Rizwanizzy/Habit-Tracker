@@ -6,7 +6,7 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 
 ## Features
 
-- **Today page (bento)** — hero card with concentric progress rings (one per habit in its own color; beyond 7 habits the first habits share the outer rings as equal arcs and the rest get full inner rings), a completion card with week / month / year views in a single color you pick, shaded by each day's completion percentage, and responsive habit tiles with a one-tap check ring (pop + burst animation) and long-press drag reorder
+- **Today page (bento)** — hero card with concentric progress rings (one per habit in its own color; beyond 7 habits the first habits share the outer rings as equal arcs and the rest get full inner rings), a completion card with week / month / year views in a single color you pick, shaded by each day's completion percentage, and responsive habit tiles with a one-tap check ring (pop + burst animation), long-press drag reorder, and a user-set tiles-per-row density stepper (1–6)
 - **Optimistic check-ins** — update instantly, roll back with a visible message on sync errors, and backfill any past date via the date pill
 - **Habit management** — yes/no or numeric habits (with target + unit), frequency (e.g., 2 times per 7 days), archive/restore with history kept
 - **Stats & charts** — glass stat tiles, a glowing gradient score line chart, 10px rounded completion bars, and a 14px-cell calendar heatmap on each habit's detail page; Overview with stat tiles (average score, best habit, needs attention — the last two drill into those habits) and a glowing multi-line score chart with habit toggle chips
