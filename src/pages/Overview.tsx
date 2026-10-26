@@ -5,9 +5,8 @@ import { useEntries } from '../hooks/useEntries'
 import { scoreSeries } from '../lib/score'
 import { addDays, todayString } from '../lib/dates'
 import { tint } from '../lib/color'
-import { DeltaChip, HabitDotName, StatTile } from '../components/StatTile'
+import { StatTile, DeltaChip, HabitDotName } from '../components/StatTile'
 import { RangeSwitch } from '../components/RangeSwitch'
-import { Sparkline } from '../components/Sparkline'
 import { ScoreLineChart, type ChartRow } from '../components/ScoreLineChart'
 
 type RangeKey = '30' | '90' | '365'
@@ -161,11 +160,23 @@ export function Overview() {
             />
           )}
         </StatTile>
-        <StatTile label="Best habit" numeral={`${pct(best.score)}%`} delay={40}>
+        <StatTile
+          label="Best habit"
+          numeral={`${pct(best.score)}%`}
+          delay={40}
+          to={`/habits/${best.habit.id}`}
+          linkLabel={`Open ${best.habit.name ?? 'habit'} details`}
+        >
           <DeltaChip direction="up" text={`${pct(best.score)}%`} tone="success" />
           <HabitDotName color={best.habit.color ?? '#3B82F6'} name={best.habit.name ?? 'Habit'} />
         </StatTile>
-        <StatTile label="Needs attention" numeral={`${pct(worst.score)}%`} delay={80}>
+        <StatTile
+          label="Needs attention"
+          numeral={`${pct(worst.score)}%`}
+          delay={80}
+          to={`/habits/${worst.habit.id}`}
+          linkLabel={`Open ${worst.habit.name ?? 'habit'} details`}
+        >
           <DeltaChip direction="down" text={`${pct(worst.score)}%`} tone="danger" />
           <HabitDotName color={worst.habit.color ?? '#3B82F6'} name={worst.habit.name ?? 'Habit'} />
         </StatTile>
@@ -211,40 +222,6 @@ export function Overview() {
         <div className="mt-4">
           <ScoreLineChart data={data} visible={visible} names={names} />
         </div>
-      </section>
-
-      {/* Row 3: per-habit sparkline cards */}
-      <section className="mt-4 lg:mt-5" aria-label="Habit breakdown">
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-          {stats.per.map((item, i) => {
-            const color = item.habit.color ?? '#3B82F6'
-            return (
-              <li
-                key={item.habit.id}
-                className="glass-card fade-up rounded-card"
-                style={{ animationDelay: `${160 + i * 40}ms` }}
-              >
-                <Link
-                  to={`/habits/${item.habit.id}`}
-                  className="block rounded-card p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-                    <span className="text-habit-name min-w-0 flex-1 truncate text-fg">
-                      {item.habit.name ?? 'Untitled'}
-                    </span>
-                    <span className="text-body font-semibold tabular-nums text-fg">
-                      {pct(item.series.at(-1)?.score ?? 0)}%
-                    </span>
-                  </div>
-                  <div className="mt-3">
-                    <Sparkline points={item.series} color={color} />
-                  </div>
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
       </section>
     </section>
   )

@@ -300,6 +300,72 @@ body {
   transform: translateY(-2px);
 }
 
+/* Dense grid cells: Today tiles go 5-up (xl) and Settings manage rows go
+   2-up (sm+). The grid item is a CSS container, so when its column runs
+   narrow the card content compacts automatically — full density stays on
+   1-up mobile and wider columns. ::after hit pads keep every compacted
+   control's target at ≥44px; the pads use position:absolute inset:-4px, so
+   each padded control MUST be a positioned element (relative in TSX) —
+   otherwise the pad escapes to the nearest positioned ancestor and swallows
+   clicks page-wide. */
+.tile-cell,
+.manage-cell {
+  container-type: inline-size;
+}
+
+@container (max-width: 231.9px) {
+  .tile-cell .habit-tile {
+    min-height: 104px;
+    padding: 14px;
+  }
+  .tile-cell .tile-check {
+    width: 36px;
+    height: 36px;
+  }
+  .tile-cell .tile-edit {
+    width: 36px;
+    height: 36px;
+  }
+  .tile-cell .tile-name {
+    font-size: 13px;
+    line-height: 1.25;
+  }
+  .tile-cell .tile-streak {
+    gap: 4px;
+    padding: 2px 6px;
+  }
+  .tile-cell .tile-value {
+    font-size: 12px;
+  }
+
+  /* Hit pads: 36px controls get 4px invisible padding all round → 44px. */
+  .tile-cell .tile-check::after,
+  .tile-cell .tile-edit::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+  }
+}
+
+@container (max-width: 271.9px) {
+  .manage-cell .manage-name {
+    font-size: 13px;
+  }
+  .manage-cell .manage-archive {
+    height: 36px;
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 12px;
+  }
+  .manage-cell .manage-archive::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+  }
+}
+
 /* Hero rings: geometry and placement morph in 400ms — r (which ring a
    habit sits on), stroke-dasharray (fill level of its slice), and rotation
    (its slice position, so a reorder slides arcs around instead of jumping).

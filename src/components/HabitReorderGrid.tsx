@@ -138,7 +138,7 @@ export function HabitReorderGrid({
       <SortableContext items={habits.map((h) => h.id)} strategy={rectSortingStrategy}>
         <ul
           aria-label="Habits"
-          className={`mt-4 grid grid-cols-1 gap-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:grid-cols-2 lg:mt-5 lg:grid-cols-3 lg:gap-5 lg:pb-0 ${reorderMode ? 'reorder-grid' : ''}`}
+          className={`mt-4 grid grid-cols-1 gap-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:grid-cols-2 lg:mt-5 lg:grid-cols-3 lg:gap-5 lg:pb-0 xl:grid-cols-5 xl:gap-3 ${reorderMode ? 'reorder-grid' : ''}`}
         >
           {habits.map((habit, i) => {
             const list = entriesByHabit[habit.id] ?? []
@@ -189,7 +189,7 @@ export function HabitReorderGrid({
                 pointerEvents: 'none',
               }}
             >
-              <div className="tile-dragged h-full w-full">
+              <div className={`tile-dragged tile-cell h-full w-full`}>
                 <HabitTile
                   habit={habit}
                   done={entry != null && isDone(habit, entry)}

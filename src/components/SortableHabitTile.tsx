@@ -54,7 +54,7 @@ export function SortableHabitTile({ reorderMode, habit, swallowClickRef, ...tile
       {...attributes}
       {...listeners}
       draggable={false}
-      className="rounded-tile focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="tile-cell rounded-tile focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <div className={reorderMode && isDragging ? 'tile-ghost h-full' : 'h-full'}>
         <HabitTile habit={habit} reorderMode={reorderMode} {...tile} />

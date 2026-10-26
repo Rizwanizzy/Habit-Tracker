@@ -40,7 +40,7 @@ export function WeeklyCompletion({ habits, entriesByHabit, today }: Props) {
 
   return (
     <section
-      className="glass-card fade-up rounded-card p-5 lg:p-6"
+      className="glass-card fade-up flex h-full flex-col rounded-card p-5 lg:p-6"
       style={{ animationDelay: '40ms' }}
     >
       <div className="flex items-baseline justify-between gap-3">
@@ -53,8 +53,8 @@ export function WeeklyCompletion({ habits, entriesByHabit, today }: Props) {
           Check in a habit to see your weekly progress.
         </p>
       ) : (
-        <div className="mt-5">
-          <div className="flex h-28 items-end gap-1.5 sm:gap-2.5">
+        <div className="mt-5 flex flex-1 flex-col">
+          <div className="flex min-h-28 flex-1 items-end gap-1.5 sm:gap-2.5">
             {days.map((d, i) => {
               const frac = d.eligible ? d.done / d.eligible : 0
               const isToday = i === DAYS - 1

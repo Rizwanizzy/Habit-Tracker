@@ -118,6 +118,17 @@ export function HabitTile({
         animationDelay: stagger,
       })}
     >
+      {/* Whole tile = link to the habit's overview. Positioned later siblings
+          (check, pencil, value button/editor) paint above it; everything else
+          clicks through. Disabled in reorder mode. */}
+      <Link
+        to={`/habits/${habit.id}`}
+        tabIndex={reorderMode ? -1 : undefined}
+        aria-hidden={reorderMode || undefined}
+        className={`absolute inset-0 rounded-tile focus-visible:ring-2 focus-visible:ring-accent focus-visible:[outline:none] ${reorderMode ? 'pointer-events-none' : ''}`}
+      >
+        <span className="sr-only">View {habit.name} overview</span>
+      </Link>
       <div className="flex items-start justify-between">
         {/* 44px circular check: pending = 2px habit ring; done = fill + glow + white check */}
         <button
@@ -127,7 +138,7 @@ export function HabitTile({
           aria-pressed={done}
           aria-label={done ? `Mark ${habit.name} not done` : `Mark ${habit.name} done`}
           onAnimationEnd={handleAnimationEnd}
-          className={`relative grid size-11 shrink-0 place-items-center rounded-full transition-all duration-150 active:scale-95 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${reorderMode ? 'cursor-grab opacity-60' : ''} ${
+          className={`tile-check relative grid size-11 shrink-0 place-items-center rounded-full transition-all duration-150 active:scale-95 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${reorderMode ? 'cursor-grab opacity-60' : ''} ${
             popping ? 'ring-pop' : ''
           }`}
           style={
@@ -156,24 +167,18 @@ export function HabitTile({
           draggable={false}
           tabIndex={reorderMode ? -1 : undefined}
           aria-disabled={reorderMode || undefined}
-          className={`grid size-11 place-items-center rounded-pill text-fg-muted transition-opacity duration-150 hover:bg-surface hover:text-fg focus-visible:opacity-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 ${reorderMode ? 'pointer-events-none opacity-60' : ''}`}
+          className={`tile-edit relative grid size-11 place-items-center rounded-pill text-fg-muted transition-opacity duration-150 hover:bg-surface hover:text-fg focus-visible:opacity-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 ${reorderMode ? 'pointer-events-none opacity-60' : ''}`}
         >
           <IconPencil className="size-4" />
         </Link>
       </div>
 
       <div className="mt-1 flex items-center gap-2">
-        <Link
-          to={`/habits/${habit.id}`}
-          draggable={false}
-          tabIndex={reorderMode ? -1 : undefined}
-          aria-disabled={reorderMode || undefined}
-          className={`text-habit-name min-w-0 flex-1 truncate text-fg decoration-1 underline-offset-2 hover:underline ${reorderMode ? 'pointer-events-none opacity-60' : ''}`}
-        >
+        <span className="tile-name text-habit-name min-w-0 flex-1 truncate text-fg">
           {habit.name}
-        </Link>
+        </span>
         <span
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-border bg-surface px-2.5 py-1"
+          className="tile-streak inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-border bg-surface px-2.5 py-1"
           title="Current streak"
         >
           <span className="grid place-items-center" style={{ color: readableColor(c, theme) }}>
@@ -192,7 +197,7 @@ export function HabitTile({
             />
           </div>
           {showEditor ? (
-            <form onSubmit={submitValue} className="mt-1 flex items-center gap-2">
+            <form onSubmit={submitValue} className="relative mt-1 flex items-center gap-2">
               <input
                 autoFocus
                 type="number"
@@ -230,7 +235,7 @@ export function HabitTile({
               aria-label={`Log value for ${habit.name}`}
               tabIndex={reorderMode ? -1 : undefined}
               aria-disabled={reorderMode || undefined}
-              className={`text-body tabular-nums -ml-1 mt-1 flex min-h-11 items-center rounded-pill px-1 text-fg-secondary duration-150 hover:bg-surface ${reorderMode ? 'pointer-events-none opacity-60' : ''}`}
+              className={`tile-value relative text-body tabular-nums -ml-1 mt-1 flex min-h-11 items-center rounded-pill px-1 text-fg-secondary duration-150 hover:bg-surface ${reorderMode ? 'pointer-events-none opacity-60' : ''}`}
             >
               {valueLabel}
             </button>
