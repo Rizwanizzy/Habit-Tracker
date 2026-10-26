@@ -50,7 +50,7 @@ one tap (today or any past date), and sees streaks, scores, and charts in the ha
 ```
 npm run dev     # dev server (http://localhost:5173)
 npm run build   # tsc -b && vite build
-npm test        # vitest run (44/44 passing)
+npm test        # vitest run (73/73 passing)
 npm run icons   # generate PWA icons/favicons (@vite-pwa/assets-generator)
 ```
 
@@ -156,6 +156,7 @@ VITE_SUPABASE_ANON_KEY=<anon key>
     - Today header: Add habit → Done (accent gradient pill) + "Drag to reorder" caption in mode; Escape and Done exit. Toasts (same pattern as Profile): "Order saved" after a successful drop, danger toast for `reorderError` from the hook's rollback; 2.6s auto-dismiss.
     - Rings (item 5 of the spec): `ProgressRings` circles are keyed by habit id and share one r-per-index pitch; `.ring-progress`/`.ring-track` transition `r` at 400ms (plus dashoffset 700ms), so a reorder morphs each ring to its new slot instead of jumping. Overview chips/lines and the Settings list already read the ordered shared list.
     - Tests/build green (57/57). dnd-kit was already in package.json.
+16. **Hero rings rework (UI-only — `src/lib/rings.ts`, hooks and DB untouched):** `ProgressRings.tsx` rewritten to consume the ring library — `layoutRings(habitIds)` gives the rings outermost-first (shared split rings outside, full rings inside when > 7), and each ring's radius comes from its position in that list mapped onto `ringGeometry` (which is innermost-first; `radiusIndex = numRings − 1 − ringIndex`). **ViewBox side = `max(240, 80 · numRings)`** — ringGeometry keeps `0.1·size` as the band for rings, so `0.1·size ≥ 8·rings` is the fit condition for the 6px minimum stroke; at 240 the old 7-ring layout pinched rings onto the center numeral (inner radius was smaller than the hole). With ≤ 3 rings the size stays 240 (stroke 10–12 like before). Every habit renders FLAT at SVG top level, keyed by habit id, regardless of which ring it belongs to, so DOM nodes survive reorders/adds and CSS transitions morph `r`, `stroke-dasharray`, `stroke-dashoffset`, and slice position (rotate transform, `transform-box: fill-box` + `transform-origin: center` in `.ring-arc`) at 400ms, `opacity` 200ms; `.ring-draw` keeps the 900ms first-render draw-in (shared-arc draw grows the dash from `0 X` to its length; full rings keep the old dashoffset mechanism exactly). A ring with 2–4 habits uses `segmentArcs` equal arcs with 6px gaps; painted dashes are trimmed at both ends by `capTrim = min(arcLen/4, width/2 + 1)` so round caps keep a visible ~2px gap between neighbours; each slice has a `tint(color, 12)` track arc and a progress arc (boolean = whole arc when done; numeric fills `value/target` clockwise from the slice start; zero-fraction arcs get `opacity: 0` so no dash-dot artifact). Center text counts **all** active habits (not just the ≤ 28 on the rings): `done / total` with tabular-nums, numeral shrinks to 1.5rem when `total > 9` or `numRings > 3`, caption hidden when `numRings > 5`. **Interaction:** no per-arc hit circles — the SVG root runs a polar picker (`pick()`): pointer coords → svg units via getBoundingClientRect, nearest ring by `|r − radius|` (tolerance `max(24·scale, ring width)` units ≈ ≥24 CSS px), then slice by angle (`atan2` normalized into `[-π/2, 3π/2)` to match segmentArcs ranges, which start at −π/2 = 12 o'clock and grow clockwise in y-down space). Mouse = pointermove hover, touch = pointerdown shows the glass tooltip + 2000ms auto-hide; taps never toggle anything; pointerleave/cancel clears. `RingTooltip.tsx` renders a `glass-pill` anchored at the arc midpoint (percent of the SVG box), flipped above/below depending on the midpoint's half; `aria-hidden`, `pointer-events-none`. Per-habit `<g>` carries `aria-label "<name>: done"` or `"<name>: 3 of 5 min"`; the SVG is `role="img"` with a summary label. Today's >7-habits note replaced: "You have N active habits. Rings are shared from here on (up to 4 habits per ring). Fewer habits are easier to stick to." + "+K more habits are not shown in the rings." when hiddenCount > 0 (Today memoizes `layoutRings` only for that note). Design specs: stroke gets thinner as rings are added (thick for few, ~2.6 CSS px at 7 rings on a 240px box) — intended; hit tolerance covers tap targets.
 ### Remaining next steps (Aurora Glass passes still to do)
 - All main pages are implemented and the PWA is live (manifest + generated service worker, auto-update). Every page is restyled to DESIGN.md except one motion detail: big-numeral count-up on stat tiles.
 
@@ -194,7 +195,7 @@ src/
     color.ts          readableColor / tint / contrast (WCAG-3:1 habit color visibility)
     profile.ts        Profile type + validation + initialsFrom (pure)
     order.ts          habit ordering engine: sortHabits/moveHabit/diffOrder (pure, numbered from 1)
-    rings.ts          ring layout logic: layoutRings/ringGeometry/segmentArcs (pure, MAX_RINGS=7, MAX_PER_RING=4, MAX_HABITS_SHOWN=28)
+    rings.ts          ring layout logic: layoutRings/ringGeometry/segmentArcs (pure, MAX_RINGS=7, MAX_PER_RING=4, MAX_HABITS_SHOWN=28) — consumed by the Today hero rings + hidden-count note
     avatar.ts         prepareAvatar: crop/resize/encode WebP via canvas (browser-only)
   hooks/
     useAuth.ts        session via onAuthStateChange
@@ -210,7 +211,8 @@ src/
     HabitTile.tsx     Today habit tile (check ring + burst, streak chip, progress)
     HabitReorderGrid.tsx  sortable tile grid: 350ms long-press jiggle mode, DragOverlay preview, drop → reorderHabits
     SortableHabitTile.tsx  grid li wrapper for dnd (transforms live here, jiggle on the tile inside)
-    ProgressRings.tsx hero concentric rings (one per habit, draw-in + morph)
+    ProgressRings.tsx hero rings via lib/rings.ts — shared equal-arc rings ≥ 8 habits (outermost-first), rotate+dasharray morphs keyed by habit id, polar-picker tooltip, center counts all active habits
+    RingTooltip.tsx   glass-pill tooltip for the hero ring arcs (habit-color dot + name + status, above/below flip)
     WeeklyCompletion.tsx  weekly completion mini bars (last 7 days, tooltips)
     StatTile.tsx      glass stat tile + DeltaChip (arrow chips) + HabitDotName
     RangeSwitch.tsx   segmented sliding accent-pill range switch (40px, equal-width segments, translateX pill, short labels under 400px via reactive matchMedia hook)

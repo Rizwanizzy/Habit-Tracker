@@ -6,7 +6,7 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 
 ## Features
 
-- **Today page (bento)** — hero card with concentric progress rings (one per habit, in its own color), a weekly completion bar chart, and responsive habit tiles with a one-tap check ring (pop + burst animation)
+- **Today page (bento)** — hero card with concentric progress rings (one per habit in its own color; beyond 7 habits the first habits share the outer rings as equal arcs and the rest get full inner rings), a weekly completion bar chart, and responsive habit tiles with a one-tap check ring (pop + burst animation) and long-press drag reorder
 - **Optimistic check-ins** — update instantly, roll back with a visible message on sync errors, and backfill any past date via the date pill
 - **Habit management** — yes/no or numeric habits (with target + unit), frequency (e.g., 2 times per 7 days), archive/restore with history kept
 - **Stats & charts** — glass stat tiles, a glowing gradient score line chart, 10px rounded completion bars, and a 14px-cell calendar heatmap on each habit's detail page; Overview with stat tiles (average score, best habit, needs attention), a glowing multi-line score chart with habit toggle chips, and per-habit sparkline cards
@@ -56,9 +56,9 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 
 ```
 src/
-  lib/        pure logic (score, dates, color, profile, order, avatar, supabase client)
+  lib/        pure logic (score, dates, color, profile, order, rings, avatar, supabase client)
   hooks/      data hooks (useHabits, useEntries, useProfile, useAuth, useTheme, useThemeName)
-  components/ reusable UI (AppShell, HabitTile, HabitReorderGrid, Heatmap, ColorPicker, Profile*, ThemeToggle)
+  components/ reusable UI (AppShell, HabitTile, HabitReorderGrid, ProgressRings, Heatmap, ColorPicker, Profile*, ThemeToggle)
   contexts/   React context providers (ProfileContext, HabitsContext)
   pages/      Today (bento), Overview, Profile, Settings, HabitForm, HabitDetail, Login
 ```

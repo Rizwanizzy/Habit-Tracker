@@ -5,6 +5,7 @@ import { useHabitsContext } from '../contexts/HabitsContext'
 import { useEntries } from '../hooks/useEntries'
 import { currentStreak, isDone, type Entry, type Habit } from '../lib/score'
 import { addDays, parseLocalDate, todayString } from '../lib/dates'
+import { layoutRings } from '../lib/rings'
 import { ProgressRings } from '../components/ProgressRings'
 import { WeeklyCompletion } from '../components/WeeklyCompletion'
 import { HabitReorderGrid } from '../components/HabitReorderGrid'
@@ -146,6 +147,10 @@ export function Today() {
           ? 'Start with one small win.'
           : `Almost there — ${habits.length - doneToday} to go.`
 
+  // Rings layout: only needed here for the hidden-habits note (rings cap at
+  // 28 shown habits); the rings component runs its own layoutRings.
+  const ringLayout = useMemo(() => layoutRings(habits.map((h) => h.id)), [habits])
+
   const dateLabel = DATE_FMT.format(parseLocalDate(selectedDate))
 
   const pageError = habitsError ?? entriesError
@@ -267,8 +272,10 @@ export function Today() {
 
       {habits.length > 7 && (
         <p className="text-caption mb-4 text-fg-muted">
-          You have {habits.length} active habits — rings show the first 7. Keeping it under 7 makes
-          them easier to stick to.
+          You have {habits.length} active habits. Rings are shared from here on (up to 4 habits per
+          ring). Fewer habits are easier to stick to.
+          {ringLayout.hiddenCount > 0 &&
+            ` +${ringLayout.hiddenCount} more habits are not shown in the rings.`}
         </p>
       )}
 

@@ -300,17 +300,24 @@ body {
   transform: translateY(-2px);
 }
 
-/* Hero rings: morph to a new value in 700ms; the radius (ring position —
-   outermost = first habit, so a reorder moves a ring to its new slot in
-   400ms instead of jumping). Draw in at 900ms on first render. */
+/* Hero rings: geometry and placement morph in 400ms — r (which ring a
+   habit sits on), stroke-dasharray (fill level of its slice), and rotation
+   (its slice position, so a reorder slides arcs around instead of jumping).
+   Arc rotation keeps its transform origin at the ring center via
+   transform-box: fill-box. Draw in at 900ms on first render. */
+.ring-track,
 .ring-progress {
   transition:
-    stroke-dashoffset 700ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    r 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    r 400ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    stroke-dasharray 400ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    stroke-dashoffset 400ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 200ms ease,
+    transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.ring-track {
-  transition: r 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+.ring-arc {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .ring-draw {

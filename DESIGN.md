@@ -57,7 +57,7 @@ Glass recipe (dark): background surface, 1px border, backdrop-filter: blur(20px)
 - **Primary button:** 48px, accent-gradient, white text, glow shadow (0 10px 30px -8px accent at 60%). Hover: brightness 1.08 and translateY(-1px).
 - **Secondary button:** glass pill, border, same height.
 - **Habit tile (Today):** min-height 132px, background linear-gradient(145deg, habit 22%, habit 6%), border habit 35%. Top-left 44px circular check button: pending = 2px habit-color ring; done = filled habit color, white check, glow. Habit name below, then streak chip (flame icon + number) on the right. Numeric habits show a 6px rounded progress bar in the habit color plus "12 / 30 min" (value / target unit, never repeat the number). Edit icon appears on hover and is always visible on mobile. Hover: lift 2px, border brighter.
-- **Progress rings (hero):** concentric SVG rings, one per habit, each in its habit color, outermost = first habit. Stroke 10px, 6px gap, round caps, 12% opacity track. Center shows the big numeral "3/4" and caption "done today". Max 7 rings.
+- **Progress rings (hero):** concentric SVG rings driven by `src/lib/rings.ts` — ring order follows habit order from the outside in, exactly as `layoutRings` returns it: up to 7 habits each get a full ring of their own color (outermost = first); with more than 7, the first habits share the outer rings (equal arcs, up to 4 per ring: 50%/33%/25%…) and the remaining habits get full inner rings, capped at 28 shown habits. Each slice carries a 12%-opacity track arc and a progress arc (boolean = whole arc when done; numeric fills value/target clockwise from the slice start), 6px rule gaps with round caps. Geometry comes from `ringGeometry(size, numRings)` so stroke width scales with the ring count (thick for few rings, thinner for 7) and the center stays free (≥96px hole). Center text counts ALL active habits ("3 / 12 done today"); the numeral scales down for big counts and the caption is hidden when the center gets tight. Hovering or tapping an arc shows a small glass tooltip (habit-color dot + name + "done"/"3 of 5 min"); targeting is a nearest-arc polar picker with a ≥24px tolerance — taps never toggle. Per-arc `aria-label`s plus a `role="img"` summary on the SVG.
 - **Stat tile:** glass, caption label on top, big numeral, small delta chip with arrow (success or danger).
 - **Chips (habit toggles):** 36px pill, small dot in habit color. Selected: habit 20% fill and habit 40% border. Unselected: 50% opacity.
 - **Range switch:** segmented control with a sliding accent pill behind the active option, 40px high, equal-width segments, white-space nowrap. Under 400px uses short labels ("30d", "90d", "1y").
@@ -81,9 +81,9 @@ Glass recipe (dark): background surface, 1px border, backdrop-filter: blur(20px)
 ## 9. Motion
 - Easing cubic-bezier(.2,.8,.2,1). Durations: hover 160ms, page content 300ms.
 - Page load: cards fade up 12px with 40ms stagger.
-- Check-in: ring-pop (scale 1 to 1.15 to 1 in 280ms) plus a short burst of 6 small dots in the habit color; the hero rings animate to their new value over 700ms; big numbers count up.
+- Check-in: ring-pop (scale 1 to 1.15 to 1 in 280ms) plus a short burst of 6 small dots in the habit color; the hero ring arcs morph to their new fill (stroke-dasharray) in 400ms; big numbers count up.
 - Rings and chart lines draw in on first render (900ms).
-- Reorder: other tiles slide to make room at 200ms (dnd-kit default easing); the hero rings animate to their new radius in 400ms.
+- Reorder: other tiles slide to make room at 200ms (dnd-kit default easing); the hero rings animate radius, slice position (rotation) and fill in 400ms.
 - Respect prefers-reduced-motion: disable bursts and draw-ins; in reorder mode the wiggle becomes a static dashed outline and drags still work.
 
 ## 10. Do and don't
