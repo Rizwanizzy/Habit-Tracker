@@ -6,6 +6,7 @@ import { useEntries } from '../hooks/useEntries'
 import { currentStreak, isDone, type Entry, type Habit } from '../lib/score'
 import { addDays, parseLocalDate, todayString } from '../lib/dates'
 import { layoutRings } from '../lib/rings'
+import { ThemeIconButton } from '../components/ThemeIconButton'
 import { ProgressRings } from '../components/ProgressRings'
 import { WeeklyCompletion } from '../components/WeeklyCompletion'
 import { HabitReorderGrid } from '../components/HabitReorderGrid'
@@ -208,6 +209,7 @@ export function Today() {
       <header className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <TodayGreeting />
         <div className="flex flex-wrap items-center gap-3">
+          <ThemeIconButton disabled={reorderMode} />
           <div
             role="group"
             aria-label="Date navigation"

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { extractError } from '../hooks/useHabits'
 import { useHabitsContext } from '../contexts/HabitsContext'
 import { useAuth } from '../hooks/useAuth'
-import { ThemeToggle } from '../components/ThemeToggle'
 import { IconPencil } from '../components/icons'
 import type { Habit } from '../lib/score'
 
@@ -79,31 +78,21 @@ export function Settings() {
     <section>
       <header className="mb-5">
         <h1 className="text-page-title">Settings</h1>
-        <p className="text-caption mt-1 text-fg-muted">Appearance, habits and account</p>
+        <p className="text-caption mt-1 text-fg-muted">Habits and account</p>
       </header>
 
-      {/* Two columns on desktop (DESIGN.md §8): Appearance + Account left,
-          Habits right. */}
+      {/* Two columns on desktop (DESIGN.md §8): Account left, Habits right.
+          The theme toggle now lives on the Today header (ThemeIconButton). */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
-        <div className="flex flex-col gap-4 lg:gap-5">
-          <div className="glass-card fade-up rounded-card p-6">
-            <h2 className="text-section-title">Appearance</h2>
-            <p className="text-caption mt-1 text-fg-muted">Light or dark, saved on this device</p>
-            <div className="mt-4">
-              <ThemeToggle />
-            </div>
-          </div>
-
-          <div className="glass-card fade-up rounded-card p-6" style={{ animationDelay: '80ms' }}>
-            <h2 className="text-section-title">Account</h2>
-            <p className="text-caption mt-1 text-fg-muted">Signed in as {session?.user.email ?? 'unknown'}</p>
-            <Link
-              to="/profile"
-              className="mt-2 inline-flex h-11 items-center rounded-pill px-4 text-body font-medium text-accent hover:underline"
-            >
-              View profile
-            </Link>
-          </div>
+        <div className="glass-card fade-up rounded-card p-6">
+          <h2 className="text-section-title">Account</h2>
+          <p className="text-caption mt-1 text-fg-muted">Signed in as {session?.user.email ?? 'unknown'}</p>
+          <Link
+            to="/profile"
+            className="mt-2 inline-flex h-11 items-center rounded-pill px-4 text-body font-medium text-accent hover:underline"
+          >
+            View profile
+          </Link>
         </div>
 
         <div className="glass-card fade-up rounded-card p-6" style={{ animationDelay: '40ms' }}>
