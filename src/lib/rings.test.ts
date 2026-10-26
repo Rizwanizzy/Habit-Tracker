@@ -151,6 +151,44 @@ describe('ringGeometry', () => {
       expect(geo.centerRadius * 2).toBeGreaterThanOrEqual(96)
     }
   })
+
+  it('Rings fit the box and keep at least a 6px stroke', () => {
+    for (let r = 1; r <= 7; r++) {
+      const geo = ringGeometry(240, r)
+      for (const ring of geo.rings) {
+        expect(ring.width).toBeGreaterThanOrEqual(6)
+        expect(ring.radius + ring.width / 2).toBeLessThanOrEqual(120.000001)
+        expect(ring.radius - ring.width / 2).toBeGreaterThanOrEqual(geo.centerRadius)
+      }
+    }
+  })
+
+  it('More rings: strokes thin and the hole shrinks (never below its minimum)', () => {
+    const geos = [1, 2, 3, 4, 5, 6, 7].map((r) => ringGeometry(240, r))
+    for (let i = 1; i < geos.length; i++) {
+      expect(geos[i].rings[0].width).toBeLessThanOrEqual(geos[i - 1].rings[0].width)
+      expect(geos[i].centerRadius).toBeLessThanOrEqual(geos[i - 1].centerRadius)
+      expect(geos[i].centerRadius).toBeGreaterThanOrEqual(48)
+    }
+  })
+
+  it('Rings sit edge to edge: no neighbour gap smaller than the layout gap', () => {
+    for (let r = 2; r <= 7; r++) {
+      const geo = ringGeometry(240, r)
+      for (let i = 1; i < geo.rings.length; i++) {
+        const inner = geo.rings[i - 1]
+        const outer = geo.rings[i]
+        const gap = outer.radius - inner.radius - (inner.width + outer.width) / 2
+        expect(gap).toBeGreaterThanOrEqual(1.9)
+      }
+    }
+  })
+
+  it('Seven rings at size 240: ~8.5px strokes and a 96px hole (was hairline 2.6px at the old 560 box)', () => {
+    const geo = ringGeometry(240, 7)
+    expect(geo.rings[0].width).toBeCloseTo((72 - 12) / 7, 2)
+    expect(geo.centerRadius).toBeCloseTo(48, 2)
+  })
 })
 
 describe('segmentArcs', () => {

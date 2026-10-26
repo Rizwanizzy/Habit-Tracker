@@ -74,9 +74,10 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
 
   const layout = useMemo(() => layoutRings(habits.map((h) => h.id)), [habits])
   const numRings = layout.rings.length
-  // ringGeometry fills the band between 0.4·size and size/2 with a 6px
-  // minimum stroke; nothing overflows the viewBox while 0.1·size ≥ 8·rings.
-  const size = Math.max(240, 80 * numRings)
+  // ringGeometry packs sharp-edged rings between a ≥96px center hole and the
+  // rim of the 240-unit box (hole shrinks as rings are added; strokes thin
+  // from ~12px for few rings to ~8.5px at 7). No need to grow the viewBox.
+  const size = 240
   const geo = useMemo(() => ringGeometry(size, numRings), [size, numRings])
   const C = size / 2
 
@@ -159,7 +160,10 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
 
   const tip = tipId ? (byId.get(tipId) ?? null) : null
   const tipRow = tip ? rows.find((row) => row.habit.id === tip.id) : undefined
+  // Numeral scales to the shrinking center: full size when roomy, smaller
+  // for many-digit totals, smallest when 6–7 rings leave a 96px-ish hole.
   const compact = total > 9 || numRings > 3
+  const numeralSize = numRings > 5 ? '1.35rem' : compact ? '1.5rem' : undefined
   const showCaption = numRings <= 5
 
   return (
@@ -242,7 +246,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
           inner ring is tight, caption hidden when it would not fit. */}
       <div className="pointer-events-none absolute inset-0 grid place-items-center">
         <div className="text-center">
-          <p className="text-stat tabular-nums text-fg" style={compact ? { fontSize: '1.5rem' } : undefined}>
+          <p className="text-stat tabular-nums text-fg" style={numeralSize ? { fontSize: numeralSize } : undefined}>
             {done} / {total}
           </p>
           {showCaption && <p className="text-caption text-fg-muted">{caption}</p>}
