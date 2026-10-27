@@ -72,7 +72,11 @@ export function DayStartCard() {
   const weekdayDate = DATE_FMT.format(parseLocalDate(logicalToday))
 
   return (
-    <section className="glass-card fade-up rounded-card p-6">
+    <section className={`glass-card fade-up rounded-card p-6 ${open ? 'relative z-10' : ''}`}>
+      {/* While the listbox is open the card is lifted above its siblings:
+          every .glass-card is its own stacking context (backdrop-filter) at
+          z-auto, so the Data card below (later in DOM order) would otherwise
+          paint OVER the popover that escapes this card's bottom edge. */}
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-section-title">Day</h2>
         {saveState === 'saved' && (

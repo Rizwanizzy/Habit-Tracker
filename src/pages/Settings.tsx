@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { extractError } from '../hooks/useHabits'
 import { useHabitsContext } from '../contexts/HabitsContext'
+import { useBackup } from '../hooks/useBackup'
 import { DayStartCard } from '../components/DayStartCard'
 import type { Habit } from '../lib/score'
+
+type Notice = { kind: 'success' | 'danger'; text: string } | null
 
 function ManageRow({
   habit,
@@ -38,11 +41,27 @@ function ManageRow({
 
 export function Settings() {
   const { habits, loading, error, reload, archiveHabit } = useHabitsContext()
+  const { exportBackup, busy: backupBusy } = useBackup()
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [includeProfile, setIncludeProfile] = useState(false)
+  const [notice, setNotice] = useState<Notice>(null)
 
   const active = habits.filter((h) => !h.archived)
   const archived = habits.filter((h) => h.archived)
+
+  // Auto-dismiss toasts ("Backup downloaded" / failure), same as Profile.
+  useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(null), 2600)
+    return () => window.clearTimeout(timer)
+  }, [notice])
+
+  async function handleExport() {
+    const message = await exportBackup(includeProfile)
+    if (message) setNotice({ kind: 'danger', text: message })
+    else setNotice({ kind: 'success', text: 'Backup downloaded' })
+  }
 
   async function toggleArchive(h: Habit) {
     setActionError(null)
@@ -63,14 +82,49 @@ export function Settings() {
         <p className="text-caption mt-1 text-fg-muted">Habits and preferences</p>
       </header>
 
-      {/* Two columns on desktop (DESIGN.md §8): Day (day-start) card left,
-          Habits right. Profile is reached via the Today-header avatar and the
-          dock; the Account card was removed (user request) — Profile shows
-          the signed-in email. */}
+      {/* Two columns on desktop (DESIGN.md §8): Day (day-start) + Data
+          (backup) cards left, Habits right. Profile is reached via the
+          Today-header avatar and the dock; the Account card was removed
+          (user request) — Profile shows the signed-in email. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
-        <DayStartCard />
+        <div className="grid content-start gap-4 lg:gap-5">
+          <DayStartCard />
 
-        <div className="glass-card fade-up rounded-card p-6" style={{ animationDelay: '40ms' }}>
+          {/* Data card: JSON backup export (DESIGN.md §8). Import is not
+              supported yet — download only. */}
+          <div className="glass-card fade-up rounded-card p-6" style={{ animationDelay: '40ms' }}>
+            <h2 className="text-section-title">Data</h2>
+            <p className="mt-1 text-body text-fg-secondary">
+              Download a JSON backup of your habits and check-ins. Profile photos aren&apos;t included.
+            </p>
+            <label className="mt-4 flex min-h-11 cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                checked={includeProfile}
+                onChange={(e) => setIncludeProfile(e.target.checked)}
+                className="size-5 shrink-0 accent-accent"
+              />
+              <span className="text-body text-fg">Include profile details</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => void handleExport()}
+              disabled={backupBusy}
+              className="mt-3 inline-flex items-center justify-center gap-2.5 rounded-pill bg-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 active:scale-95 disabled:opacity-60"
+              style={{ height: 44 }}
+            >
+              {backupBusy && (
+                <span
+                  aria-hidden="true"
+                  className="progress-spin size-4 rounded-full border-2 border-white/40 border-t-white"
+                />
+              )}
+              {backupBusy ? 'Backing up…' : 'Download backup'}
+            </button>
+          </div>
+        </div>
+
+        <div className="glass-card fade-up rounded-card p-6" style={{ animationDelay: '80ms' }}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-section-title">Habits</h2>
             {habits.length > 0 && (
@@ -134,6 +188,22 @@ export function Settings() {
           )}
         </div>
       </div>
+
+      {/* Backup toast (Profile pattern): "Backup downloaded" or the failure. */}
+      {notice && (
+        <div
+          role="status"
+          className="pointer-events-none fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-40 flex justify-center lg:bottom-6"
+        >
+          <p
+            className={`glass-pill rounded-pill px-5 py-2.5 text-body font-medium ${
+              notice.kind === 'success' ? 'text-success' : 'text-danger'
+            }`}
+          >
+            {notice.text}
+          </p>
+        </div>
+      )}
     </section>
   )
 }

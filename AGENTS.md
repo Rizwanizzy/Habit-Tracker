@@ -23,8 +23,8 @@ Read DESIGN.md before building or changing any UI.
 - `npm run icons` generate PWA icons and favicons from `public/logo.png` (uses `@vite-pwa/assets-generator`, see `pwa-assets.config.js`)
 
 ## Folder structure
-- `src/lib/` pure logic: `score.ts`, `dates.ts`, `clock.ts`, `supabase.ts`, `color.ts`, `profile.ts`, `avatar.ts`, `order.ts`, `rings.ts`, `completion.ts`
-- `src/hooks/` data hooks (`useHabits`, `useEntries`, `useTheme`, `useProfile`, `useUserSettings`, `useLogicalToday`)
+- `src/lib/` pure logic: `score.ts`, `dates.ts`, `clock.ts`, `supabase.ts`, `color.ts`, `profile.ts`, `avatar.ts`, `order.ts`, `rings.ts`, `completion.ts`, `backup.ts`
+- `src/hooks/` data hooks (`useHabits`, `useEntries`, `useTheme`, `useProfile`, `useUserSettings`, `useLogicalToday`, `useBackup`)
 - `src/contexts/` React context providers (`ProfileContext` shares profile state across Today header, rail avatar, and Profile page; `SettingsContext` shares the day-start setting; `HabitsContext` shares the habit list)
 - `src/components/` reusable UI (HabitRow, Heatmap, ScoreChart, ColorPicker, TodayGreeting, RangeSwitch, ProfileBanner, ...)
 - `src/pages/` Today, Overview, HabitDetail, WeeklyReview, Settings, Login, Profile

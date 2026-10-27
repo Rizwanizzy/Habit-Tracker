@@ -121,9 +121,13 @@ export function CompletionCard({ habits, entriesByHabit, today }: Props) {
 
   return (
     <section
-      className="glass-card fade-up flex h-full flex-col rounded-card p-5 lg:p-6"
+      className={`glass-card fade-up flex h-full flex-col rounded-card p-5 lg:p-6 ${pickerOpen ? 'relative z-10' : ''}`}
       style={{ animationDelay: '40ms' }}
     >
+      {/* While the color picker popover is open the card is lifted above its
+          siblings: .glass-card stacking contexts (backdrop-filter) at z-auto
+          paint in DOM order, so the tile rows below would cover the popover
+          where it escapes this card. Same fix as DayStartCard. */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex items-baseline gap-3">
           <h2 className="text-section-title text-fg">{TITLES[view]}</h2>
