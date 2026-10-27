@@ -59,6 +59,32 @@ describe('dayCompletion', () => {
     const full = { [h.id]: [{ date: '2025-01-02', value: 10 }] }
     expect(dayCompletion([h], full, '2025-01-02')).toMatchObject({ done: 1, frac: 1 })
   })
+
+  it('excludes skipped habits from the denominator (never a 0% miss)', () => {
+    const a = habit('2025-01-01', { id: 'a' })
+    const b = habit('2025-01-01', { id: 'b' })
+    const entries = {
+      a: [{ date: '2025-01-10', value: 1 }],
+      b: [{ date: '2025-01-10', value: 0, status: 'skipped' as const }],
+    }
+    // b is skipped → removed from the denominator: 1 done of 1 counted.
+    expect(dayCompletion([a, b], entries, '2025-01-10')).toEqual({
+      date: '2025-01-10',
+      eligible: 1,
+      done: 1,
+      frac: 1,
+    })
+  })
+
+  it('all habits skipped on a day still yields frac 0 without NaN', () => {
+    const a = habit('2025-01-01')
+    const entries = { [a.id]: [{ date: '2025-01-10', value: 0, status: 'skipped' as const }] }
+    const c = dayCompletion([a], entries, '2025-01-10')
+    expect(c.eligible).toBe(0)
+    expect(c.done).toBe(0)
+    expect(c.frac).toBe(0)
+    expect(Number.isNaN(c.frac)).toBe(false)
+  })
 })
 
 describe('completionForDates', () => {
@@ -152,5 +178,45 @@ describe('yearCalendar', () => {
     // label is January at its own column.
     expect(labels[0]).toEqual({ col: 1, text: 'Jan' })
     expect(labels.every(({ col }) => col >= 0 && col < cols.length)).toBe(true)
+  })
+})
+
+describe('vacation days (dayCompletion neutrality)', () => {
+  const h = habit('2026-10-01')
+  const VAC = ['2026-10-06', '2026-10-07', '2026-10-08']
+
+  it('excludes vacation days from the denominator (frac 0 without NaN)', () => {
+    const c = dayCompletion([h], {}, '2026-10-06', VAC)
+    expect(c).toEqual({ date: '2026-10-06', eligible: 0, done: 0, frac: 0 })
+    expect(Number.isNaN(c.frac)).toBe(false)
+  })
+
+  it('counts a done entry during vacation (done wins) with neutral days removed', () => {
+    const entries: Record<string, Entry[]> = { [h.id]: [{ date: '2026-10-06', value: 1 }] }
+    expect(dayCompletion([h], entries, '2026-10-06', VAC)).toEqual({
+      date: '2026-10-06',
+      eligible: 1,
+      done: 1,
+      frac: 1,
+    })
+    // The other vacation days stay neutral.
+    expect(dayCompletion([h], entries, '2026-10-07', VAC)).toEqual({
+      date: '2026-10-07',
+      eligible: 0,
+      done: 0,
+      frac: 0,
+    })
+  })
+
+  it('completionForDates threads the date list straight through', () => {
+    const out = completionForDates([h], {}, ['2026-10-05', '2026-10-06'], VAC)
+    expect(out.map((c) => c.eligible)).toEqual([1, 0])
+  })
+
+  it('no vacations: identical to the no-argument calls (regression)', () => {
+    const entries: Record<string, Entry[]> = { [h.id]: [{ date: '2026-10-06', value: 1 }] }
+    expect(dayCompletion([h], entries, '2026-10-06', [])).toEqual(dayCompletion([h], entries, '2026-10-06'))
+    // A missed day outside the vacation still counts as missed.
+    expect(dayCompletion([h], {}, '2026-10-05', ['2026-10-09']).eligible).toBe(1)
   })
 })

@@ -129,3 +129,42 @@ describe('backupFilename', () => {
     )
   })
 })
+
+describe('buildBackup · vacationPeriods', () => {
+  it('embeds periods when present, stripping user_id but keeping every other column', () => {
+    const backup = buildBackup({
+      ...SUBSET,
+      habits: [],
+      entries: [],
+      vacationPeriods: [
+        { id: 'v1', user_id: 'user-1', start_date: '2026-10-12', end_date: '2026-10-18', created_at: '2026-10-19T01:00:00Z' },
+        { id: 'v2', user_id: 'user-1', start_date: '2026-10-25', end_date: null, future_col: 'x' },
+      ],
+      exportedAt: '2026-10-27T05:30:00.000Z',
+    })
+    expect(backup.vacationPeriods).toHaveLength(2)
+    expect(backup.vacationPeriods?.[0]).toEqual({
+      id: 'v1',
+      start_date: '2026-10-12',
+      end_date: '2026-10-18',
+      created_at: '2026-10-19T01:00:00Z',
+    })
+    expect(backup.vacationPeriods?.[1].end_date).toBeNull()
+    expect(backup.vacationPeriods?.[1].future_col).toBe('x')
+    expect(backup.vacationPeriods?.[0].user_id).toBeUndefined()
+  })
+
+  it('omits the key when the user has no periods (additive, schemaVersion stays 1)', () => {
+    const without = buildBackup({ ...SUBSET, habits: [], entries: [], exportedAt: '2026-10-27T05:30:00.000Z' })
+    expect(without.vacationPeriods).toBeUndefined()
+    expect(without.schemaVersion).toBe(1)
+    const empty = buildBackup({
+      ...SUBSET,
+      habits: [],
+      entries: [],
+      vacationPeriods: [],
+      exportedAt: '2026-10-27T05:30:00.000Z',
+    })
+    expect(empty.vacationPeriods).toBeUndefined()
+  })
+})

@@ -67,12 +67,18 @@ export function useBackup() {
       }
 
       const entries = await fetchAllEntries(sb)
+      const vacations = await sb
+        .from('vacation_periods')
+        .select('*')
+        .order('start_date')
+      if (vacations.error) throw vacations.error
       const backup = buildBackup({
         habits: (habits.data ?? []) as BackupRow[],
         entries,
         settings: (settings.data as BackupRow | null) ?? null,
         profile: profile.data,
         includeProfile,
+        vacationPeriods: (vacations.data ?? []) as BackupRow[],
         exportedAt: now().toISOString(),
       })
 

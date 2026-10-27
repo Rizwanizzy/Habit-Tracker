@@ -1,9 +1,14 @@
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  test: {
+    // Don't run other tools' worktree snapshots nested in this folder
+    // (e.g. .kilo/worktrees/*/src/**) — only this project's own tests count.
+    exclude: ['**/node_modules/**', '**/.kilo/**', '**/dist/**'],
+  },
   plugins: [
     react(),
     tailwindcss(),

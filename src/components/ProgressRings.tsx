@@ -7,6 +7,7 @@ import {
 } from 'react'
 import { tint } from '../lib/color'
 import { isDone, type Entry, type Habit } from '../lib/score'
+import { dayStatus, isNeutral } from '../lib/dayStatus'
 import { layoutRings, ringGeometry, segmentArcs } from '../lib/rings'
 import { RingTooltip } from './RingTooltip'
 
@@ -16,6 +17,11 @@ interface Props {
   entriesByHabit: Record<string, Entry[]>
   date: string
   caption?: string
+  /** Vacation mode: the center numeral area shows "Paused" instead of the
+   *  done/total pair (used on the Today hero while today is a vacation day). */
+  paused?: boolean
+  /** Concrete vacation dates in the stats window (dayStatus neutrality). */
+  vacations?: readonly string[]
 }
 
 function formatNumber(n: number): string {
@@ -23,14 +29,18 @@ function formatNumber(n: number): string {
 }
 
 function fraction(habit: Habit, entry: Entry | undefined): number {
-  if (!entry) return 0
+  // A skipped row's value (0) is never a progress value.
+  if (!entry || entry.status === 'skipped') return 0
   if (habit.type === 'numeric') {
     return Math.max(0, Math.min(1, entry.value / Math.max(1, habit.target)))
   }
   return isDone(habit, entry) ? 1 : 0
 }
 
-function statusText(habit: Habit, entry: Entry | undefined): string {
+function statusText(habit: Habit, entry: Entry | undefined, vacationDay: boolean): string {
+  if (entry?.status === 'skipped') return 'skipped'
+  // Done wins on a vacation day; the pause only forgives misses.
+  if (vacationDay && !(entry !== undefined && isDone(habit, entry))) return 'vacation'
   if (habit.type === 'numeric') {
     const v = entry?.value ?? 0
     return `${formatNumber(v)} of ${formatNumber(habit.target)}${habit.unit ? ` ${habit.unit}` : ''}`
@@ -54,7 +64,7 @@ interface Row {
  *  (stroke-dasharray) instead of remounting. The SVG-based pointer picker
  *  (nearest arc by polar distance) is the hit area — no per-arc listeners,
  *  and tapping never toggles anything. */
-export function ProgressRings({ habits, entriesByHabit, date, caption = 'done today' }: Props) {
+export function ProgressRings({ habits, entriesByHabit, date, caption = 'done today', paused = false, vacations = [] }: Props) {
   // First render draws the rings in over 900ms; afterwards they morph in 400ms.
   const [mounted, setMounted] = useState(false)
   const [drawn, setDrawn] = useState(false)
@@ -100,8 +110,21 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
   }, [layout, geo, numRings, byId])
 
   // Center totals count ALL active habits — not just the ones on the rings
-  // and not only those within the 28-habit rings cap.
-  const total = habits.length
+  // and not only those within the 28-habit rings cap. A skipped habit is
+  // excluded from the total (neutral day, never a 0% miss); days before a
+  // habit's start keep counting as empty rings (old behavior).
+  const total = habits.filter(
+    (h) =>
+      !isNeutral(
+        dayStatus({
+          habit: h,
+          date,
+          entry: (entriesByHabit[h.id] ?? []).find((e) => e.date === date),
+          today: date,
+          vacations,
+        }),
+      ),
+  ).length
   const done = habits.filter((h) =>
     isDone(h, (entriesByHabit[h.id] ?? []).find((e) => e.date === date)),
   ).length
@@ -184,7 +207,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
           const entry = (entriesByHabit[habit.id] ?? []).find((e) => e.date === date)
           const frac = fraction(habit, entry)
           const circ = 2 * Math.PI * radius
-          const label = `${habit.name}: ${statusText(habit, entry)}`
+          const label = `${habit.name}: ${statusText(habit, entry, vacations.includes(date))}`
           const drawClass = mounted && !drawn ? 'ring-draw' : ''
 
           if (!arc) {
@@ -247,10 +270,13 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
       <div className="pointer-events-none absolute inset-0 grid place-items-center">
         <div className="text-center">
           <p className="text-stat tabular-nums text-fg" style={numeralSize ? { fontSize: numeralSize } : undefined}>
-            {done} / {total}
+            {paused ? <span className="text-body font-semibold">Paused</span> : (
+              <>
+                {done} / {total}
+              </>
+            )}
           </p>
-          {showCaption && <p className="text-caption text-fg-muted">{caption}</p>}
-        </div>
+          {showCaption && <p className="text-caption text-fg-muted">{caption}</p>}        </div>
       </div>
 
       {tip &&
@@ -267,7 +293,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
           return (
             <RingTooltip
               habit={tip}
-              status={statusText(tip, (entriesByHabit[tip.id] ?? []).find((e) => e.date === date))}
+              status={statusText(tip, (entriesByHabit[tip.id] ?? []).find((e) => e.date === date), vacations.includes(date))}
               x={(x / size) * 100}
               y={(y / size) * 100}
               above={y < C}

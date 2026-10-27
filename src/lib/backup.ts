@@ -13,6 +13,8 @@ export interface BackupPayload {
   entries: BackupRow[]
   settings: BackupRow
   profile?: BackupRow
+  /** Additive in schemaVersion 1: omitted when the user has no breaks. */
+  vacationPeriods?: BackupRow[]
 }
 
 export interface BackupInput {
@@ -22,6 +24,8 @@ export interface BackupInput {
   settings: BackupRow | null
   profile?: BackupRow | null
   includeProfile: boolean
+  /** vacation_periods rows (may be empty — the key is then left out). */
+  vacationPeriods?: BackupRow[]
   /** The export instant in ISO form (passed in so this stays clock-agnostic). */
   exportedAt: string
 }
@@ -57,6 +61,9 @@ export function buildBackup(input: BackupInput): BackupPayload {
   }
   if (input.includeProfile && input.profile) {
     payload.profile = sanitizeProfile(input.profile)
+  }
+  if (input.vacationPeriods && input.vacationPeriods.length > 0) {
+    payload.vacationPeriods = input.vacationPeriods.map(stripUserId)
   }
   return payload
 }

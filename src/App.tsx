@@ -11,6 +11,7 @@ import { Login } from './pages/Login'
 import { ProfileProvider } from './contexts/ProfileContext'
 import { HabitsProvider } from './contexts/HabitsContext'
 import { SettingsProvider } from './contexts/SettingsContext'
+import { VacationsProvider } from './contexts/VacationsContext'
 
 export function App() {
   return (
@@ -23,7 +24,9 @@ export function App() {
               element={
                 <SettingsProvider>
                   <HabitsProvider>
-                    <AppShell />
+                    <VacationsProvider>
+                      <AppShell />
+                    </VacationsProvider>
                   </HabitsProvider>
                 </SettingsProvider>
               }

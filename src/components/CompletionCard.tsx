@@ -37,6 +37,9 @@ interface Props {
   habits: Habit[]
   entriesByHabit: Record<string, Entry[]>
   today: string
+  /** Concrete vacation dates over the card's range (a vacation day is
+   *  neutral: it drops out of the day's denominator, same look as skipped). */
+  vacations?: readonly string[]
 }
 
 function loadStored<T extends string>(key: string, fallback: T, allowed: readonly T[]): T {
@@ -60,7 +63,7 @@ function store(key: string, value: string) {
  *  done, in three views — week bars, month calendar, year heatmap — all
  *  rendered as a single user-chosen color whose intensity follows the
  *  completion share. View + color persist in localStorage. */
-export function CompletionCard({ habits, entriesByHabit, today }: Props) {
+export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }: Props) {
   const [view, setView] = useState<ViewMode>(() => loadStored<ViewMode>(LS_VIEW, 'week', VIEWS.map((v) => v.id)))
   // Any hex the native picker produced; validate so a garbled storage value
   // can never poison the CSS color-mix strings.
@@ -115,9 +118,9 @@ export function CompletionCard({ habits, entriesByHabit, today }: Props) {
 
   const byDate = useMemo(() => {
     const map = new Map<string, DayCompletion>()
-    for (const d of completionForDates(habits, entriesByHabit, allDates)) map.set(d.date, d)
+    for (const d of completionForDates(habits, entriesByHabit, allDates, vacations)) map.set(d.date, d)
     return map
-  }, [habits, entriesByHabit, allDates])
+  }, [habits, entriesByHabit, allDates, vacations])
 
   return (
     <section

@@ -118,6 +118,16 @@ export function IconCheck({ className }: { className?: string }) {
   )
 }
 
+export function IconMore({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
 export function IconPencil({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
@@ -161,6 +171,18 @@ export function IconPalette({ className }: { className?: string }) {
       <circle cx="7.5" cy="10.5" r="1" />
       <circle cx="12" cy="7.5" r="1" />
       <circle cx="16.5" cy="10.5" r="1" />
+    </svg>
+  )
+}
+
+export function IconTrash({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
     </svg>
   )
 }

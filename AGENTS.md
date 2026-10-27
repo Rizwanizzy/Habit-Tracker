@@ -1,4 +1,4 @@
-# Habit Tracker
+﻿# Habit Tracker
 
 Personal, single-user habit tracking website, inspired by Loop Habit Tracker. Web app first; installable to a phone home screen later as a PWA. No native mobile app.
 
@@ -23,10 +23,10 @@ Read DESIGN.md before building or changing any UI.
 - `npm run icons` generate PWA icons and favicons from `public/logo.png` (uses `@vite-pwa/assets-generator`, see `pwa-assets.config.js`)
 
 ## Folder structure
-- `src/lib/` pure logic: `score.ts`, `dates.ts`, `clock.ts`, `supabase.ts`, `color.ts`, `profile.ts`, `avatar.ts`, `order.ts`, `rings.ts`, `completion.ts`, `backup.ts`
-- `src/hooks/` data hooks (`useHabits`, `useEntries`, `useTheme`, `useProfile`, `useUserSettings`, `useLogicalToday`, `useBackup`)
-- `src/contexts/` React context providers (`ProfileContext` shares profile state across Today header, rail avatar, and Profile page; `SettingsContext` shares the day-start setting; `HabitsContext` shares the habit list)
-- `src/components/` reusable UI (HabitRow, Heatmap, ScoreChart, ColorPicker, TodayGreeting, RangeSwitch, ProfileBanner, ...)
+- `src/lib/` pure logic: `score.ts`, `dayStatus.ts`, `dates.ts`, `clock.ts`, `supabase.ts`, `color.ts`, `profile.ts`, `avatar.ts`, `order.ts`, `rings.ts`, `completion.ts`, `backup.ts`, `backupImport.ts`, `vacation.ts`
+- `src/hooks/` data hooks (`useHabits`, `useEntries`, `useTheme`, `useProfile`, `useUserSettings`, `useLogicalToday`, `useBackup`, `useImportBackup`, `useVacations`)
+- `src/contexts/` React context providers (`ProfileContext` shares profile state across Today header, rail avatar, and Profile page; `SettingsContext` shares the day-start setting; `HabitsContext` shares the habit list; `VacationsContext` shares the vacation-period list)
+- `src/components/` reusable UI (HabitRow, HabitTile, TileMoreMenu, Heatmap, ScoreChart, ColorPicker, TodayGreeting, RangeSwitch, ProfileBanner, BackupCard, ImportPreviewDialog, VacationCard, ...)
 - `src/pages/` Today, Overview, HabitDetail, WeeklyReview, Settings, Login, Profile
 - `scripts/` one-off scripts (`generate-icons.mjs` - superseded by `pwa-assets.config.js` + `npm run icons`)
 - `public/` favicon.ico, favicon.svg, logo.png, icon-192.png, icon-512.png, icon-maskable-512.png, apple-touch-icon.png, icons.svg
@@ -34,8 +34,9 @@ Read DESIGN.md before building or changing any UI.
 
 ## Data model
 - `habits`: id, user_id, name, type ('boolean' | 'numeric'), target, unit, freq_times, freq_days, color (hex), sort_order, archived, created_at
-- `entries`: id, user_id, habit_id, date (YYYY-MM-DD), value, unique (habit_id, date)
+- `entries`: id, user_id, habit_id, date (YYYY-MM-DD), value (numeric NOT NULL; skipped rows store 0), status ('done' | 'skipped', default 'done'), unique (habit_id, date)
 - RLS is on for both tables. Never disable it. Never use the service role key in the frontend.
+- `vacation_periods`: id (uuid pk, default), user_id (default auth.uid()), start_date (date), end_date (date null — null means ongoing), created_at. RLS on, own-row policies. Never change this schema without asking.
 - `profiles`: user_id (pk, = auth.users id), full_name, date_of_birth, gender ('female'|'male'|'other'|'prefer_not_to_say'), nationality, country, address, phone, avatar_path, updated_at. One row per user, created on first save (upsert). RLS on.
 - `user_settings`: user_id (pk), day_start_hour (smallint 0..6, default 0), updated_at. One row per user, created on first save (upsert). RLS on.
 - Storage bucket `avatars` (private, 2 MB, jpeg/png/webp). Files live at `<user_id>/avatar.webp`. Store only the path in `profiles.avatar_path`; display with `createSignedUrl` (1 hour) and refresh when expired. Email is read from the auth session, is shown read-only, and is never stored in `profiles`.
@@ -53,8 +54,15 @@ Read DESIGN.md before building or changing any UI.
 6. **Habit limit:** warn gently when the user has more than 7 active habits. The progress rings always use at most 7 rings; beyond 7 habits the rings are shared (see rule 8).
 7. **Archived habits:** hidden from Today and Overview but their history is kept.
 8. **Habit order:** `habits.sort_order` ascending, ties by `created_at`, is the single source of truth. Every view that lists habits (Today tiles, progress rings, Overview chips and lines, Settings list) must use the ordered list from `useHabits` and never re-sort on its own. New habits get `sort_order = max + 1`. Ring order follows habit order from the outside in. With more than 7 habits, the first habits share the outer rings (up to 4 per ring, equal arcs) and the last k = min(6, floor((28 - n) / 3)) habits each get a full inner ring, as implemented in src/lib/rings.ts.
-9. **PROJECT_CONTEXT.md (always do this):** maintain a `PROJECT_CONTEXT.md` file that documents everything done in the project so far — concept, purpose, stack, features, current progress, and how things fit together — so any other AI model or application can read it and fully understand the project. After completing each task, check that `PROJECT_CONTEXT.md` is up to date and update it if it is not. Also maintain a `README.md` for GitHub.
-
+9. **Skipped days are neutral:** a habit can be skipped on a day; the row stores `entries.status = 'skipped'` with `value` 0 (NOT NULL column — never infer anything from `value` when status is `'skipped'`; the mere existence of a row is never "done"). A skipped day is removed from the habit's timeline:
+   - Score: carries over unchanged from the previous day (no EMA step).
+   - Current and best streak: a neutral day neither counts nor breaks.
+   - Completion rate: neutral days are excluded from the denominator; zero eligible days gives 0, never NaN.
+   - Frequency habits (`freq_times`/`freq_days`): existing logic; neutral days are simply not considered.
+   `isDone` is true only for status `'done'` (numeric: `value >= target`); a skipped row is never done. Only a day without a done entry can be skipped; checking in on a skipped day upserts status `'done'`; undo skip deletes the row. All "is this day counted" questions go through `src/lib/dayStatus.ts` (`dayStatus`, `isNeutral`, `isEntryDone`, `nextDayAction` — precedence before-start/future → done → skipped → vacation → missed). The Today tile's "more" menu skips/undoes the selected day; skipped tiles are muted with a "Skipped" caption; the HabitDetail heatmap tap-cycles empty → done → skipped, with a "Skipped" legend entry.
+10. **Vacation mode (global pause):** pure helpers in `src/lib/vacation.ts` (`isVacationDay`, `validatePeriod` — end before start, overlap, at most one ongoing —, `sortPeriods`, `vacationDatesInRange`); state in `useVacations`/`VacationsContext` (mounted inside RequireAuth), optimistic with rollback, errors exposed not thrown. A vacation day is NEUTRAL for every habit (same removal-from-timeline rules as a skipped day, rule 9), but done still wins: a check-in during vacation counts and extends the streak. Anything scoring/streak/completion asks `dayStatus` with the concrete vacation DATES for its window (`vacationDatesInRange(periods, from, to)` — ongoing periods clip at the range end). UI: Today shows a "Vacation mode · habits are paused" banner with Resume during a vacation; the rings center shows "Paused"; neutral tiles/heatmap cells are muted with a "Vacation" caption/legend entry. The Settings Vacation card lists periods ("12 Oct – 18 Oct", "Since 25 Oct · ongoing") with deletes behind ConfirmDialog. Start/end use the logical today via `useLogicalToday` so `localStorage['dev-now']` time-travel works.
+11. **PROJECT_CONTEXT.md (always do this):** maintain a `PROJECT_CONTEXT.md` file that documents everything done in the project so far — concept, purpose, stack, features, current progress, and how things fit together — so any other AI model or application can read it and fully understand the project. After completing each task, check that `PROJECT_CONTEXT.md` is up to date and update it if it is not. Also maintain a `README.md` for GitHub.
+12. **Backup import is ADDITIVE and IDEMPOTENT:** importing a JSON backup never deletes or silently modifies anything, and importing the same file twice changes nothing the second time. Pure planning lives in `src/lib/backupImport.ts` (`parseBackup`, `planImport` — whitelisted rows, invalid rows dropped with counted warnings, entries carry `status`, entry conflicts compared by mapped (habit_id, date)); `useImportBackup` runs the plan (habits created one-by-one with the original id, a single 23505 retry with a fresh UUID, vacation periods restored after habits with the same id + retry scheme, entries upserted in chunks of 500 with `onConflict 'habit_id,date'` and `ignoreDuplicates` by default). Default entry policy is "keep what's already in the app"; "Overwrite with the backup" is an explicit opt-in checkbox. Settings/profile restores only write whitelisted fields present in the file (never `email`/`avatar_path`, never nulling). When a run finishes it calls the shared habits `reload()` and dispatches the `entries-reload` window event (listened for in `useEntries`); failures stop the run, report what was imported, and stay safe to re-run.
 
 ## UI rules
 - Mobile-first; every page must work at 360px wide and scale up cleanly.

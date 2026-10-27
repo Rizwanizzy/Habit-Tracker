@@ -19,8 +19,12 @@ import {
 } from '@dnd-kit/sortable'
 import { moveHabit } from '../lib/order'
 import { currentStreak, isDone, type Entry, type Habit } from '../lib/score'
+import { parseLocalDate } from '../lib/dates'
 import { HabitTile } from './HabitTile'
 import { SortableHabitTile } from './SortableHabitTile'
+
+/** Short date label for the "Skip <day>" menu item on backfilled dates. */
+const SHORT_DATE_FMT = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short' })
 
 interface Props {
   /** Ordered active habits (already in habit order from the shared list). */
@@ -28,6 +32,10 @@ interface Props {
   entriesByHabit: Record<string, Entry[]>
   selectedDate: string
   today: string
+  /** Concrete vacation dates in the stats window: the selected date being a
+   *  vacation day mutes tiles (neutral) with a "Vacation" caption, but
+   *  check-ins still work (done wins). */
+  vacations?: readonly string[]
   /** Tiles per row the user picked (1–6, persisted on the Today page). */
   perRow: number
   /** Jiggle mode state, owned by the page (the header reacts to it). */
@@ -37,6 +45,7 @@ interface Props {
   onNotice: (kind: 'success' | 'danger', text: string) => void
   onToggle: (habit: Habit) => void
   onLogValue: (habit: Habit, value: number) => void
+  onSkip: (habit: Habit) => void
 }
 
 /** Sortable habit-tile grid for Today (DESIGN.md §8 row 2). A 350ms
@@ -49,6 +58,7 @@ export function HabitReorderGrid({
   entriesByHabit,
   selectedDate,
   today,
+  vacations = [],
   perRow,
   reorderMode,
   enterReorderMode,
@@ -56,6 +66,7 @@ export function HabitReorderGrid({
   onNotice,
   onToggle,
   onLogValue,
+  onSkip,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [tileSize, setTileSize] = useState<{ width?: number; height?: number }>({})
@@ -159,18 +170,30 @@ export function HabitReorderGrid({
           {habits.map((habit, i) => {
             const list = entriesByHabit[habit.id] ?? []
             const entry = list.find((e) => e.date === selectedDate)
+            const entrySkipped = entry?.status === 'skipped'
+            const done = entry != null && isDone(habit, entry)
+            // Vacation-day neutrality (done wins): a muted tile with a
+            // "Vacation" caption; the "more" menu still works on row state.
+            const vacationDay = vacations.includes(selectedDate)
+            const neutral = (entrySkipped || vacationDay) && !done
             return (
               <SortableHabitTile
                 key={habit.id}
                 habit={habit}
-                done={entry != null && isDone(habit, entry)}
-                streak={currentStreak(habit, list, today)}
-                value={entry ? entry.value : null}
+                done={done}
+                skipped={neutral}
+                skippedRow={entrySkipped}
+                skippedLabel={entrySkipped ? 'Skipped' : 'Vacation'}
+                streak={currentStreak(habit, list, today, vacations)}
+                // A skipped row's value (0) is never a real value.
+                value={entry && !entrySkipped ? entry.value : null}
+                dayLabel={selectedDate === today ? 'today' : SHORT_DATE_FMT.format(parseLocalDate(selectedDate))}
                 index={i}
                 reorderMode={reorderMode}
                 swallowClickRef={swallowClickUntil}
                 onToggle={() => onToggle(habit)}
                 onLogValue={(v) => onLogValue(habit, v)}
+                onSkipToggle={() => onSkip(habit)}
               />
             )
           })}
@@ -191,6 +214,9 @@ export function HabitReorderGrid({
           if (!habit) return null
           const list = entriesByHabit[habit.id] ?? []
           const entry = list.find((e) => e.date === selectedDate)
+          const entrySkipped = entry?.status === 'skipped'
+          const overlayDone = entry != null && isDone(habit, entry)
+          const overlayNeutral = (entrySkipped || vacations.includes(selectedDate)) && !overlayDone
           // Only set width/height when measured (undefined would cancel
           // dnd-kit's rect width and shrink-to-fit the overlay — see
           // handleDragStart).
@@ -210,13 +236,19 @@ export function HabitReorderGrid({
               <div className={`tile-dragged tile-cell h-full w-full`}>
                 <HabitTile
                   habit={habit}
-                  done={entry != null && isDone(habit, entry)}
-                  streak={currentStreak(habit, list, today)}
-                  value={entry ? entry.value : null}
+                  done={overlayDone}
+                  skipped={overlayNeutral}
+                  skippedRow={entrySkipped}
+                  skippedLabel={entrySkipped ? 'Skipped' : 'Vacation'}
+                  streak={currentStreak(habit, list, today, vacations)}
+                  // A skipped row's value (0) is never a real value.
+                  value={entry && !entrySkipped ? entry.value : null}
+                  dayLabel={selectedDate === today ? 'today' : SHORT_DATE_FMT.format(parseLocalDate(selectedDate))}
                   index={index}
                   overlay
                   onToggle={() => {}}
                   onLogValue={() => {}}
+                  onSkipToggle={() => {}}
                 />
               </div>
             </DragOverlay>,

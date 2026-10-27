@@ -12,13 +12,14 @@ interface EntryRow {
   habit_id: string
   date: string
   value: number
+  status?: string
 }
 
 function groupByHabit(rows: EntryRow[]): EntriesByHabit {
   const map: EntriesByHabit = {}
   for (const row of rows) {
     const list = map[row.habit_id] ?? []
-    list.push({ date: row.date, value: Number(row.value) })
+    list.push({ date: row.date, value: Number(row.value), status: row.status === 'skipped' ? 'skipped' : 'done' })
     map[row.habit_id] = list
   }
   return map
@@ -38,6 +39,14 @@ export function useEntries(habitIds: string[], sinceDays = 365) {
   const idsRef = useRef(habitIds)
   idsRef.current = habitIds
   const idsKey = habitIds.slice().sort().join('|')
+  // An import finishing anywhere in the app dispatches `entries-reload`
+  // (window event) so every mounted useEntries hook refetches immediately.
+  const [reloadTick, setReloadTick] = useState(0)
+  useEffect(() => {
+    const onReload = () => setReloadTick((t) => t + 1)
+    window.addEventListener('entries-reload', onReload)
+    return () => window.removeEventListener('entries-reload', onReload)
+  }, [])
 
   useEffect(() => {
     const ids = idsRef.current
@@ -55,7 +64,7 @@ export function useEntries(habitIds: string[], sinceDays = 365) {
         const since = addDays(logicalToday(now(), dayStartHour), -sinceDays)
         const { data, error } = await sb
           .from('entries')
-          .select('habit_id, date, value')
+          .select('habit_id, date, value, status')
           .in('habit_id', ids)
           .gte('date', since)
           .order('date')
@@ -70,14 +79,28 @@ export function useEntries(habitIds: string[], sinceDays = 365) {
     return () => {
       active = false
     }
-  }, [idsKey, sinceDays, dayStartHour])
+  }, [idsKey, sinceDays, dayStartHour, reloadTick])
 
   async function saveEntry(habitId: string, date: string, value: number) {
     const sb = getSupabase()
     const { data: userData, error: userError } = await sb.auth.getUser()
     if (userError) throw userError
     if (!userData.user) throw new Error('You must be signed in')
-    const payload = { user_id: userData.user.id, habit_id: habitId, date, value }
+    // status is always explicit: a check-in on a skipped day upserts 'done'.
+    const payload = { user_id: userData.user.id, habit_id: habitId, date, value, status: 'done' }
+    const { error } = await sb.from('entries').upsert(payload, { onConflict: 'habit_id,date' })
+    if (error) throw error
+  }
+
+  /** Mark a day skipped (neutral): the row stores value 0 (NOT NULL column),
+   *  status 'skipped'. Only valid when no done entry exists — callers
+   *  remove the row to undo (removeEntry). */
+  async function skipEntry(habitId: string, date: string) {
+    const sb = getSupabase()
+    const { data: userData, error: userError } = await sb.auth.getUser()
+    if (userError) throw userError
+    if (!userData.user) throw new Error('You must be signed in')
+    const payload = { user_id: userData.user.id, habit_id: habitId, date, value: 0, status: 'skipped' }
     const { error } = await sb.from('entries').upsert(payload, { onConflict: 'habit_id,date' })
     if (error) throw error
   }
@@ -88,5 +111,5 @@ export function useEntries(habitIds: string[], sinceDays = 365) {
     if (error) throw error
   }
 
-  return { entriesByHabit, loading, error, saveEntry, removeEntry, setEntriesByHabit }
+  return { entriesByHabit, loading, error, saveEntry, skipEntry, removeEntry, setEntriesByHabit }
 }

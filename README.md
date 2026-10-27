@@ -8,8 +8,10 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 
 - **Today page (bento)** — hero card with concentric progress rings (one per habit in its own color; beyond 7 habits the first habits share the outer rings as equal arcs and the rest get full inner rings), a completion card with week / month / year views in a single color you pick, shaded by each day's completion percentage, and responsive habit tiles with a one-tap check ring (pop + burst animation), long-press drag reorder, and a user-set tiles-per-row density stepper (1–6)
 - **Optimistic check-ins** — update instantly, roll back with a visible message on sync errors, and backfill any past date via the date pill
+- **Skip a day** — mark a habit as skipped on any day from its tile's "more" menu: a skipped day is neutral (the score carries over, streaks neither break nor count it, it's excluded from completion-rate denominators), shows as a muted tile with a "Skipped" caption, and the habit-detail heatmap can tap-cycle empty → done → skipped → empty with a "Skipped" legend
+- **Vacation mode** — pause all habits for a while: a Settings switch (or a scheduled break with optional end date, past dates allowed for backfill) puts vacation days over every habit as neutral days — nothing breaks a streak, scores stay flat, completion denominators shrink to counted days, but check-ins you do make still count. Today shows a "Vacation mode · habits are paused" banner with a Resume button, and neutral tiles/heatmap cells carry a "Vacation" caption/legend. Backups include vacation periods (list under "Breaks")
 - **Day start** — a check-in made after midnight can still count for the previous day: pick your own day-start hour (midnight to 6 AM) in Settings and every view follows the shifted "logical day"
-- **Backup** — download a JSON backup of all habits (archived included) and every check-in, plus optional profile details (never the photo path or email); the export pages past Supabase's 1000-row request cap, so the backup is complete at any history size. Import not built yet.
+- **Backup** — download a JSON backup of all habits (archived included) and every check-in, plus optional profile details (never the photo path or email); the export pages past Supabase's 1000-row request cap, so the backup is complete at any history size. Importing a backup is additive and idempotent: pick the file in Settings → Data, preview what's new (counts, date range, warnings), and choose to overwrite entries, restore the day-start hour, or restore profile details — it never deletes anything, and re-importing the same file changes nothing. Vacation periods ("breaks") ride along in the file and are restored the same way.
 - **Habit management** — yes/no or numeric habits (with target + unit), frequency (e.g., 2 times per 7 days), archive/restore with history kept
 - **Stats & charts** — glass stat tiles, a glowing gradient score line chart, 10px rounded completion bars, and a 14px-cell calendar heatmap on each habit's detail page; Overview with stat tiles (average score, best habit, needs attention — the last two drill into those habits) and a glowing multi-line score chart with habit toggle chips
 - **Color picker** — preset swatches, native color input, and custom hex per habit; every foreground use stays readable in both themes
@@ -58,10 +60,10 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 
 ```
 src/
-  lib/        pure logic (score, dates, clock, color, profile, order, rings, avatar, backup, supabase client)
-  hooks/      data hooks (useHabits, useEntries, useProfile, useAuth, useTheme, useUserSettings, useLogicalToday, useBackup)
-  components/ reusable UI (AppShell, HabitTile, HabitReorderGrid, ProgressRings, Heatmap, ColorPicker, DayStartCard, Profile*, ThemeToggle)
-  contexts/   React context providers (ProfileContext, HabitsContext, SettingsContext)
+  lib/        pure logic (score, dayStatus, dates, clock, color, profile, order, rings, avatar, backup + backupImport, vacation, supabase client)
+  hooks/      data hooks (useHabits, useEntries, useProfile, useAuth, useTheme, useUserSettings, useLogicalToday, useBackup, useImportBackup, useVacations)
+  components/ reusable UI (AppShell, HabitTile, TileMoreMenu, HabitReorderGrid, ProgressRings, Heatmap, ColorPicker, DayStartCard, VacationCard, Profile*)
+  contexts/   React context providers (ProfileContext, HabitsContext, SettingsContext, VacationsContext)
   pages/      Today (bento), Overview, Profile, Settings, HabitForm, HabitDetail, Login
 ```
 

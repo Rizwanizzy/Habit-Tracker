@@ -1,3 +1,5 @@
+import { dayStatus, isEntryDone, isNeutral, type DayStatus } from './dayStatus'
+
 export const SMOOTHING_CONSTANT = 0.05
 
 export type Habit = {
@@ -16,37 +18,20 @@ export type Habit = {
   created_at: string
 }
 
-export type Entry = { date: string; value: number }
+export type EntryStatus = 'done' | 'skipped'
 
+export type Entry = { date: string; value: number; status?: EntryStatus }
+
+/** True only for status 'done' (numeric: value >= target). A skipped row is
+ *  never done. Implemented in dayStatus.ts (entryDone predicate shared with
+ *  the day classifier). */
 export function isDone(habit: Habit, entry: Entry | undefined): boolean {
-  if (!entry) return false
-  if (habit.type === 'numeric') return entry.value >= habit.target
-  return entry.value > 0
+  return isEntryDone(habit, entry)
 }
 
 export function perDayWeight(habit: Habit): number {
   const freqPerDay = habit.freq_times / Math.max(1, habit.freq_days)
   return 1 - Math.pow(1 - SMOOTHING_CONSTANT, freqPerDay)
-}
-
-export function scoreRange(
-  habit: Habit,
-  entries: Entry[],
-  startDate: string,
-  endDate: string,
-): number {
-  const byDate = new Map(entries.map((e) => [e.date, e]))
-  const weight = perDayWeight(habit)
-  let score = 0
-  let d = habit.created_at > startDate ? habit.created_at : startDate
-  // ensure start not before created
-  if (d < habit.created_at) d = habit.created_at
-  while (d <= endDate) {
-    const done = isDone(habit, byDate.get(d))
-    score = score + (done ? 1 - score : 0 - score) * weight
-    d = addDaysStr(d, 1)
-  }
-  return score
 }
 
 function addDaysStr(s: string, n: number): string {
@@ -59,26 +44,70 @@ function addDaysStr(s: string, n: number): string {
   return `${yy}-${mm}-${day}`
 }
 
+/** Classify one day inside a stats loop. Neutral days (skipped/vacation)
+ *  and days before the habit's start are removed from the timeline. */
+function classify(
+  habit: Habit,
+  byDate: Map<string, Entry>,
+  date: string,
+  today: string,
+  vacations: readonly string[],
+): DayStatus {
+  return dayStatus({ habit, date, entry: byDate.get(date), today, vacations })
+}
+
+export function scoreRange(
+  habit: Habit,
+  entries: Entry[],
+  startDate: string,
+  endDate: string,
+  vacations: readonly string[] = [],
+): number {
+  const byDate = new Map(entries.map((e) => [e.date, e]))
+  const weight = perDayWeight(habit)
+  let score = 0
+  // Never count days before the habit started.
+  let d = habit.created_at > startDate ? habit.created_at : startDate
+  while (d <= endDate) {
+    const status = classify(habit, byDate, d, endDate, vacations)
+    // Neutral days carry the score over unchanged (no EMA step).
+    if (isNeutral(status)) {
+      d = addDaysStr(d, 1)
+      continue
+    }
+    score = score + (status === 'done' ? 1 - score : 0 - score) * weight
+    d = addDaysStr(d, 1)
+  }
+  return score
+}
+
 export function currentStreak(
   habit: Habit,
   entries: Entry[],
   asOf: string,
+  vacations: readonly string[] = [],
 ): number {
   const byDate = new Map(entries.map((e) => [e.date, e]))
   let streak = 0
   let d = asOf
   while (d >= habit.created_at) {
-    if (isDone(habit, byDate.get(d))) {
+    const status = classify(habit, byDate, d, asOf, vacations)
+    if (status === 'done') {
       streak++
-      d = addDaysStr(d, -1)
-    } else {
-      break
+    } else if (!isNeutral(status)) {
+      break // a missed day ends the streak
     }
+    // Neutral days neither count nor break — keep walking back.
+    d = addDaysStr(d, -1)
   }
   return streak
 }
 
-export function bestStreak(habit: Habit, entries: Entry[]): number {
+export function bestStreak(
+  habit: Habit,
+  entries: Entry[],
+  vacations: readonly string[] = [],
+): number {
   const byDate = new Map(entries.map((e) => [e.date, e]))
   let best = 0
   let cur = 0
@@ -89,10 +118,11 @@ export function bestStreak(habit: Habit, entries: Entry[]): number {
   const end = dates[dates.length - 1]
   let d = start
   while (d <= end) {
-    if (isDone(habit, byDate.get(d))) {
+    const status = classify(habit, byDate, d, end, vacations)
+    if (status === 'done') {
       cur++
       if (cur > best) best = cur
-    } else {
+    } else if (!isNeutral(status)) {
       cur = 0
     }
     d = addDaysStr(d, 1)
@@ -105,6 +135,7 @@ export function completionRate(
   entries: Entry[],
   startDate: string,
   endDate: string,
+  vacations: readonly string[] = [],
 ): number {
   const byDate = new Map(entries.map((e) => [e.date, e]))
   const start = habit.created_at > startDate ? habit.created_at : startDate
@@ -112,8 +143,13 @@ export function completionRate(
   let done = 0
   let d = start
   while (d <= endDate) {
-    total++
-    if (isDone(habit, byDate.get(d))) done++
+    const status = classify(habit, byDate, d, endDate, vacations)
+    // Neutral days are excluded from the denominator: zero eligible days
+    // keeps the rate at 0 (never NaN).
+    if (!isNeutral(status)) {
+      total++
+      if (status === 'done') done++
+    }
     d = addDaysStr(d, 1)
   }
   if (total === 0) return 0
@@ -128,6 +164,7 @@ export function scoreSeries(
   entries: Entry[],
   startDate: string,
   endDate: string,
+  vacations: readonly string[] = [],
 ): ScorePoint[] {
   const byDate = new Map(entries.map((e) => [e.date, e]))
   const weight = perDayWeight(habit)
@@ -135,8 +172,12 @@ export function scoreSeries(
   const points: ScorePoint[] = []
   let d = habit.created_at > startDate ? habit.created_at : startDate
   while (d <= endDate) {
-    const done = isDone(habit, byDate.get(d))
-    score = score + (done ? 1 - score : 0 - score) * weight
+    const status = classify(habit, byDate, d, endDate, vacations)
+    // Neutral days carry the score over unchanged, but the chart still gets
+    // a point so the line stays continuous.
+    if (!isNeutral(status)) {
+      score = score + (status === 'done' ? 1 - score : 0 - score) * weight
+    }
     points.push({ date: d, score })
     d = addDaysStr(d, 1)
   }

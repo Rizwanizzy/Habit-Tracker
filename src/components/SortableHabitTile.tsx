@@ -7,14 +7,24 @@ import type { Habit } from '../lib/score'
 interface Props {
   habit: Habit
   done: boolean
+  /** The displayed date is skipped (neutral) — muted tile, "more" menu flips. */
+  skipped?: boolean
+  /** Caption for a neutral day: "Skipped" or "Vacation" (vacation mode). */
+  skippedLabel?: string
+  /** Whether a status-'skipped' ROW exists (drives the menu item; a
+   *  vacation day is neutral without any row). */
+  skippedRow?: boolean
   streak: number
   value: number | null
+  /** Label for the skip menu item: "today" or the selected date, short. */
+  dayLabel?: string
   index: number
   reorderMode: boolean
   /** Set by the grid's onDragEnd; clicks are swallowed while pending. */
   swallowClickRef: { current: number }
   onToggle: () => void
   onLogValue: (value: number) => void
+  onSkipToggle?: () => void
 }
 
 /** Grid item for one habit tile. The <li> always carries the sortable
@@ -26,6 +36,7 @@ interface Props {
 export function SortableHabitTile({ reorderMode, habit, swallowClickRef, ...tile }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: habit.id,
+    disabled: reorderMode,
   })
 
   const style: CSSProperties = {
@@ -33,11 +44,10 @@ export function SortableHabitTile({ reorderMode, habit, swallowClickRef, ...tile
     transition,
   }
 
-  /** A drag sequence ends with a synthetic click; swallowing it for a short
-   *  window (set in onDragEnd, ~150ms) means a drop never toggles a habit or
-   *  opens a link. */
-  function swallowClick(e: MouseEvent<HTMLLIElement>) {
-    if (Date.now() < swallowClickRef.current) {
+  function handleClickCapture(e: MouseEvent) {
+    // A drag that just ended fires a trailing click on the pressed element;
+    // swallow it for 150ms so a drop never triggers a check-in.
+    if (swallowClickRef.current > Date.now()) {
       e.preventDefault()
       e.stopPropagation()
     }
@@ -47,18 +57,13 @@ export function SortableHabitTile({ reorderMode, habit, swallowClickRef, ...tile
     <li
       ref={setNodeRef}
       style={style}
-      onContextMenu={(e) => {
-        if (reorderMode) e.preventDefault()
-      }}
-      onClickCapture={swallowClick}
+      className="tile-cell relative h-full"
       {...attributes}
       {...listeners}
-      draggable={false}
-      className="tile-cell rounded-tile focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      onClickCapture={handleClickCapture}
     >
-      <div className={reorderMode && isDragging ? 'tile-ghost h-full' : 'h-full'}>
-        <HabitTile habit={habit} reorderMode={reorderMode} {...tile} />
-      </div>
+      <HabitTile {...tile} habit={habit} reorderMode={reorderMode} />
+      {isDragging && <div className="absolute inset-0 rounded-tile bg-surface" />}
     </li>
   )
 }

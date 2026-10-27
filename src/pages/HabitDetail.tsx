@@ -17,9 +17,17 @@ import { StatTile } from '../components/StatTile'
 import { IconChevronLeft, IconPencil } from '../components/icons'
 import { useHabitsContext } from '../contexts/HabitsContext'
 import { useEntries } from '../hooks/useEntries'
-import { bestStreak, completionRate, currentStreak, scoreSeries } from '../lib/score'
-import { isDone, type Entry } from '../lib/score'
+import {
+  bestStreak,
+  completionRate,
+  currentStreak,
+  scoreSeries,
+  type Entry,
+} from '../lib/score'
+import { dayActionFor, nextDayAction } from '../lib/dayStatus'
 import { addDays } from '../lib/dates'
+import { vacationDatesInRange } from '../lib/vacation'
+import { useVacationsContext } from '../contexts/VacationsContext'
 import { useLogicalToday } from '../hooks/useLogicalToday'
 import { extractError } from '../hooks/useHabits'
 
@@ -76,11 +84,19 @@ export function HabitDetail() {
     loading: entriesLoading,
     error: entriesError,
     saveEntry,
+    skipEntry,
     removeEntry,
     setEntriesByHabit,
   } = useEntries(id ? [id] : [], 365)
 
   const today = useLogicalToday()
+  const { periods } = useVacationsContext()
+  // The 365-day entries window is the widest anything here walks (streaks,
+  // 90d score, 30d rate, 18-week calendar): one shared vacation date list.
+  const vacations = useMemo(
+    () => vacationDatesInRange(periods, addDays(today, -366), today),
+    [periods, today],
+  )
   const [scoreWindow, setScoreWindow] = useState<'90' | '30'>('90')
   const [actionError, setActionError] = useState<string | null>(null)
   const habit = habits.find((h) => h.id === id)
@@ -88,19 +104,27 @@ export function HabitDetail() {
   const color = habit?.color ?? '#3B82F6'
   const name = habit?.name ?? 'Habit'
 
-  async function toggleDay(date: string) {
+  /** Tap cycle on the heatmap (dayStatus helpers): empty → done → skipped →
+   *  empty. done upserts status 'done' at target; skipped upserts value 0 /
+   *  status 'skipped' (neutral); empty deletes the row. Optimistic with
+   *  rollback, same pattern as the Today page check-ins. */
+  async function cycleDay(date: string) {
     if (!habit || !id || date > today) return
     setActionError(null)
     const prev = entriesByHabit[id] ?? []
     const existing = prev.find((e) => e.date === date)
-    const markingDone = !(existing && isDone(habit, existing))
+    const action = nextDayAction(dayActionFor(habit, existing))
     const value = habit.type === 'numeric' ? habit.target : 1
-    const next = markingDone
-      ? upsertEntry(prev, { date, value })
-      : prev.filter((e) => e.date !== date)
+    const next =
+      action === 'done'
+        ? upsertEntry(prev, { date, value, status: 'done' })
+        : action === 'skipped'
+          ? upsertEntry(prev, { date, value: 0, status: 'skipped' })
+          : prev.filter((e) => e.date !== date)
     setEntriesByHabit((m) => ({ ...m, [id]: next }))
     try {
-      if (markingDone) await saveEntry(id, date, value)
+      if (action === 'done') await saveEntry(id, date, value)
+      else if (action === 'skipped') await skipEntry(id, date)
       else await removeEntry(id, date)
     } catch (e) {
       setEntriesByHabit((m) => ({ ...m, [id]: prev }))
@@ -113,11 +137,11 @@ export function HabitDetail() {
   const series = useMemo(() => {
     if (!habit) return []
     const start = addDays(today, -(Number(scoreWindow) - 1))
-    return scoreSeries(habit, entries, start, today).map((p) => {
+    return scoreSeries(habit, entries, start, today, vacations).map((p) => {
       const score = Math.round(p.score * 100)
       return { date: p.date, score, 'g:score': score }
     })
-  }, [habit, entries, today, scoreWindow])
+  }, [habit, entries, today, scoreWindow, vacations])
 
   if (loading || entriesLoading) {
     return (
@@ -157,9 +181,9 @@ export function HabitDetail() {
     )
   }
 
-  const cur = currentStreak(habit, entries, today)
-  const best = bestStreak(habit, entries)
-  const rate = Math.round(completionRate(habit, entries, addDays(today, -29), today) * 100)
+  const cur = currentStreak(habit, entries, today, vacations)
+  const best = bestStreak(habit, entries, vacations)
+  const rate = Math.round(completionRate(habit, entries, addDays(today, -29), today, vacations) * 100)
 
   return (
     <section>
@@ -284,10 +308,11 @@ export function HabitDetail() {
       <section className="glass-card fade-up mt-4 rounded-card p-5 lg:mt-5 lg:p-6" style={{ animationDelay: '200ms' }}>
         <p className="text-section-title">Calendar</p>
         <p className="text-caption mt-1 text-fg-muted">
-          Last 18 weeks — cell brightness shows progress toward the daily target; tap a day to toggle it.
+          Last 18 weeks — cell brightness shows progress toward the daily target; tap a day to cycle
+          empty → done → skipped.
         </p>
         <div className="mt-3">
-          <Heatmap habit={habit} entries={entries} onToggle={(d) => void toggleDay(d)} />
+          <Heatmap habit={habit} entries={entries} vacations={vacations} onToggle={(d) => void cycleDay(d)} />
         </div>
         {actionError && (
           <p role="alert" className="mt-3 rounded-input bg-danger/10 px-3 py-2 text-body text-danger">

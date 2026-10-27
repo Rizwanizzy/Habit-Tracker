@@ -22,6 +22,7 @@ const optionLabel = (h: number) => (h === 0 ? '12 AM (midnight)' : formatDayStar
  *  after midnight counts for the previous day until the chosen hour.
  *  The picker is a custom glass listbox popover (not a native <select>:
  *  the OS-rendered popup ignores the theme — white list, unreadable options).
+ *  All seven options (12 AM … 6 AM) are always shown, no scrollbar.
  *  Saving is instant on pick with a small "Saved" / error chip. */
 export function DayStartCard() {
   const { dayStartHour, setDayStartHour, error } = useSettings()
@@ -115,7 +116,7 @@ export function DayStartCard() {
           <ul
             role="listbox"
             aria-labelledby="day-start-label"
-            className="glass-card popover-solid absolute left-0 right-0 top-[calc(100%+8px)] z-30 max-h-72 overflow-y-auto rounded-input p-1.5 shadow-xl"
+            className="glass-card popover-solid absolute left-0 right-0 top-[calc(100%+8px)] z-30 rounded-input p-1.5 shadow-xl"
           >
             {DAY_START_HOURS.map((h) => (
               <li key={h} role="none">

@@ -1,20 +1,31 @@
-import { useEffect, useState, type AnimationEvent, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type AnimationEvent, type CSSProperties, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { readableColor, tint } from '../lib/color'
 import { useThemeName } from '../hooks/useThemeName'
 import { IconFlame, IconPencil } from './icons'
+import { TileMoreMenu } from './TileMoreMenu'
 import type { Habit } from '../lib/score'
 
 interface Props {
   habit: Habit
   done: boolean
+  /** The displayed date is skipped (neutral) — tile is muted with a caption. */
+  skipped?: boolean
+  /** Caption text for a neutral day: "Skipped" or "Vacation". */
+  skippedLabel?: string
+  /** Whether a status-'skipped' ROW exists (drives the menu's Skip/Undo-skip
+   *  item; a vacation day is neutral without any row). Defaults to `skipped`. */
+  skippedRow?: boolean
   streak: number
-  /** Entry value at the displayed date (numeric habits). */
+  /** Entry value at the displayed date (numeric habits); always null when skipped. */
   value: number | null
+  /** Label for the skip menu item: "today" or the selected date, short. */
+  dayLabel?: string
   /** Tile position, for the staggered fade-up delay. */
   index: number
   onToggle: () => void
   onLogValue: (value: number) => void
+  onSkipToggle?: () => void
   /** Reorder (jiggle) mode: check-in/edit/links are disabled and dimmed,
    *  the wiggle runs out of sync via a negative per-tile delay. */
   reorderMode?: boolean
@@ -50,15 +61,22 @@ function formatNumber(n: number): string {
 
 /** Habit tile (DESIGN.md §6): tinted gradient card, 44px check ring with a
  *  pop + burst of habit-colored dots, name (never habit-colored), streak chip,
- *  and for numeric habits a 6px progress bar plus "value / target unit". */
+ *  and for numeric habits a 6px progress bar plus "value / target unit".
+ *  A skipped day is neutral: the tile is muted with a "Skipped" caption and
+ *  the date can be skipped/undone via the tile's "more" menu. */
 export function HabitTile({
   habit,
   done,
+  skipped = false,
+  skippedLabel = 'Skipped',
+  skippedRow,
   streak,
   value,
+  dayLabel = 'today',
   index,
   onToggle,
   onLogValue,
+  onSkipToggle,
   reorderMode = false,
   overlay = false,
 }: Props) {
@@ -69,6 +87,12 @@ export function HabitTile({
   const [bursting, setBursting] = useState(false)
   const [editing, setEditing] = useState(false)
   const [input, setInput] = useState('')
+  const [menuOpen, setMenuOpen] = useState(false)
+  // Mirrors the CSS container query on .tile-cell (< 232px compacts): in
+  // compact tiles only the "more" button fits, so the pencil hides and the
+  // menu gains an "Edit habit" item.
+  const [compact, setCompact] = useState(false)
+  const tileRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (done) {
@@ -76,6 +100,14 @@ export function HabitTile({
       setBursting(true)
     }
   }, [done])
+
+  useEffect(() => {
+    const el = tileRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(([e]) => setCompact((e?.contentRect.width ?? el.clientWidth) < 232))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   function handleAnimationEnd(e: AnimationEvent<HTMLButtonElement>) {
     if (e.animationName === 'ring-pop') setPopping(false)
@@ -103,7 +135,10 @@ export function HabitTile({
 
   return (
     <div
-      className={`habit-tile group relative flex h-full min-h-[132px] flex-col rounded-tile p-5 ${overlay ? '' : 'fade-up'}`}
+      ref={tileRef}
+      className={`habit-tile group relative flex h-full min-h-[132px] flex-col rounded-tile p-5 ${overlay ? '' : 'fade-up'} ${
+        skipped ? 'saturate-50 opacity-80' : ''
+      } ${menuOpen && !overlay ? 'z-10' : ''}`}
       style={cssVars({
         // Light theme mixes the habit toward white (pastel); dark keeps the
         // transparent tints. '--tile-glow' feeds the light-only tile shadow.
@@ -130,7 +165,8 @@ export function HabitTile({
         <span className="sr-only">View {habit.name} overview</span>
       </Link>
       <div className="flex items-start justify-between">
-        {/* 44px circular check: pending = 2px habit ring; done = fill + glow + white check */}
+        {/* 44px circular check: pending = 2px habit ring; done = fill + glow + white check;
+            skipped = dashed muted neutral ring (a check-in on a skipped day upserts done) */}
         <button
           type="button"
           onClick={onToggle}
@@ -144,8 +180,11 @@ export function HabitTile({
           style={
             done
               ? { backgroundColor: c, boxShadow: `0 6px 18px -6px ${tint(c, 60)}` }
-              : { border: `2px solid ${c}` }
+              : skipped
+                ? { border: `2px dashed color-mix(in srgb, ${c} 45%, transparent)` }
+                : { border: `2px solid ${c}` }
           }
+          title={skipped ? `${skippedLabel} — tap to check in` : undefined}
         >
           {done && <CheckIcon />}
           {bursting && (
@@ -160,23 +199,47 @@ export function HabitTile({
             </span>
           )}
         </button>
-        <Link
-          to={`/habits/${habit.id}/edit`}
-          aria-label={`Edit ${habit.name}`}
-          title="Edit habit"
-          draggable={false}
-          tabIndex={reorderMode ? -1 : undefined}
-          aria-disabled={reorderMode || undefined}
-          className={`tile-edit relative grid size-11 place-items-center rounded-pill text-fg-muted transition-opacity duration-150 hover:bg-surface hover:text-fg focus-visible:opacity-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 ${reorderMode ? 'pointer-events-none opacity-60' : ''}`}
-        >
-          <IconPencil className="size-4" />
-        </Link>
+        <div className="flex shrink-0 items-start">
+          <Link
+            to={`/habits/${habit.id}/edit`}
+            aria-label={`Edit ${habit.name}`}
+            title="Edit habit"
+            draggable={false}
+            tabIndex={reorderMode ? -1 : undefined}
+            aria-disabled={reorderMode || undefined}
+            className={`tile-edit relative grid size-11 place-items-center rounded-pill text-fg-muted transition-opacity duration-150 hover:bg-surface hover:text-fg focus-visible:opacity-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 ${reorderMode ? 'pointer-events-none opacity-60' : ''} ${
+              compact ? 'hidden' : ''
+            }`}
+          >
+            <IconPencil className="size-4" />
+          </Link>
+          {onSkipToggle && (
+            <TileMoreMenu
+              habitId={habit.id}
+              habitName={habit.name ?? 'habit'}
+              dayLabel={dayLabel}
+              skipped={skippedRow ?? skipped}
+              disabled={reorderMode}
+              showEditItem={compact}
+              onSkipToggle={onSkipToggle}
+              onOpenChange={setMenuOpen}
+            />
+          )}
+        </div>
       </div>
 
       <div className="mt-1 flex items-center gap-2">
         <span className="tile-name text-habit-name min-w-0 flex-1 truncate text-fg">
           {habit.name}
         </span>
+        {skipped && (
+          <span
+            className="shrink-0 text-caption text-fg-muted"
+            title={`${skippedLabel} — the day is neutral`}
+          >
+            {skippedLabel}
+          </span>
+        )}
         <span
           className="tile-streak inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-border bg-surface px-2.5 py-1"
           title="Current streak"
@@ -190,12 +253,14 @@ export function HabitTile({
 
       {isNumeric && (
         <div className="mt-auto">
-          <div className="h-1.5 w-full overflow-hidden rounded-pill bg-fg/10">
-            <div
-              className="h-full rounded-pill transition-[width] duration-300"
-              style={{ width: `${pct}%`, backgroundColor: c }}
-            />
-          </div>
+          {!skipped && (
+            <div className="h-1.5 w-full overflow-hidden rounded-pill bg-fg/10">
+              <div
+                className="h-full rounded-pill transition-[width] duration-300"
+                style={{ width: `${pct}%`, backgroundColor: c }}
+              />
+            </div>
+          )}
           {showEditor ? (
             <form onSubmit={submitValue} className="relative mt-1 flex items-center gap-2">
               <input
@@ -229,15 +294,18 @@ export function HabitTile({
             <button
               type="button"
               onClick={() => {
+                if (skipped) return
                 setInput(value != null ? String(value) : '')
                 setEditing(true)
               }}
-              aria-label={`Log value for ${habit.name}`}
+              aria-label={skipped ? `Value for ${habit.name} (${skippedLabel.toLowerCase()})` : `Log value for ${habit.name}`}
               tabIndex={reorderMode ? -1 : undefined}
               aria-disabled={reorderMode || undefined}
-              className={`tile-value relative text-body tabular-nums -ml-1 mt-1 flex min-h-11 items-center rounded-pill px-1 text-fg-secondary duration-150 hover:bg-surface ${reorderMode ? 'pointer-events-none opacity-60' : ''}`}
+              className={`tile-value relative text-body tabular-nums -ml-1 mt-1 flex min-h-11 items-center rounded-pill px-1 text-fg-secondary duration-150 hover:bg-surface ${reorderMode ? 'pointer-events-none opacity-60' : ''} ${
+                skipped ? 'cursor-default' : ''
+              }`}
             >
-              {valueLabel}
+              {skipped ? <span className="text-fg-muted">{skippedLabel}</span> : valueLabel}
             </button>
           )}
         </div>

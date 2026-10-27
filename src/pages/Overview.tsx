@@ -4,7 +4,9 @@ import { useHabitsContext } from '../contexts/HabitsContext'
 import { useEntries } from '../hooks/useEntries'
 import { scoreSeries } from '../lib/score'
 import { addDays } from '../lib/dates'
+import { vacationDatesInRange } from '../lib/vacation'
 import { useLogicalToday } from '../hooks/useLogicalToday'
+import { useVacationsContext } from '../contexts/VacationsContext'
 import { tint } from '../lib/color'
 import { StatTile, DeltaChip, HabitDotName } from '../components/StatTile'
 import { RangeSwitch } from '../components/RangeSwitch'
@@ -28,27 +30,31 @@ export function Overview() {
   const { entriesByHabit, loading: entriesLoading, error: entriesError } = useEntries(ids, 400)
 
   const today = useLogicalToday()
+  const { periods } = useVacationsContext()
   const [range, setRange] = useState<RangeKey>('90')
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set())
 
   const names = useMemo(() => new Map(habits.map((h) => [h.id, h.name ?? h.id])), [habits])
 
   /** Per-habit score series for the selected range, plus the equal-length
-   *  window just before it (for the average-score delta chip). */
+   *  window just before it (for the average-score delta chip). Vacation
+   *  dates cover both windows (max span = 2× the range, entries window 400). */
   const per = useMemo(() => {
     const days = Number(range)
     const start = addDays(today, -(days - 1))
+    const vacations = vacationDatesInRange(periods, addDays(start, -days), today)
     return habits.map((habit) => ({
       habit,
-      series: scoreSeries(habit, entriesByHabit[habit.id] ?? [], start, today),
+      series: scoreSeries(habit, entriesByHabit[habit.id] ?? [], start, today, vacations),
       prev: scoreSeries(
         habit,
         entriesByHabit[habit.id] ?? [],
         addDays(start, -days),
         addDays(start, -1),
+        vacations,
       ),
     }))
-  }, [habits, entriesByHabit, range, today])
+  }, [habits, entriesByHabit, range, today, periods])
 
   const stats = useMemo(() => {
     const finals = per.map((p) => ({ habit: p.habit, score: p.series.at(-1)?.score ?? 0 }))
