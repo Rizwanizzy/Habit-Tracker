@@ -19,7 +19,8 @@ import { useHabitsContext } from '../contexts/HabitsContext'
 import { useEntries } from '../hooks/useEntries'
 import { bestStreak, completionRate, currentStreak, scoreSeries } from '../lib/score'
 import { isDone, type Entry } from '../lib/score'
-import { addDays, todayString } from '../lib/dates'
+import { addDays } from '../lib/dates'
+import { useLogicalToday } from '../hooks/useLogicalToday'
 import { extractError } from '../hooks/useHabits'
 
 const DAY_FMT = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' })
@@ -79,7 +80,7 @@ export function HabitDetail() {
     setEntriesByHabit,
   } = useEntries(id ? [id] : [], 365)
 
-  const today = todayString()
+  const today = useLogicalToday()
   const [scoreWindow, setScoreWindow] = useState<'90' | '30'>('90')
   const [actionError, setActionError] = useState<string | null>(null)
   const habit = habits.find((h) => h.id === id)

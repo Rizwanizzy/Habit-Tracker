@@ -11,6 +11,7 @@
   --bg-base: #e6eef8;
   --surface: rgba(255, 255, 255, 0.8);
   --surface-2: #f1f4f6;
+  --surface-solid: #f3f7fc;
   --border: rgba(15, 23, 42, 0.08);
   --text-primary: #0f172a;
   --text-secondary: #475569;
@@ -35,6 +36,7 @@
   --bg-base: #070a12;
   --surface: rgba(255, 255, 255, 0.05);
   --surface-2: rgba(255, 255, 255, 0.08);
+  --surface-solid: #131a27;
   --border: rgba(255, 255, 255, 0.1);
   --text-primary: #f4f6fb;
   --text-secondary: #a3acc2;
@@ -756,6 +758,18 @@ body {
   :root:not(.dark) .glass-pill {
     background: rgba(255, 255, 255, 0.92);
   }
+}
+
+/* Opaque popovers (day-start listbox, color picker): the translucent glass
+   fill lets the content underneath bleed through, so these floating lists
+   get a solid surface instead. Theme-scoped selectors keep this at least as
+   specific as the `:root:not(.dark) .glass-card` gradient override above, so
+   it wins in both themes regardless of source order. */
+:root:not(.dark) .glass-card.popover-solid,
+.dark .glass-card.popover-solid {
+  background-color: var(--surface-solid);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* ---------------------------------------------------------------------------

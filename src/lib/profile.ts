@@ -35,13 +35,15 @@ export function validateFullName(value: string | null): string | null {
   return null
 }
 
-/** Date of birth: optional, YYYY-MM-DD, on/after 1900, not in the future. */
-export function validateDateOfBirth(value: string | null): string | null {
+/** Date of birth: optional, YYYY-MM-DD, on/after 1900, not in the future.
+ *  `today` is the logical today (optional; defaults to the plain local date
+ *  so the pure function keeps its old behaviour without a setting). */
+export function validateDateOfBirth(value: string | null, today: string = todayString()): string | null {
   if (value == null || value.trim() === '') return null
   const v = value.trim()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return 'Date of birth must be YYYY-MM-DD'
   if (v < '1900-01-01') return 'Date of birth must be on or after 1900'
-  if (v > todayString()) return 'Date of birth cannot be in the future'
+  if (v > today) return 'Date of birth cannot be in the future'
   return null
 }
 
@@ -62,11 +64,11 @@ export function validateGender(value: Gender | null): string | null {
   return null
 }
 
-export function validateProfile(input: ProfileInput): { valid: boolean; errors: ProfileErrors } {
+export function validateProfile(input: ProfileInput, today: string = todayString()): { valid: boolean; errors: ProfileErrors } {
   const errors: ProfileErrors = {}
   const fn = validateFullName(input.full_name)
   if (fn) errors.full_name = fn
-  const dob = validateDateOfBirth(input.date_of_birth)
+  const dob = validateDateOfBirth(input.date_of_birth, today)
   if (dob) errors.date_of_birth = dob
   const ph = validatePhone(input.phone)
   if (ph) errors.phone = ph

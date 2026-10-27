@@ -4,7 +4,10 @@ import { extractError } from '../hooks/useHabits'
 import { useHabitsContext } from '../contexts/HabitsContext'
 import { useEntries } from '../hooks/useEntries'
 import { currentStreak, isDone, type Entry, type Habit } from '../lib/score'
-import { addDays, parseLocalDate, todayString } from '../lib/dates'
+import { addDays, formatDayStart, parseLocalDate, toLocalDateString } from '../lib/dates'
+import { now } from '../lib/clock'
+import { useLogicalToday } from '../hooks/useLogicalToday'
+import { useSettings } from '../contexts/SettingsContext'
 import { layoutRings } from '../lib/rings'
 import { ThemeIconButton } from '../components/ThemeIconButton'
 import { ProgressRings } from '../components/ProgressRings'
@@ -45,7 +48,11 @@ export function Today() {
     setEntriesByHabit,
   } = useEntries(ids)
 
-  const today = todayString()
+  const today = useLogicalToday()
+  const { dayStartHour } = useSettings()
+  // The logical day can differ from the real calendar date after midnight
+  // (day-start setting) — the pill then carries a "counting as" caption.
+  const dayShifted = today !== toLocalDateString(now())
   const [selectedDate, setSelectedDate] = useState(today)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -182,6 +189,7 @@ export function Today() {
   const ringLayout = useMemo(() => layoutRings(habits.map((h) => h.id)), [habits])
 
   const dateLabel = DATE_FMT.format(parseLocalDate(selectedDate))
+  const todayLabel = DATE_FMT.format(parseLocalDate(today))
 
   const pageError = habitsError ?? entriesError
   if (pageError) {
@@ -237,6 +245,13 @@ export function Today() {
       {/* Header: greeting block on the left, date pill + primary action on the right */}
       <header className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <TodayGreeting />
+        {/* Day-start notice sits between the greeting and the header controls,
+            centered in the leftover space (user request — was under the pill). */}
+        {dayShifted && (
+          <p className="text-caption text-center text-fg-muted lg:flex-1">
+            Counting as {todayLabel} until {formatDayStart(dayStartHour)}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-3">
           <ThemeIconButton disabled={reorderMode} />
           <div

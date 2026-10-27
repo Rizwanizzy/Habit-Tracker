@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { Entry, Habit } from '../lib/score'
-import { addDays, parseLocalDate, todayString } from '../lib/dates'
+import { addDays, parseLocalDate } from '../lib/dates'
+import { useLogicalToday } from '../hooks/useLogicalToday'
 import { sparseMonthLabels } from '../lib/completion'
 
 const CELL = 14
@@ -56,7 +57,7 @@ type Cell = { date: string; level: number; future: boolean }
  *  rows, 14px cells with 4px radius and gap, month labels on top, weekday
  *  labels left. Tapping a day toggles it. */
 export function Heatmap({ habit, entries, weeks = 18, onToggle }: Props) {
-  const today = todayString()
+  const today = useLogicalToday()
   const byDate = new Map(entries.map((e) => [e.date, e]))
   const dow = parseLocalDate(today).getDay()
   const lastSunday = addDays(today, -dow)

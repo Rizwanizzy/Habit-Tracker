@@ -3,6 +3,7 @@ import { getSupabase } from '../lib/supabase'
 import { extractError } from './useHabits'
 import type { Profile, ProfileInput } from '../lib/profile'
 import { prepareAvatar } from '../lib/avatar'
+import { now } from '../lib/clock'
 
 const SIGNED_URL_TTL = 3600 // seconds
 const REFRESH_BEFORE = 5 * 60 * 1000 // refresh 5 minutes before expiry
@@ -112,7 +113,7 @@ export function useProfile(): UseProfileResult {
         if (userError) throw userError
         const user = userData.user
         if (!user) throw new Error('You must be signed in')
-        const payload = { ...input, user_id: user.id, updated_at: new Date().toISOString() }
+        const payload = { ...input, user_id: user.id, updated_at: now().toISOString() }
         const { data, error: upsertError } = await sb
           .from('profiles')
           .upsert(payload, { onConflict: 'user_id' })

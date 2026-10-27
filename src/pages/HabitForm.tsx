@@ -4,6 +4,7 @@ import { ColorPicker } from '../components/ColorPicker'
 import { RangeSwitch } from '../components/RangeSwitch'
 import { createHabit, extractError, updateHabit, type HabitInput } from '../hooks/useHabits'
 import { useHabitsContext } from '../contexts/HabitsContext'
+import { useSettings } from '../contexts/SettingsContext'
 import { getSupabase } from '../lib/supabase'
 import { tint } from '../lib/color'
 
@@ -39,6 +40,7 @@ export function HabitForm() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { reload } = useHabitsContext()
+  const { dayStartHour } = useSettings()
   const editing = Boolean(id)
 
   const [form, setForm] = useState<FormState | null>(editing ? null : BLANK)
@@ -131,8 +133,8 @@ export function HabitForm() {
     setFormError(null)
     setBusy(true)
     try {
-      if (id) await updateHabit(id, values)
-      else await createHabit(values)
+      if (id) await updateHabit(id, values, dayStartHour)
+      else await createHabit(values, dayStartHour)
       // Refresh the shared habit list immediately so Today/Overview/Settings
       // show the change; navigation happens right away (same loading state
       // users saw when each page fetched on mount).

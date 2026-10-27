@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Gender, Profile, ProfileErrors, ProfileInput } from '../lib/profile'
 import { validateProfile } from '../lib/profile'
-import { todayString } from '../lib/dates'
+import { useLogicalToday } from '../hooks/useLogicalToday'
 import { RangeSwitch } from './RangeSwitch'
 import { IconLock } from './icons'
 
@@ -60,6 +60,8 @@ export function ProfileDetailsEdit({
 }) {
   const [draft, setDraft] = useState<Draft>(() => draftFrom(profile))
   const [errors, setErrors] = useState<ProfileErrors>({})
+  // DOB validation and its date-input max use the logical today.
+  const today = useLogicalToday()
 
   async function handleSave() {
     const input: ProfileInput = {
@@ -72,7 +74,7 @@ export function ProfileDetailsEdit({
       phone: draft.phone.trim() || null,
       avatar_path: profile?.avatar_path ?? null,
     }
-    const check = validateProfile(input)
+    const check = validateProfile(input, today)
     setErrors(check.errors)
     if (!check.valid) return
     try {
@@ -118,7 +120,7 @@ export function ProfileDetailsEdit({
               type={f.type}
               value={draft[f.key]}
               placeholder={f.placeholder}
-              max={f.type === 'date' ? todayString() : undefined}
+              max={f.type === 'date' ? today : undefined}
               disabled={saving}
               className="input-field"
               onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}

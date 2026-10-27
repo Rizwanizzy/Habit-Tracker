@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Habit } from '../lib/score'
 import { getSupabase } from '../lib/supabase'
-import { toLocalDateString } from '../lib/dates'
+import { toLogicalDateString } from '../lib/dates'
 import { diffOrder, sortHabits } from '../lib/order'
+import { useSettings } from '../contexts/SettingsContext'
 
 interface HabitRow {
   id: string
@@ -37,12 +38,14 @@ export function extractError(e: unknown): string {
   return 'Something went wrong. Please try again.'
 }
 
-function mapHabit(row: HabitRow): Habit {
-  // created_at is a UTC timestamp; convert to the user's local date (Asia/Kolkata).
-  return { ...row, created_at: toLocalDateString(new Date(row.created_at)) }
+function mapHabit(row: HabitRow, dayStartHour: number): Habit {
+  // created_at is a UTC timestamp; convert to the user's local LOGICAL date
+  // (Asia/Kolkata shifted by the day start) — a habit created at 02:00 with a
+  // 4 AM day start is eligible from the previous day.
+  return { ...row, created_at: toLogicalDateString(new Date(row.created_at), dayStartHour) }
 }
 
-async function fetchHabits(includeArchived: boolean): Promise<Habit[]> {
+async function fetchHabits(includeArchived: boolean, dayStartHour: number): Promise<Habit[]> {
   const sb = getSupabase()
   let query = sb.from('habits').select('*')
   if (!includeArchived) query = query.eq('archived', false)
@@ -50,10 +53,10 @@ async function fetchHabits(includeArchived: boolean): Promise<Habit[]> {
   if (error) throw error
   // sort_order (then created_at, then id) is the single source of truth —
   // the list is always passed through sortHabits, never DB order alone.
-  return sortHabits((data as HabitRow[]).map(mapHabit))
+  return sortHabits((data as HabitRow[]).map((row) => mapHabit(row, dayStartHour)))
 }
 
-export async function createHabit(values: HabitInput): Promise<Habit> {
+export async function createHabit(values: HabitInput, dayStartHour = 0): Promise<Habit> {
   const sb = getSupabase()
   const { data: userData, error: userError } = await sb.auth.getUser()
   if (userError) throw userError
@@ -76,14 +79,18 @@ export async function createHabit(values: HabitInput): Promise<Habit> {
     .select('*')
     .single()
   if (error) throw error
-  return mapHabit(data as HabitRow)
+  return mapHabit(data as HabitRow, dayStartHour)
 }
 
-export async function updateHabit(id: string, values: HabitUpdate): Promise<Habit> {
+export async function updateHabit(
+  id: string,
+  values: HabitUpdate,
+  dayStartHour = 0,
+): Promise<Habit> {
   const sb = getSupabase()
   const { data, error } = await sb.from('habits').update(values).eq('id', id).select('*').single()
   if (error) throw error
-  return mapHabit(data as HabitRow)
+  return mapHabit(data as HabitRow, dayStartHour)
 }
 
 /** Shared habit list state (all habits, archived included — views filter).
@@ -91,6 +98,7 @@ export async function updateHabit(id: string, values: HabitUpdate): Promise<Habi
  *  always returned through sortHabits (sort_order → created_at → id). */
 export function useHabits(options: { includeArchived?: boolean } = {}) {
   const includeArchived = options.includeArchived === true
+  const { dayStartHour } = useSettings()
   const [habits, setHabits] = useState<Habit[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -101,13 +109,13 @@ export function useHabits(options: { includeArchived?: boolean } = {}) {
     setReorderError(null)
     setLoading(true)
     try {
-      setHabits(await fetchHabits(includeArchived))
+      setHabits(await fetchHabits(includeArchived, dayStartHour))
     } catch (e) {
       setError(extractError(e))
     } finally {
       setLoading(false)
     }
-  }, [includeArchived])
+  }, [includeArchived, dayStartHour])
 
   useEffect(() => {
     void reload()
@@ -119,13 +127,13 @@ export function useHabits(options: { includeArchived?: boolean } = {}) {
       const snapshot = habits
       setHabits((hs) => hs.map((h) => (h.id === id ? { ...h, archived } : h)))
       try {
-        await updateHabit(id, { archived })
+        await updateHabit(id, { archived }, dayStartHour)
       } catch (e) {
         setHabits(snapshot)
         throw e
       }
     },
-    [habits],
+    [habits, dayStartHour],
   )
 
   /** Reorder to `orderedIds` (dnd result). Applies the new order optimistically,
@@ -155,14 +163,14 @@ export function useHabits(options: { includeArchived?: boolean } = {}) {
       setHabits(next)
       try {
         await Promise.all(
-          changed.map((c) => updateHabit(c.id, { sort_order: c.sort_order })),
+          changed.map((c) => updateHabit(c.id, { sort_order: c.sort_order }, dayStartHour)),
         )
       } catch (e) {
         setHabits(snapshot)
         setReorderError(extractError(e))
       }
     },
-    [habits],
+    [habits, dayStartHour],
   )
 
   return { habits, loading, error, reload, archiveHabit, reorderHabits, reorderError }

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Entry } from '../lib/score'
 import { getSupabase } from '../lib/supabase'
-import { addDays, todayString } from '../lib/dates'
+import { addDays, logicalToday } from '../lib/dates'
+import { now } from '../lib/clock'
+import { useSettings } from '../contexts/SettingsContext'
 import { extractError } from './useHabits'
 
 export type EntriesByHabit = Record<string, Entry[]>
@@ -30,6 +32,8 @@ export function useEntries(habitIds: string[], sinceDays = 365) {
   const [entriesByHabit, setEntriesByHabit] = useState<EntriesByHabit>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // The window ends at the logical today (day-start aware).
+  const { dayStartHour } = useSettings()
 
   const idsRef = useRef(habitIds)
   idsRef.current = habitIds
@@ -48,7 +52,7 @@ export function useEntries(habitIds: string[], sinceDays = 365) {
     ;(async () => {
       try {
         const sb = getSupabase()
-        const since = addDays(todayString(), -sinceDays)
+        const since = addDays(logicalToday(now(), dayStartHour), -sinceDays)
         const { data, error } = await sb
           .from('entries')
           .select('habit_id, date, value')
@@ -66,7 +70,7 @@ export function useEntries(habitIds: string[], sinceDays = 365) {
     return () => {
       active = false
     }
-  }, [idsKey, sinceDays])
+  }, [idsKey, sinceDays, dayStartHour])
 
   async function saveEntry(habitId: string, date: string, value: number) {
     const sb = getSupabase()

@@ -23,9 +23,9 @@ Read DESIGN.md before building or changing any UI.
 - `npm run icons` generate PWA icons and favicons from `public/logo.png` (uses `@vite-pwa/assets-generator`, see `pwa-assets.config.js`)
 
 ## Folder structure
-- `src/lib/` pure logic: `score.ts`, `dates.ts`, `supabase.ts`, `color.ts`, `profile.ts`, `avatar.ts`, `order.ts`, `rings.ts`
-- `src/hooks/` data hooks (`useHabits`, `useEntries`, `useTheme`, `useProfile`)
-- `src/contexts/` React context providers (`ProfileContext` shares profile state across Today header, rail avatar, and Profile page)
+- `src/lib/` pure logic: `score.ts`, `dates.ts`, `clock.ts`, `supabase.ts`, `color.ts`, `profile.ts`, `avatar.ts`, `order.ts`, `rings.ts`, `completion.ts`
+- `src/hooks/` data hooks (`useHabits`, `useEntries`, `useTheme`, `useProfile`, `useUserSettings`, `useLogicalToday`)
+- `src/contexts/` React context providers (`ProfileContext` shares profile state across Today header, rail avatar, and Profile page; `SettingsContext` shares the day-start setting; `HabitsContext` shares the habit list)
 - `src/components/` reusable UI (HabitRow, Heatmap, ScoreChart, ColorPicker, TodayGreeting, RangeSwitch, ProfileBanner, ...)
 - `src/pages/` Today, Overview, HabitDetail, WeeklyReview, Settings, Login, Profile
 - `scripts/` one-off scripts (`generate-icons.mjs` - superseded by `pwa-assets.config.js` + `npm run icons`)
@@ -37,12 +37,13 @@ Read DESIGN.md before building or changing any UI.
 - `entries`: id, user_id, habit_id, date (YYYY-MM-DD), value, unique (habit_id, date)
 - RLS is on for both tables. Never disable it. Never use the service role key in the frontend.
 - `profiles`: user_id (pk, = auth.users id), full_name, date_of_birth, gender ('female'|'male'|'other'|'prefer_not_to_say'), nationality, country, address, phone, avatar_path, updated_at. One row per user, created on first save (upsert). RLS on.
+- `user_settings`: user_id (pk), day_start_hour (smallint 0..6, default 0), updated_at. One row per user, created on first save (upsert). RLS on.
 - Storage bucket `avatars` (private, 2 MB, jpeg/png/webp). Files live at `<user_id>/avatar.webp`. Store only the path in `profiles.avatar_path`; display with `createSignedUrl` (1 hour) and refresh when expired. Email is read from the auth session, is shown read-only, and is never stored in `profiles`.
 
 ## Rules that matter
 1. **Colors:** every habit has its own `color` hex from the database. All charts, heatmaps, checkboxes and badges must read it from the habit. Never hardcode a habit color. Heatmap intensity levels use `color-mix(in srgb, <color> N%, transparent)`.
 2. **Color picker:** preset swatches plus a native `<input type="color">` for any custom hex. Changing a color updates everything immediately.
-3. **Dates:** store and compare dates as local `YYYY-MM-DD` strings in the user's timezone (Asia/Kolkata). Never use `toISOString().slice(0,10)`, because it returns the UTC date and gives the wrong day around midnight. Use the helpers in `src/lib/dates.ts`.
+3. **Dates:** the app works in "logical days": local `YYYY-MM-DD` in Asia/Kolkata, shifted by the user's day-start hour (`user_settings.day_start_hour`, 0 to 6, default 0). Use the helpers in `src/lib/dates.ts` (`logicalToday`, `toLogicalDateString`). Never use `toISOString().slice(0,10)`. The time-of-day greeting uses the real clock, and everything else uses `clock.now()` so dev time-travel works.
 4. **Score logic** lives only in `src/lib/score.ts` as pure functions with unit tests. It must never import React or Supabase.
    - Habit score is an exponential moving average over daily entries: each day moves the score toward 1 (done) or 0 (missed), with a weight based on the habit's frequency (`freq_times` per `freq_days`). Keep the smoothing constant in one named constant so it can be tuned.
    - Also provide current streak, best streak, and completion rate for a date range.
@@ -74,5 +75,5 @@ Read DESIGN.md before building or changing any UI.
 - Don't add payments, social features, or multi-user features.
 - Don't commit `.env.local` or any keys.
 - Don't change the database schema without telling me and showing the SQL.
-- Don't change `src/lib/score.ts` or `src/lib/dates.ts` (pure logic with tests).
+- Don't change `src/lib/score.ts` or `src/lib/dates.ts` unless the task says so explicitly; any change there needs new or updated tests.
 - Don't rewrite files unrelated to the task.

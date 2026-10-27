@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { useHabitsContext } from '../contexts/HabitsContext'
 import { useEntries } from '../hooks/useEntries'
 import { scoreSeries } from '../lib/score'
-import { addDays, todayString } from '../lib/dates'
+import { addDays } from '../lib/dates'
+import { useLogicalToday } from '../hooks/useLogicalToday'
 import { tint } from '../lib/color'
 import { StatTile, DeltaChip, HabitDotName } from '../components/StatTile'
 import { RangeSwitch } from '../components/RangeSwitch'
@@ -26,7 +27,7 @@ export function Overview() {
   const ids = habits.map((h) => h.id)
   const { entriesByHabit, loading: entriesLoading, error: entriesError } = useEntries(ids, 400)
 
-  const today = todayString()
+  const today = useLogicalToday()
   const [range, setRange] = useState<RangeKey>('90')
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set())
 

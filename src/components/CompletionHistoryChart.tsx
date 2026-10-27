@@ -12,7 +12,8 @@ import {
 } from 'recharts'
 import type { Entry, Habit } from '../lib/score'
 import { isDone } from '../lib/score'
-import { addDays, parseLocalDate, todayString } from '../lib/dates'
+import { addDays, parseLocalDate } from '../lib/dates'
+import { useLogicalToday } from '../hooks/useLogicalToday'
 import { tint } from '../lib/color'
 
 type Range = 'week' | 'month'
@@ -59,8 +60,7 @@ function completedInWeek(habit: Habit, byDate: Map<string, Entry>, start: string
   return count
 }
 
-function weeklyBuckets(habit: Habit, entries: Entry[]): Bucket[] {
-  const today = todayString()
+function weeklyBuckets(habit: Habit, entries: Entry[], today: string): Bucket[] {
   const byDate = new Map(entries.map((e) => [e.date, e]))
   const lastSunday = addDays(today, -parseLocalDate(today).getDay())
   const out: Bucket[] = []
@@ -71,8 +71,8 @@ function weeklyBuckets(habit: Habit, entries: Entry[]): Bucket[] {
   return out
 }
 
-function monthlyBuckets(habit: Habit, entries: Entry[]): Bucket[] {
-  const now = parseLocalDate(todayString())
+function monthlyBuckets(habit: Habit, entries: Entry[], today: string): Bucket[] {
+  const now = parseLocalDate(today)
   const out: Bucket[] = []
   for (let k = 5; k >= 0; k--) {
     const start = new Date(now.getFullYear(), now.getMonth() - k, 1)
@@ -91,11 +91,15 @@ function monthlyBuckets(habit: Habit, entries: Entry[]): Bucket[] {
  *  fully rounded tops; the latest (current) bucket glows. */
 export function CompletionHistoryChart({ habit, entries }: { habit: Habit; entries: Entry[] }) {
   const [range, setRange] = useState<Range>('week')
+  const today = useLogicalToday()
   const color = habit.color ?? '#3B82F6'
 
   const data = useMemo(
-    () => (range === 'week' ? weeklyBuckets(habit, entries) : monthlyBuckets(habit, entries)),
-    [range, habit, entries],
+    () =>
+      range === 'week'
+        ? weeklyBuckets(habit, entries, today)
+        : monthlyBuckets(habit, entries, today),
+    [range, habit, entries, today],
   )
 
   return (

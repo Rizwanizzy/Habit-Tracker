@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { extractError } from '../hooks/useHabits'
 import { useHabitsContext } from '../contexts/HabitsContext'
-import { useAuth } from '../hooks/useAuth'
+import { DayStartCard } from '../components/DayStartCard'
 import type { Habit } from '../lib/score'
 
 function ManageRow({
@@ -37,7 +37,6 @@ function ManageRow({
 }
 
 export function Settings() {
-  const { session } = useAuth()
   const { habits, loading, error, reload, archiveHabit } = useHabitsContext()
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -61,22 +60,15 @@ export function Settings() {
     <section>
       <header className="mb-5">
         <h1 className="text-page-title">Settings</h1>
-        <p className="text-caption mt-1 text-fg-muted">Habits and account</p>
+        <p className="text-caption mt-1 text-fg-muted">Habits and preferences</p>
       </header>
 
-      {/* Two columns on desktop (DESIGN.md §8): Account left, Habits right.
-          The theme toggle now lives on the Today header (ThemeIconButton). */}
+      {/* Two columns on desktop (DESIGN.md §8): Day (day-start) card left,
+          Habits right. Profile is reached via the Today-header avatar and the
+          dock; the Account card was removed (user request) — Profile shows
+          the signed-in email. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
-        <div className="glass-card fade-up rounded-card p-6">
-          <h2 className="text-section-title">Account</h2>
-          <p className="text-caption mt-1 text-fg-muted">Signed in as {session?.user.email ?? 'unknown'}</p>
-          <Link
-            to="/profile"
-            className="mt-2 inline-flex h-11 items-center rounded-pill px-4 text-body font-medium text-accent hover:underline"
-          >
-            View profile
-          </Link>
-        </div>
+        <DayStartCard />
 
         <div className="glass-card fade-up rounded-card p-6" style={{ animationDelay: '40ms' }}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">

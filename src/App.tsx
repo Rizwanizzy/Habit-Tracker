@@ -10,6 +10,7 @@ import { Profile } from './pages/Profile'
 import { Login } from './pages/Login'
 import { ProfileProvider } from './contexts/ProfileContext'
 import { HabitsProvider } from './contexts/HabitsContext'
+import { SettingsProvider } from './contexts/SettingsContext'
 
 export function App() {
   return (
@@ -20,9 +21,11 @@ export function App() {
           <Route element={<RequireAuth />}>
             <Route
               element={
-                <HabitsProvider>
-                  <AppShell />
-                </HabitsProvider>
+                <SettingsProvider>
+                  <HabitsProvider>
+                    <AppShell />
+                  </HabitsProvider>
+                </SettingsProvider>
               }
             >
               <Route index element={<Today />} />

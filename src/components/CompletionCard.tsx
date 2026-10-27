@@ -160,7 +160,7 @@ export function CompletionCard({ habits, entriesByHabit, today }: Props) {
             />
           </button>
           {pickerOpen && (
-            <div className="glass-card absolute right-0 top-[calc(100%+8px)] z-30 w-80 max-w-[calc(100vw-2.5rem)] rounded-card p-4 shadow-xl">
+            <div className="glass-card popover-solid absolute right-0 top-[calc(100%+8px)] z-30 w-80 max-w-[calc(100vw-2.5rem)] rounded-card p-4 shadow-xl">
               <ColorPicker
                 color={color}
                 onChange={(hex) => setColor(hex)}
