@@ -16,6 +16,11 @@
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #64748b;
+  /* --fg is the bare "foreground" alias the Heatmap's neutral-cell outline
+   * (skipped/vacation) draws with. Defined here so it exists in both themes;
+   * without it the color-mix border resolves to transparent and a skipped
+   * day renders as a plain "not completed" cell. */
+  --fg: var(--text-primary);
   --accent: #4f46e5;
   --accent-gradient: linear-gradient(135deg, #4f46e5, #0ea5e9);
   --success: #16a34a;
@@ -41,6 +46,7 @@
   --text-primary: #f4f6fb;
   --text-secondary: #a3acc2;
   --text-muted: #6b7490;
+  --fg: var(--text-primary);
   --accent: #7c83ff;
   --accent-gradient: linear-gradient(135deg, #7c83ff, #22d3ee);
   --success: #34d399;
