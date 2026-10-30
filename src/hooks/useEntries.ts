@@ -62,14 +62,25 @@ export function useEntries(habitIds: string[], sinceDays = 365) {
       try {
         const sb = getSupabase()
         const since = addDays(logicalToday(now(), dayStartHour), -sinceDays)
-        const { data, error } = await sb
-          .from('entries')
-          .select('habit_id, date, value, status')
-          .in('habit_id', ids)
-          .gte('date', since)
-          .order('date')
-        if (error) throw error
-        if (active) setEntriesByHabit(groupByHabit(data as EntryRow[]))
+        const allRows: EntryRow[] = []
+        let from = 0
+        const PAGE_SIZE = 1000
+        while (true) {
+          const { data, error } = await sb
+            .from('entries')
+            .select('habit_id, date, value, status')
+            .in('habit_id', ids)
+            .gte('date', since)
+            .order('date')
+            .range(from, from + PAGE_SIZE - 1)
+          if (error) throw error
+          if (data && data.length > 0) {
+            allRows.push(...(data as EntryRow[]))
+          }
+          if (!data || data.length < PAGE_SIZE) break
+          from += PAGE_SIZE
+        }
+        if (active) setEntriesByHabit(groupByHabit(allRows))
       } catch (e) {
         if (active) setError(extractError(e))
       } finally {

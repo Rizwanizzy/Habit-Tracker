@@ -8,7 +8,7 @@ import {
 import { tint } from '../lib/color'
 import { isDone, type Entry, type Habit } from '../lib/score'
 import { dayStatus, isNeutral } from '../lib/dayStatus'
-import { layoutRings, ringGeometry, segmentArcs } from '../lib/rings'
+import { layoutRings, ringGeometry, segmentArcs, arcRotateDeg } from '../lib/rings'
 import { RingTooltip } from './RingTooltip'
 
 interface Props {
@@ -236,8 +236,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
           const arcLen = (arc.endAngle - arc.startAngle) * radius
           const capTrim = Math.min(arcLen / 4, width / 2 + 1)
           const paintLen = Math.max(1, arcLen - 2 * capTrim)
-          const deg = (arc.startAngle * 180) / Math.PI + 90
-          const rotate = { transform: `rotate(${deg}deg)` }
+          const rotate = { transform: `rotate(${arcRotateDeg(arc)}deg)` }
           return (
             <g key={habit.id} aria-label={label} fill="none" strokeLinecap="round">
               <circle

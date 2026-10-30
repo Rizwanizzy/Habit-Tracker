@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { layoutRings, ringGeometry, segmentArcs } from './rings'
+import { layoutRings, ringGeometry, segmentArcs, arcRotateDeg } from './rings'
 
 describe('layoutRings', () => {
   it('n = 0: no rings, hiddenCount 0', () => {
@@ -218,6 +218,23 @@ describe('segmentArcs', () => {
     const lengths = arcs.map((a) => a.endAngle - a.startAngle)
     for (const len of lengths) {
       expect(len).toBeCloseTo(lengths[0], 5)
+    }
+  })
+})
+
+describe('arcRotateDeg', () => {
+  it("maps the first segment start to -90° (12 o'clock)", () => {
+    const arcs = segmentArcs(100, 4)
+    expect(arcRotateDeg(arcs[0])).toBeCloseTo(-90, 5)
+  })
+
+  it('rotates each segment to its segmentArcs position (no +90° offset)', () => {
+    const arcs = segmentArcs(100, 4)
+    for (const arc of arcs) {
+      // SVG stroke-dasharray on a circle starts at 3 o'clock (angle 0), so
+      // rotating by the segment's startAngle lands the painted dash exactly
+      // where segmentArcs puts it — matching the picker's expectation.
+      expect(arcRotateDeg(arc)).toBeCloseTo((arc.startAngle * 180) / Math.PI, 5)
     }
   })
 })

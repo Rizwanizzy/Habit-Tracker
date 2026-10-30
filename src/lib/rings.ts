@@ -115,3 +115,11 @@ export function segmentArcs(
 
   return arcs
 }
+
+/** The CSS rotate (degrees) that lands a segment's painted dash exactly on
+ *  its segmentArcs position. SVG stroke-dasharray on a circle starts at
+ *  3 o'clock (angle 0), so rotating by the segment's startAngle places the
+ *  painted arc where segmentArcs puts it — no +90° offset. */
+export function arcRotateDeg(arc: SegmentArc): number {
+  return (arc.startAngle * 180) / Math.PI
+}
