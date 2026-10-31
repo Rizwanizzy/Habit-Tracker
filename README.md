@@ -15,7 +15,7 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 - **Habit management** — yes/no or numeric habits (with target + unit), frequency (e.g., 2 times per 7 days), archive/restore with history kept
 - **Stats & charts** — glass stat tiles, a glowing gradient score line chart, 10px rounded completion bars, and a 14px-cell calendar heatmap on each habit's detail page; Overview with stat tiles (average score, best habit, needs attention — the last two drill into those habits) and a glowing multi-line score chart with habit toggle chips
 - **Color picker** — preset swatches, native color input, and custom hex per habit; every foreground use stays readable in both themes
-- **Auth** — Supabase email/password sign in, session guard, sign out; optional **Sign in with Google** (Supabase OAuth — brand-styled pill on the login card)
+- **Auth** — Supabase email/password sign in, **Sign in with Google** (brand-styled OAuth pill), session guard, sign out
 - **Profile & avatar** — banner with grid pattern and overlapping avatar (camera upload, crop/resize/WebP, remove photo), name with verified badge, "Personal details" card with in-place edit mode and validation, loading/error/toast states
 - **Theming** — light/dark via a sliding sun/moon switch; design tokens from `DESIGN.md`
 
@@ -47,6 +47,20 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
    npm run dev
    ```
 
+## Hosting
+
+The app is a static Vite SPA (all backend work happens in Supabase), so any static host works. Current live deployment: **Vercel** — `https://habbt-tracker.vercel.app`.
+
+- **Build command** `npm run build`, output `dist`; settings `NODE_VERSION` = 22.
+- **Environment variables** (must exist *before* the build — Vite inlines them at build time): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. Change them → redeploy.
+- `vercel.json` ships the SPA rewrite (`/(.*) → /index.html`) so deep links (`/settings`, `/habits/:id`…) survive a refresh.
+- **Auth wiring for the deployed domain:**
+  - Supabase → Auth → URL Configuration → Site URL = the deployed origin; Redirect URLs += `<origin>/login` (keep localhost for dev).
+  - Google Cloud → Clients → OAuth client → Authorized JavaScript origins += the deployed origin; the redirect URI stays the Supabase callback.
+  - Google Auth Platform → Branding → Authorised domains += the deployed host.
+- The Google account chooser always shows the Supabase callback domain (`<project-ref>.supabase.co`) because that is the OAuth redirect domain; the consent page itself shows the branding's App name/logo once the app is published to production with a public Application home page (localhost is rejected there).
+- An older Cloudflare Pages deployment (`habit-tracker-7kq.pages.dev`) can be retired from the Cloudflare dashboard whenever convenient — keep whichever host you prefer.
+
 ## Scripts
 
 | Command | Description |
@@ -65,7 +79,7 @@ src/
   hooks/      data hooks (useHabits, useEntries, useProfile, useAuth, useTheme, useUserSettings, useLogicalToday, useBackup, useImportBackup, useVacations)
   components/ reusable UI (AppShell, HabitTile, TileMoreMenu, HabitReorderGrid, ProgressRings, Heatmap, ColorPicker, DayStartCard, VacationCard, Profile*)
   contexts/   React context providers (ProfileContext, HabitsContext, SettingsContext, VacationsContext)
-  pages/      Today (bento), Overview, Profile, Settings, HabitForm, HabitDetail, Login
+  pages/      Today (bento), Overview, Profile, Settings, HabitForm, HabitDetail, Login, Privacy
 ```
 
 ## Documentation

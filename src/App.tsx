@@ -8,6 +8,7 @@ import { HabitForm } from './pages/HabitForm'
 import { HabitDetail } from './pages/HabitDetail'
 import { Profile } from './pages/Profile'
 import { Login } from './pages/Login'
+import { Privacy } from './pages/Privacy'
 import { ProfileProvider } from './contexts/ProfileContext'
 import { HabitsProvider } from './contexts/HabitsContext'
 import { SettingsProvider } from './contexts/SettingsContext'
@@ -19,6 +20,7 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route element={<RequireAuth />}>
             <Route
               element={
