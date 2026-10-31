@@ -15,7 +15,7 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 - **Habit management** — yes/no or numeric habits (with target + unit), frequency (e.g., 2 times per 7 days), archive/restore with history kept
 - **Stats & charts** — glass stat tiles, a glowing gradient score line chart, 10px rounded completion bars, and a 14px-cell calendar heatmap on each habit's detail page; Overview with stat tiles (average score, best habit, needs attention — the last two drill into those habits) and a glowing multi-line score chart with habit toggle chips
 - **Color picker** — preset swatches, native color input, and custom hex per habit; every foreground use stays readable in both themes
-- **Auth** — Supabase email/password sign in, session guard, sign out
+- **Auth** — Supabase email/password sign in, session guard, sign out; optional **Sign in with Google** (Supabase OAuth — brand-styled pill on the login card)
 - **Profile & avatar** — banner with grid pattern and overlapping avatar (camera upload, crop/resize/WebP, remove photo), name with verified badge, "Personal details" card with in-place edit mode and validation, loading/error/toast states
 - **Theming** — light/dark via a sliding sun/moon switch; design tokens from `DESIGN.md`
 
@@ -41,7 +41,8 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
    VITE_SUPABASE_ANON_KEY=<your-anon-key>
    ```
 3. **Create the database tables** — run `supabase/schema.sql` in the Supabase SQL editor (creates `habits`, `entries`, `profiles`, `user_settings` and the private `avatars` bucket with row-level security enabled). Skip this if your project already has them.
-4. **Run the app**
+4. **Google sign-in (optional)** — create an OAuth client in Google Cloud (Web application; authorized redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`), enable Auth → Providers → Google in Supabase with that Client ID/Secret, add `<origin>/login` to Supabase's Redirect URLs, and fill the OAuth consent screen (app name + logo; note the account chooser always shows the supabase.co domain of the redirect URI).
+5. **Run the app**
    ```bash
    npm run dev
    ```
