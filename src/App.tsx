@@ -9,6 +9,7 @@ import { HabitDetail } from './pages/HabitDetail'
 import { Profile } from './pages/Profile'
 import { Login } from './pages/Login'
 import { Privacy } from './pages/Privacy'
+import { Landing } from './pages/Landing'
 import { ProfileProvider } from './contexts/ProfileContext'
 import { HabitsProvider } from './contexts/HabitsContext'
 import { SettingsProvider } from './contexts/SettingsContext'
@@ -21,6 +22,7 @@ export function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/welcome" element={<Landing />} />
           <Route element={<RequireAuth />}>
             <Route
               element={

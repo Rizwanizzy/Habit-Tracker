@@ -16,5 +16,7 @@ export function RequireAuth() {
     )
   }
 
-  return session ? <Outlet /> : <Navigate to="/login" replace />
+  // No session: show the PUBLIC landing page (Google app verification
+  // requires a login-free, informative home page). Signed-in users move on.
+  return session ? <Outlet /> : <Navigate to="/welcome" replace />
 }

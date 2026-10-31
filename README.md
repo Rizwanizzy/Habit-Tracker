@@ -79,7 +79,7 @@ src/
   hooks/      data hooks (useHabits, useEntries, useProfile, useAuth, useTheme, useUserSettings, useLogicalToday, useBackup, useImportBackup, useVacations)
   components/ reusable UI (AppShell, HabitTile, TileMoreMenu, HabitReorderGrid, ProgressRings, Heatmap, ColorPicker, DayStartCard, VacationCard, Profile*)
   contexts/   React context providers (ProfileContext, HabitsContext, SettingsContext, VacationsContext)
-  pages/      Today (bento), Overview, Profile, Settings, HabitForm, HabitDetail, Login, Privacy
+  pages/      Today (bento), Overview, Profile, Settings, HabitForm, HabitDetail, Login, Privacy, Landing
 ```
 
 ## Documentation
