@@ -9,6 +9,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [checking, setChecking] = useState(true)
 
   // The Google OAuth flow leaves the page and comes back to /login?code=…
   // The Supabase client exchanges that code for a session on load
@@ -19,13 +20,39 @@ export function Login() {
     try {
       sb = getSupabase()
     } catch {
+      setChecking(false)
       return
     }
+
+    // Check immediately: if a session already exists (e.g. page refresh while
+    // signed in), go straight to the app without showing the login form.
+    sb.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        navigate('/', { replace: true })
+      }
+      setChecking(false)
+    })
+
     const { data } = sb.auth.onAuthStateChange((_event, session) => {
       if (session) navigate('/', { replace: true })
     })
     return () => data.subscription.unsubscribe()
   }, [navigate])
+
+  if (checking) {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-background text-fg-muted">
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="size-16 rounded-full border-6 border-fg/10 border-t-accent animate-spin"
+            role="status"
+            aria-label="Loading"
+          />
+          <span className="text-page-title text-fg">Signing you in…</span>
+        </div>
+      </div>
+    )
+  }
 
   async function signIn(e: FormEvent) {
     e.preventDefault()

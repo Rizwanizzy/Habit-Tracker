@@ -267,8 +267,17 @@ export function Today() {
   function openDayPicker() {
     const el = dateInputRef.current
     if (!el) return
+    // iOS Safari won't open the native calendar on a hidden input.
+    // Temporarily un-hide it, trigger showPicker(), then hide again.
+    const wasHidden = el.classList.contains('sr-only')
+    if (wasHidden) el.classList.remove('sr-only')
+    el.focus()
     if (typeof el.showPicker === 'function') el.showPicker()
-    else el.focus()
+    else el.click()
+    if (wasHidden) {
+      // Re-hide after a tick so the picker has time to open on iOS.
+      requestAnimationFrame(() => el.classList.add('sr-only'))
+    }
   }
 
   const dateLabel = DATE_FMT.format(parseLocalDate(selectedDate))
@@ -298,8 +307,37 @@ export function Today() {
     return (
       <section>
         <TodayGreeting />
-        <div className="glass-card mt-6 grid min-h-32 place-items-center rounded-card p-10" role="status">
-          <span className="text-body text-fg-muted">Loading…</span>
+        <div className="mt-6 grid gap-6">
+          <div className="glass-card rounded-card p-6">
+            <div className="flex flex-col gap-4">
+              <div className="h-48 w-full rounded-xl bg-fg/10 animate-pulse" />
+              <div className="h-12 w-2/3 rounded-xl bg-fg/10 animate-pulse" />
+              <div className="flex gap-2">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="h-24 w-full rounded-full bg-fg/10 animate-pulse" />
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-4">
+            {Array.from({ length: 4 }).map((_, r) => (
+              <div key={r} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {Array.from({ length: 2 }).map((_, c) => (
+                  <div key={c} className="glass-card rounded-tile p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-fg/10 animate-pulse" />
+                      <div className="flex-1 flex flex-col gap-1">
+                        <div className="h-4 w-3/4 rounded-xl bg-fg/10 animate-pulse" />
+                        <div className="h-3 w-1/2 rounded-xl bg-fg/10 animate-pulse" />
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-fg/10 animate-pulse" />
+                    </div>
+                    <div className="mt-3 h-8 w-full rounded-full bg-fg/10 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     )

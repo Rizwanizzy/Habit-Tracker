@@ -92,7 +92,7 @@ export function AppShell() {
         </aside>
 
         {/* Content */}
-        <main className="min-w-0 flex-1 px-4 py-4 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:px-8 lg:py-6 lg:pb-6">
+        <main className="min-w-0 flex-1 px-4 py-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:px-8 lg:py-6 lg:pb-6">
           <Outlet />
         </main>
       </div>
@@ -101,7 +101,7 @@ export function AppShell() {
           Left items: Today, Overview. Right items: Settings. */}
       <nav
         aria-label="Primary"
-        className="glass-pill fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center justify-between rounded-pill px-3 lg:hidden"
+        className="glass-pill fixed inset-x-4 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center justify-between rounded-pill px-3 lg:hidden"
       >
         {NAV.filter(({ dock }) => dock === 'left').map(({ to, label, Icon }) => (
           <NavLink

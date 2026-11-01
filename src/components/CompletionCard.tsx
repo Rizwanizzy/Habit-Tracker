@@ -191,8 +191,8 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
           Check in a habit to see your completion progress.
         </p>
       ) : view === 'week' ? (
-        <div className="mt-5 flex flex-1 flex-col">
-          <div className="flex min-h-28 flex-1 items-end gap-1.5 sm:gap-2.5">
+        <div className="mt-5 flex min-h-[126px] flex-1 flex-col">
+          <div className="flex min-h-[88px] flex-1 items-end gap-1.5 sm:gap-2.5">
             {weekDates.map((date, i) => {
               const c = byDate.get(date)
               const frac = c ? c.frac : 0
@@ -236,11 +236,11 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
           </div>
         </div>
       ) : view === 'month' ? (
-        <div className="mt-4 flex min-h-[170px] flex-1 flex-col lg:min-h-0">
+        <div className="mt-4 flex min-h-[126px] flex-1 flex-col">
           <CompletionMonth weeks={monthWeeks} completions={byDate} color={color} today={today} />
         </div>
       ) : (
-        <div className="mt-4 flex min-h-0 flex-1 flex-col">
+        <div className="mt-4 flex min-h-[126px] flex-1 flex-col">
           <CompletionYear columns={yearColumns} completions={byDate} color={color} today={today} />
         </div>
       )}

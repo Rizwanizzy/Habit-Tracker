@@ -115,7 +115,7 @@ export function ConfirmDialog({
         {/* Scrim: full-screen layer behind the dialog */}
         <div className={`dialog-scrim${animate ? ' dialog-scrim-in' : ''}`} />
 
-        {/* Dialog panel: glass, compact, centered */}
+        {/* Dialog panel: glass, compact, professional */}
         <div
           ref={dialogRef}
           role="alertdialog"
@@ -129,18 +129,18 @@ export function ConfirmDialog({
             aria-hidden="true"
             className={`dialog-accent-line${danger ? ' danger' : ''}`}
           />
-          <h2 id="confirm-dialog-title" className="mt-1 text-page-title">
+          <h2 id="confirm-dialog-title" className="mt-3 text-page-title tracking-tight">
             {title}
           </h2>
           <p id="confirm-dialog-desc" className="mt-2 text-body text-fg-secondary leading-relaxed">
             {description}
           </p>
-          <div className="mt-6 flex flex-col sm:flex-row sm:justify-end gap-2">
+          <div className="mt-7 flex flex-row justify-end gap-2">
             <button
               type="button"
               ref={cancelRef}
               onClick={onClose}
-              className="w-full sm:w-auto h-12 rounded-pill px-4 text-body font-medium text-fg-secondary transition-colors duration-150 hover:bg-surface-raised active:scale-95"
+              className="h-10 min-w-[80px] rounded-pill px-4 text-body font-medium text-fg-secondary transition-colors duration-150 hover:bg-surface-raised active:scale-95"
             >
               {cancelLabel}
             </button>
@@ -150,9 +150,9 @@ export function ConfirmDialog({
                 onClose()
                 onConfirm()
               }}
-              className={`w-full sm:w-auto h-12 rounded-pill px-5 text-body font-medium transition-colors duration-150 active:scale-95 ${
+              className={`h-10 min-w-[92px] rounded-pill px-5 text-body font-medium transition-colors duration-150 active:scale-95 ${
                 danger
-                  ? 'bg-danger/10 border border-danger text-danger hover:bg-danger/20'
+                  ? 'bg-accent-gradient text-white glow-accent hover:brightness-105'
                   : 'bg-surface-raised text-fg hover:bg-surface'
               }`}
             >

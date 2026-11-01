@@ -7,11 +7,15 @@ export function RequireAuth() {
 
   if (loading) {
     return (
-      <div
-        className="grid min-h-dvh place-items-center bg-background text-fg-muted"
-        role="status"
-      >
-        <span className="text-body">Loading…</span>
+      <div className="grid min-h-dvh place-items-center bg-background text-fg-muted">
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="size-16 rounded-full border-6 border-fg/10 border-t-accent animate-spin"
+            role="status"
+            aria-label="Loading"
+          />
+          <span className="text-page-title text-fg">Signing you in…</span>
+        </div>
       </div>
     )
   }
