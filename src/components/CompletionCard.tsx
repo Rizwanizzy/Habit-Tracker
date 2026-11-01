@@ -76,7 +76,14 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
     }
   })
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const pickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   useEffect(() => store(LS_VIEW, view), [view])
   useEffect(() => store(LS_COLOR, color), [color])
@@ -106,7 +113,7 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
     [today],
   )
   const monthWeeks = useMemo(() => monthCalendar(today), [today])
-  const yearColumns = useMemo(() => yearCalendar(today), [today])
+  const yearColumns = useMemo(() => yearCalendar(today, isMobile ? 4 : 9), [today, isMobile])
   const allDates = useMemo(() => {
     const set = new Set<string>([
       ...weekDates,
@@ -167,7 +174,9 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
             />
           </button>
           {pickerOpen && (
-            <div className="glass-card popover-solid absolute right-0 top-[calc(100%+8px)] z-30 w-80 max-w-[calc(100vw-2.5rem)] rounded-card p-4 shadow-xl">
+            <div className={`glass-card popover-solid absolute z-30 top-[calc(100%+8px)] rounded-card p-4 shadow-xl ${
+              isMobile ? 'left-1/2 -translate-x-1/2 w-[280px] max-w-[calc(100vw-2rem)]' : 'right-0 w-80'
+            }`}>
               <ColorPicker
                 color={color}
                 onChange={(hex) => setColor(hex)}

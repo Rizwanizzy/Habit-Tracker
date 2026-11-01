@@ -17,7 +17,7 @@ import { ProgressRings } from '../components/ProgressRings'
 import { CompletionCard } from '../components/CompletionCard'
 import { TileDensity } from '../components/TileDensity'
 import { HabitReorderGrid } from '../components/HabitReorderGrid'
-import { IconChevronLeft, IconChevronRight, IconFlame } from '../components/icons'
+import { IconChevronDown, IconChevronLeft, IconChevronRight, IconFlame } from '../components/icons'
 import { TodayGreeting } from '../components/TodayGreeting'
 
 function upsertEntry(list: Entry[], entry: Entry): Entry[] {
@@ -32,6 +32,14 @@ const DATE_FMT = new Intl.DateTimeFormat(undefined, {
   weekday: 'long',
   day: 'numeric',
   month: 'long',
+})
+
+// Short label for the date pill (design-system MASTER.md §3.3): must fit
+// between the chevrons on a 360px screen.
+const PILL_FMT = new Intl.DateTimeFormat(undefined, {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
 })
 
 export function Today() {
@@ -254,8 +262,18 @@ export function Today() {
   // 28 shown habits); the rings component runs its own layoutRings.
   const ringLayout = useMemo(() => layoutRings(habits.map((h) => h.id)), [habits])
 
+  const dateInputRef = useRef<HTMLInputElement>(null)
+
+  function openDayPicker() {
+    const el = dateInputRef.current
+    if (!el) return
+    if (typeof el.showPicker === 'function') el.showPicker()
+    else el.focus()
+  }
+
   const dateLabel = DATE_FMT.format(parseLocalDate(selectedDate))
   const todayLabel = DATE_FMT.format(parseLocalDate(today))
+  const pillDateLabel = PILL_FMT.format(parseLocalDate(selectedDate))
 
   const pageError = habitsError ?? entriesError
   if (pageError) {
@@ -308,17 +326,26 @@ export function Today() {
 
   return (
     <section>
-      {/* Header: greeting block on the left, date pill + primary action on the right */}
-      <header className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <TodayGreeting />
-        {/* Day-start notice sits between the greeting and the header controls,
-            centered in the leftover space (user request — was under the pill). */}
-        {dayShifted && (
-          <p className="text-caption text-center text-fg-muted lg:flex-1">
-            Counting as {todayLabel} until {formatDayStart(dayStartHour)}
-          </p>
-        )}
-        <div className="flex flex-wrap items-center gap-3">
+      {/* Header: single-row app bar on all viewports.
+          Mobile: compact greeting (avatar + name) + smaller controls.
+          Desktop (lg+): full greeting (greeting + name + date) + larger controls. */}
+      <header className="mb-5 flex flex-wrap items-center justify-between gap-3 lg:gap-6">
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Mobile: compact greeting (avatar + "Hi, name" on one line). */}
+          <div className="lg:hidden">
+            <TodayGreeting compact />
+          </div>
+          {/* Desktop: full greeting (time-of-day + "Hi, name" + date caption). */}
+          <div className="hidden lg:flex items-center gap-3 min-w-0">
+            <TodayGreeting />
+          </div>
+          {dayShifted && (
+            <p className="text-caption text-fg-muted lg:flex-1 lg:text-center">
+              Counting as {todayLabel} until {formatDayStart(dayStartHour)}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 lg:gap-3">
           <ThemeIconButton disabled={reorderMode} />
           <div
             role="group"
@@ -334,13 +361,23 @@ export function Today() {
               <IconChevronLeft className="size-5" />
             </button>
             <input
+              ref={dateInputRef}
               type="date"
               value={selectedDate}
               max={today}
               onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
               aria-label="Pick a date to log"
-              className="h-11 w-36 min-w-0 rounded-pill bg-transparent px-2 text-center text-body text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="sr-only h-11 w-36 min-w-[5.5rem] rounded-pill px-2 text-body text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             />
+            <button
+              type="button"
+              onClick={openDayPicker}
+              aria-label={`Pick a date to log, ${dateLabel}`}
+              className="flex h-11 min-w-[5.5rem] items-center justify-center gap-1.5 rounded-pill px-2.5 text-body text-fg transition-colors duration-150 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <span className="truncate">{pillDateLabel}</span>
+              <IconChevronDown className="size-4 shrink-0 text-fg-muted" />
+            </button>
             <button
               type="button"
               onClick={() => setSelectedDate(addDays(selectedDate, 1))}
@@ -374,7 +411,7 @@ export function Today() {
           ) : (
             <Link
               to="/habits/new"
-              className="inline-flex h-12 shrink-0 items-center rounded-pill bg-accent-gradient glow-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 hover:translate-y-[-1px]"
+              className="hidden lg:inline-flex h-12 shrink-0 items-center rounded-pill bg-accent-gradient glow-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 hover:translate-y-[-1px]"
             >
               Add habit
             </Link>

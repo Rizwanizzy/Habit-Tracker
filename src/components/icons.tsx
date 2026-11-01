@@ -110,6 +110,15 @@ export function IconChevronDown({ className }: { className?: string }) {
   )
 }
 
+export function IconPlus({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  )
+}
+
 export function IconCheck({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">

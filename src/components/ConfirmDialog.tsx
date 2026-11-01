@@ -109,11 +109,11 @@ export function ConfirmDialog({
     <>
       {/* Scrim wrapper: fixed, full-screen, centers its children */}
       <div
-        className="fixed inset-0 grid place-items-center p-16 z-50"
+        className="fixed inset-0 flex items-center justify-center z-50 p-4"
         onClick={onClose}
       >
         {/* Scrim: full-screen layer behind the dialog */}
-        <div className="dialog-scrim" />
+        <div className={`dialog-scrim${animate ? ' dialog-scrim-in' : ''}`} />
 
         {/* Dialog panel: glass, compact, centered */}
         <div

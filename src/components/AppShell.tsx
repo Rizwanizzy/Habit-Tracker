@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { IconOverview, IconSettings, IconToday, IconUser } from './icons'
+import { IconOverview, IconPlus, IconSettings, IconToday, IconUser } from './icons'
 import { useProfileContext } from '../contexts/ProfileContext'
 import type { ComponentType } from 'react'
 
@@ -9,14 +9,15 @@ type NavItem = {
   Icon: ComponentType<{ className?: string }>
   /** Shown in the desktop rail (Today lives in the logo link there). */
   rail?: boolean
-  /** Shown in the mobile dock (all three, per DESIGN.md §5/§11). */
-  dock?: boolean
+  /** Shown in the mobile dock — 'left' | 'right' side of the center FAB. */
+  dock?: 'left' | 'right'
 }
 
 const NAV: NavItem[] = [
-  { to: '/', label: 'Today', Icon: IconToday, dock: true },
-  { to: '/overview', label: 'Overview', Icon: IconOverview, rail: true, dock: true },
-  { to: '/settings', label: 'Settings', Icon: IconSettings, rail: true, dock: true },
+  { to: '/', label: 'Today', Icon: IconToday, dock: 'left' },
+  { to: '/overview', label: 'Overview', Icon: IconOverview, rail: true, dock: 'left' },
+  { to: '/profile', label: 'Profile', Icon: IconUser, dock: 'right' },
+  { to: '/settings', label: 'Settings', Icon: IconSettings, rail: true, dock: 'right' },
 ]
 
 /** Rounded 48px circles used by the rail (DESIGN.md §5). */
@@ -96,19 +97,19 @@ export function AppShell() {
         </main>
       </div>
 
-      {/* Mobile dock: floating glass pill, 64px high, 16px inset, safe-area aware.
-          3 items (Today, Overview, Settings) — Today uses end so "/" alone matches. */}
+      {/* Mobile dock: floating glass pill with center FAB (Add habit).
+          Left items: Today, Overview. Right items: Settings. */}
       <nav
         aria-label="Primary"
-        className="glass-pill fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center justify-center gap-2 rounded-pill px-3 lg:hidden"
+        className="glass-pill fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center justify-between rounded-pill px-3 lg:hidden"
       >
-        {NAV.filter(({ dock }) => dock).map(({ to, label, Icon }) => (
+        {NAV.filter(({ dock }) => dock === 'left').map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex size-11 place-items-center rounded-pill transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+              `flex w-11 h-11 justify-center items-center rounded-pill transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                 isActive ? 'bg-accent-gradient text-white glow-accent' : 'text-fg-secondary'
               }`
             }
@@ -117,6 +118,37 @@ export function AppShell() {
             <span className="sr-only">{label}</span>
           </NavLink>
         ))}
+
+        {/* Center FAB: Add habit (always visible on mobile). */}
+        <Link
+          to="/habits/new"
+          aria-label="Add habit"
+          className="bg-accent-gradient glow-accent grid size-14 shrink-0 place-items-center rounded-full text-white transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <IconPlus className="size-6" />
+        </Link>
+
+        {NAV.filter(({ dock }) => dock === 'right').map(({ to, label, Icon: IconComp }) => {
+          const isProfile = to === '/profile'
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `flex w-11 h-11 justify-center items-center rounded-pill transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                  isActive ? 'bg-accent-gradient text-white glow-accent' : 'text-fg-secondary'
+                }`
+              }
+            >
+              {isProfile && avatarUrl && profile?.avatar_path ? (
+                <img src={avatarUrl} alt="Profile" className="size-[32px] rounded-full object-cover" />
+              ) : (
+                <IconComp className="size-5" />
+              )}
+              <span className="sr-only">{label}</span>
+            </NavLink>
+          )
+        })}
       </nav>
     </div>
   )

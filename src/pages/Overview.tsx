@@ -143,7 +143,7 @@ export function Overview() {
   return (
     <section>
       {/* Header with the range switch (DESIGN.md §8) */}
-      <header className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-page-title">Overview</h1>
           <p className="text-caption mt-1 text-fg-muted">Score trends for your active habits</p>

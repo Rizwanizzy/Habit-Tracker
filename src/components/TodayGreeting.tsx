@@ -37,7 +37,7 @@ function getDisplayName(fullName: string | null, email: string | null): string {
   return source
 }
 
-export function TodayGreeting() {
+export function TodayGreeting({ compact = false }: { compact?: boolean } = {}) {
   const { profile, loading, email, avatarUrl } = useProfileContext()
   // Date caption under the greeting: the LOGICAL day (day-start aware), so
   // after midnight with a later day start it still shows the previous day.
@@ -83,11 +83,17 @@ export function TodayGreeting() {
         </div>
       </Link>
       <div className="min-w-0">
-        <p className="text-caption text-fg-muted">{greeting}</p>
-        <h1 className="text-page-title min-w-0 truncate leading-none">
-          Hi, {name}
-        </h1>
-        <p className="text-caption mt-1 text-fg-muted">{date}</p>
+        {compact ? (
+          <p className="text-body font-bold truncate text-fg">Hi, {name}</p>
+        ) : (
+          <>
+            <p className="text-caption text-fg-muted">{greeting}</p>
+            <h1 className="text-page-title min-w-0 truncate leading-none">
+              Hi, {name}
+            </h1>
+            <p className="text-caption mt-1 text-fg-muted">{date}</p>
+          </>
+        )}
       </div>
     </div>
   )
