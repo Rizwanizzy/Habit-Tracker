@@ -101,7 +101,7 @@ export function AppShell() {
           Left items: Today, Overview. Right items: Settings. */}
       <nav
         aria-label="Primary"
-        className="glass-pill fixed inset-x-4 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center justify-between rounded-pill px-3 lg:hidden"
+        className="glass-pill mobile-dock fixed inset-x-4 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center justify-between rounded-pill px-3 lg:hidden"
       >
         {NAV.filter(({ dock }) => dock === 'left').map(({ to, label, Icon }) => (
           <NavLink

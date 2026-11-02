@@ -853,3 +853,17 @@ body {
     outline-offset: 3px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   iPhone dock inset (user request): on the installed home-screen PWA the dock
+   hugs the bottom edge (0.25rem + safe area) — closer than the default 0.5rem
+   inset, which Android keeps unchanged. `@supports (-webkit-touch-callout:
+   none)` matches iOS Safari only (Chrome / Android WebViews don't implement
+   that property), so no user-agent sniffing is needed. Unlayered rules
+   out-cascade the Tailwind bottom-[…] utility on .mobile-dock.
+--------------------------------------------------------------------------- */
+@supports (-webkit-touch-callout: none) {
+  .mobile-dock {
+    bottom: calc(0.25rem + env(safe-area-inset-bottom));
+  }
+}
