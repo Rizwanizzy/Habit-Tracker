@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { ConfirmDialog } from './ConfirmDialog'
 import { IconCalendar, IconTrash } from './icons'
 import { useVacationsContext } from '../contexts/VacationsContext'
@@ -11,15 +11,17 @@ function periodLabel(p: VacationPeriod): string {
   return `${DAY_FMT.format(new Date(`${p.start_date}T12:00:00`))} – ${DAY_FMT.format(new Date(`${p.end_date}T12:00:00`))}`
 }
 
-const fieldButtonClass =
-  'flex h-12 w-full items-center gap-2 rounded-input border border-border bg-surface-raised px-3 text-left text-body transition-colors duration-150 hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:h-11'
+const fieldClass =
+  'pointer-events-none flex h-12 w-full items-center gap-2 rounded-input border border-border bg-surface-raised px-3 text-left text-body transition-colors duration-150 group-hover:bg-surface group-focus-within:ring-2 group-focus-within:ring-accent sm:h-11'
 
-/** Date field for the break schedule: the native `<input type="date">` stays
- *  in the DOM (it owns the OS picker) but is visually hidden, because Android
- *  browsers refuse to paint its `dd/mm/yyyy` placeholder and calendar glyph
- *  (user report — Chrome/Android rendered the fields as blank pills). Our own
- *  button shows the placeholder or the chosen date and opens the native
- *  picker through `showPicker()`. */
+/** Date field for the break schedule: Android browsers refuse to paint the
+ *  native `dd/mm/yyyy` placeholder and calendar glyph (user report — the
+ *  fields looked like blank pills), so we render our own placeholder/date plus
+ *  `IconCalendar`. The real `<input type="date">` is kept but made transparent
+ *  and stretched over the whole field, because a direct tap on the input is the
+ *  only thing iOS Safari accepts to open its date picker (`showPicker()` from a
+ *  button is ignored there; it works on Android/desktop). Tapping therefore
+ *  hits the native control everywhere and the OS picker opens itself. */
 function DateField({
   value,
   onChange,
@@ -29,44 +31,23 @@ function DateField({
   onChange: (value: string) => void
   label: string
 }) {
-  const ref = useRef<HTMLInputElement>(null)
   // ISO `YYYY-MM-DD` → `dd/mm/yyyy` (the placeholder format users asked for).
   const display = value ? value.split('-').reverse().join('/') : 'dd/mm/yyyy'
 
-  function openPicker() {
-    const el = ref.current
-    if (!el) return
-    try {
-      if (typeof el.showPicker === 'function') {
-        el.showPicker()
-      } else {
-        // Older Safari/WebViews: focusing + clicking opens the wheel picker.
-        el.focus()
-        el.click()
-      }
-    } catch {
-      // Picker already open or blocked by the browser — focusing the input
-      // keeps the native UI reachable with a second tap.
-      el.focus()
-    }
-  }
-
   return (
-    <div className="relative w-full max-w-[170px] sm:max-w-none sm:flex-1">
+    <div className="group relative w-full max-w-[170px] sm:max-w-none sm:flex-1">
+      <div aria-hidden="true" className={fieldClass}>
+        <IconCalendar className="size-4 shrink-0 text-fg-muted" />
+        <span className={value ? 'text-fg' : 'text-fg-muted'}>{display}</span>
+      </div>
       <input
-        ref={ref}
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         max="9999-12-31"
-        aria-hidden="true"
-        tabIndex={-1}
-        className="sr-only"
+        aria-label={label}
+        className="absolute inset-0 h-full w-full cursor-pointer rounded-input text-body opacity-0"
       />
-      <button type="button" onClick={openPicker} aria-label={label} className={fieldButtonClass}>
-        <IconCalendar className="size-4 shrink-0 text-fg-muted" />
-        <span className={value ? 'text-fg' : 'text-fg-muted'}>{display}</span>
-      </button>
     </div>
   )
 }
