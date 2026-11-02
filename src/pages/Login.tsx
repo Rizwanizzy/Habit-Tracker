@@ -9,6 +9,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [oauthBusy, setOauthBusy] = useState(false)
   const [checking, setChecking] = useState(true)
 
   // The Google OAuth flow leaves the page and comes back to /login?code=…
@@ -38,6 +39,21 @@ export function Login() {
     })
     return () => data.subscription.unsubscribe()
   }, [navigate])
+
+  // Leaving for Google freezes this page in the back/forward cache with its
+  // React state intact. Pressing Back then restores it — including the `busy`
+  // flag that was true during the redirect — so every control stays disabled
+  // ("Signing in…" forever; user report). Reset the form on cache restore.
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (!event.persisted) return
+      setBusy(false)
+      setOauthBusy(false)
+      setChecking(false)
+    }
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
+  }, [])
 
   if (checking) {
     return (
@@ -78,7 +94,7 @@ export function Login() {
   async function signInWithGoogle() {
     setError(null)
     setMessage(null)
-    setBusy(true)
+    setOauthBusy(true)
     try {
       const sb = getSupabase()
       const { error } = await sb.auth.signInWithOAuth({
@@ -86,11 +102,13 @@ export function Login() {
         options: { redirectTo: `${window.location.origin}/login` },
       })
       if (error) throw error
+      // The promise settles once the redirect has been kicked off; a browser
+      // that blocks it would otherwise leave the form disabled forever.
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Google sign-in failed')
-      setBusy(false)
+    } finally {
+      setOauthBusy(false)
     }
-    // No finally: on success the browser navigates away to Google.
   }
 
   async function signUp() {
@@ -173,7 +191,7 @@ export function Login() {
 
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || oauthBusy}
           className="bg-accent-gradient glow-accent mt-6 h-12 w-full rounded-pill text-body font-semibold text-white transition-all duration-150 hover:-translate-y-px hover:brightness-110 disabled:opacity-60"
         >
           {busy ? 'Signing in…' : 'Sign in'}
@@ -181,7 +199,7 @@ export function Login() {
         <button
           type="button"
           onClick={signUp}
-          disabled={busy}
+          disabled={busy || oauthBusy}
           className="glass-pill mt-3 h-12 w-full rounded-pill text-body font-medium text-fg transition-colors duration-150 hover:bg-surface-raised disabled:opacity-60"
         >
           Create account
@@ -192,7 +210,7 @@ export function Login() {
         <button
           type="button"
           onClick={signInWithGoogle}
-          disabled={busy}
+          disabled={busy || oauthBusy}
           className="mt-3 flex h-12 w-full items-center justify-center gap-3 rounded-pill bg-[#4285F4] text-body font-medium text-white transition-all duration-150 hover:-translate-y-px hover:brightness-110 disabled:opacity-60"
         >
           {/* Google "G" mark (standard multicolor SVG, 48px grid) in a white
@@ -205,7 +223,7 @@ export function Login() {
               <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.057 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.382-3.917z" />
             </svg>
           </span>
-          Sign in with Google
+          {oauthBusy ? 'Opening Google…' : 'Sign in with Google'}
         </button>
       </form>
     </div>
