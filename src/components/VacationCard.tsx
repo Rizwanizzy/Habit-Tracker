@@ -12,7 +12,7 @@ function periodLabel(p: VacationPeriod): string {
 }
 
 const inputClass =
-  'h-12 sm:h-11 w-full max-w-[240px] sm:max-w-none sm:flex-1 rounded-input border border-border bg-surface-raised px-3 text-body text-fg focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+  'h-12 sm:h-11 w-full max-w-[170px] sm:max-w-none sm:flex-1 rounded-input border border-border bg-surface-raised px-3 text-body text-fg focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 /** Settings "Vacation" card (DESIGN.md §8): a global pause for every habit.
  *  The pause switch starts an ongoing period from the logical today (off =

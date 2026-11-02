@@ -224,6 +224,27 @@ body {
   color-scheme: dark;
 }
 
+/* Date inputs: Chrome/Android renders the empty `dd-mm-yyyy` segments and the
+   calendar glyph with UA colors that disappear on our surfaces (user report:
+   the From/To fields looked blank). Pin the segments to theme tokens and make
+   the picker glyph visible in dark mode. */
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: var(--text-secondary);
+  -webkit-text-fill-color: var(--text-secondary);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+}
+
 /* ---------------------------------------------------------------------------
    Motion (DESIGN.md §9) — CSS/SVG only, cubic-bezier(.2,.8,.2,1) easing.
 --------------------------------------------------------------------------- */
