@@ -208,3 +208,15 @@ export function IconHome({ className }: { className?: string }) {
     </svg>
   )
 }
+
+/** Calendar glyph for date fields (VacationCard's custom date buttons). */
+export function IconCalendar({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M8 3v4" />
+      <path d="M16 3v4" />
+      <path d="M3 11h18" />
+    </svg>
+  )
+}

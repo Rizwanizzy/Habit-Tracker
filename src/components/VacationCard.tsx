@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ConfirmDialog } from './ConfirmDialog'
-import { IconTrash } from './icons'
+import { IconCalendar, IconTrash } from './icons'
 import { useVacationsContext } from '../contexts/VacationsContext'
 import { validatePeriod, isVacationDay, type VacationPeriod } from '../lib/vacation'
 
@@ -11,8 +11,65 @@ function periodLabel(p: VacationPeriod): string {
   return `${DAY_FMT.format(new Date(`${p.start_date}T12:00:00`))} – ${DAY_FMT.format(new Date(`${p.end_date}T12:00:00`))}`
 }
 
-const inputClass =
-  'h-12 sm:h-11 w-full max-w-[170px] sm:max-w-none sm:flex-1 rounded-input border border-border bg-surface-raised px-3 text-body text-fg focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+const fieldButtonClass =
+  'flex h-12 w-full items-center gap-2 rounded-input border border-border bg-surface-raised px-3 text-left text-body transition-colors duration-150 hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:h-11'
+
+/** Date field for the break schedule: the native `<input type="date">` stays
+ *  in the DOM (it owns the OS picker) but is visually hidden, because Android
+ *  browsers refuse to paint its `dd/mm/yyyy` placeholder and calendar glyph
+ *  (user report — Chrome/Android rendered the fields as blank pills). Our own
+ *  button shows the placeholder or the chosen date and opens the native
+ *  picker through `showPicker()`. */
+function DateField({
+  value,
+  onChange,
+  label,
+}: {
+  value: string
+  onChange: (value: string) => void
+  label: string
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  // ISO `YYYY-MM-DD` → `dd/mm/yyyy` (the placeholder format users asked for).
+  const display = value ? value.split('-').reverse().join('/') : 'dd/mm/yyyy'
+
+  function openPicker() {
+    const el = ref.current
+    if (!el) return
+    try {
+      if (typeof el.showPicker === 'function') {
+        el.showPicker()
+      } else {
+        // Older Safari/WebViews: focusing + clicking opens the wheel picker.
+        el.focus()
+        el.click()
+      }
+    } catch {
+      // Picker already open or blocked by the browser — focusing the input
+      // keeps the native UI reachable with a second tap.
+      el.focus()
+    }
+  }
+
+  return (
+    <div className="relative w-full max-w-[170px] sm:max-w-none sm:flex-1">
+      <input
+        ref={ref}
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        max="9999-12-31"
+        aria-hidden="true"
+        tabIndex={-1}
+        className="sr-only"
+      />
+      <button type="button" onClick={openPicker} aria-label={label} className={fieldButtonClass}>
+        <IconCalendar className="size-4 shrink-0 text-fg-muted" />
+        <span className={value ? 'text-fg' : 'text-fg-muted'}>{display}</span>
+      </button>
+    </div>
+  )
+}
 
 /** Settings "Vacation" card (DESIGN.md §8): a global pause for every habit.
  *  The pause switch starts an ongoing period from the logical today (off =
@@ -152,34 +209,28 @@ export function VacationCard() {
           <form onSubmit={(e) => void handleSchedule(e)} className="mt-5">
             <p className="text-caption font-medium uppercase tracking-wide text-fg-muted">Schedule a break</p>
             <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:gap-4">
-              <label className="flex flex-col gap-1.5 sm:flex-1 sm:flex-row sm:items-center sm:gap-2">
+              <div className="flex flex-col gap-1.5 sm:flex-1 sm:flex-row sm:items-center sm:gap-2">
                 <span className="text-caption text-fg-secondary">From</span>
-                <input
-                  type="date"
+                <DateField
                   value={startInput}
-                  onChange={(e) => {
-                    setStartInput(e.target.value)
+                  onChange={(value) => {
+                    setStartInput(value)
                     clearMessages()
                   }}
-                  aria-label="Break start date"
-                  max="9999-12-31"
-                  className={inputClass}
+                  label="Break start date"
                 />
-              </label>
-              <label className="flex flex-col gap-1.5 sm:flex-1 sm:flex-row sm:items-center sm:gap-2">
+              </div>
+              <div className="flex flex-col gap-1.5 sm:flex-1 sm:flex-row sm:items-center sm:gap-2">
                 <span className="text-caption text-fg-secondary">To</span>
-                <input
-                  type="date"
+                <DateField
                   value={endInput}
-                  onChange={(e) => {
-                    setEndInput(e.target.value)
+                  onChange={(value) => {
+                    setEndInput(value)
                     clearMessages()
                   }}
-                  aria-label="Break end date (empty for ongoing)"
-                  max="9999-12-31"
-                  className={inputClass}
+                  label="Break end date (empty for ongoing)"
                 />
-              </label>
+              </div>
             </div>
             <p className="text-caption mt-1 text-fg-muted">Leave “To” empty for an ongoing break. Past dates are allowed for backfill.</p>
             {formErrors && formErrors.length > 0 && (
