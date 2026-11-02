@@ -109,9 +109,12 @@ export function useProfile(): UseProfileResult {
       setSaving(true)
       try {
         const sb = getSupabase()
-        const { data: userData, error: userError } = await sb.auth.getUser()
-        if (userError) throw userError
-        const user = userData.user
+        // auth.getSession() reads the local session (no network round-trip);
+        // auth.getUser() validated against the server made EVERY profile
+        // write wait on Supabase before doing its real work.
+        const { data: sessionData, error: sessionError } = await sb.auth.getSession()
+        if (sessionError) throw sessionError
+        const user = sessionData.session?.user
         if (!user) throw new Error('You must be signed in')
         const payload = { ...input, user_id: user.id, updated_at: now().toISOString() }
         const { data, error: upsertError } = await sb
@@ -139,12 +142,17 @@ export function useProfile(): UseProfileResult {
       setError(null)
       setUploading(true)
       try {
-        const sb = getSupabase()
-        const { data: userData, error: userError } = await sb.auth.getUser()
-        if (userError) throw userError
-        const user = userData.user
-        if (!user) throw new Error('You must be signed in')
+        // Validate/prepare FIRST: an oversized or non-image file must be
+        // rejected instantly (no spinner, no network call) — the old order
+        // did an auth round-trip before the size check, so a >20 MB file
+        // showed a brief "loading" and then failed (user report).
         const blob = await prepareAvatar(file)
+        const sb = getSupabase()
+        // Local session read — no network round-trip (see save()).
+        const { data: sessionData, error: sessionError } = await sb.auth.getSession()
+        if (sessionError) throw sessionError
+        const user = sessionData.session?.user
+        if (!user) throw new Error('You must be signed in')
         const path = `${user.id}/avatar.webp`
         const { error: uploadError } = await sb.storage
           .from('avatars')
@@ -167,9 +175,10 @@ export function useProfile(): UseProfileResult {
     setUploading(true)
     try {
       const sb = getSupabase()
-      const { data: userData, error: userError } = await sb.auth.getUser()
-      if (userError) throw userError
-      const user = userData.user
+      // Local session read — no network round-trip (see save()).
+      const { data: sessionData, error: sessionError } = await sb.auth.getSession()
+      if (sessionError) throw sessionError
+      const user = sessionData.session?.user
       if (!user) throw new Error('You must be signed in')
       const path = profile?.avatar_path ?? `${user.id}/avatar.webp`
       const { error: delError } = await sb.storage.from('avatars').remove([path])

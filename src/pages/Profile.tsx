@@ -45,9 +45,15 @@ export function Profile() {
     }
   }
 
+  // Auto-dismiss toasts: warnings stay long enough to be read (upload and
+  // validation failures were vanishing at 2.6s and looked like "silently
+  // failed" — user report), successes can stay snappy.
   useEffect(() => {
     if (!notice) return
-    const timer = window.setTimeout(() => setNotice(null), 2600)
+    const timer = window.setTimeout(
+      () => setNotice(null),
+      notice.kind === 'danger' ? 6000 : 2600,
+    )
     return () => window.clearTimeout(timer)
   }, [notice])
 
@@ -151,6 +157,7 @@ export function Profile() {
         uploading={uploading}
         onPickFile={(file) => void handlePick(file)}
         onRemove={() => void handleRemove()}
+        notice={notice}
       />
       <div className="mx-auto mt-4 w-full max-w-[720px] lg:mt-6">
         <ProfileDetails
@@ -163,20 +170,11 @@ export function Profile() {
           saving={saving}
         />
       </div>
-      {notice && (
-        <div
-          role="status"
-          className="pointer-events-none fixed inset-x-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-40 flex justify-center lg:bottom-6"
-        >
-          <p
-            className={`glass-pill rounded-pill px-5 py-2.5 text-body font-medium ${
-              notice.kind === 'success' ? 'text-success' : 'text-danger'
-            }`}
-          >
-            {notice.text}
-          </p>
-        </div>
-      )}
+      {/* Toast: pinned under the page header, NOT the viewport bottom —
+          a warning at the bottom edge stayed unseen unless the user scrolled
+          all the way down (user report). */}
+      {/* (Toast removed from viewport positioning — it renders over the
+          name + verified-badge row via ProfileBanner's `notice` slot.) */}
       <ConfirmDialog
         open={confirmSignOut}
         onClose={() => setConfirmSignOut(false)}

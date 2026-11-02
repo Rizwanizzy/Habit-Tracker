@@ -31,12 +31,14 @@ interface Props {
  *  attributes/listeners (visible as aria-roledescription="sortable" in the
  *  DOM) — a long-press activates the drag via the sensors in
  *  HabitReorderGrid, and a plain click/tap still reaches the tile's own
- *  controls. Attributes and listeners are spread unconditionally, together
- *  with ref={setNodeRef} and the transform/transition style. */
+ *  controls. `disabled` is deliberately NOT set: inside wiggle mode the
+ *  sensors already use the distance-4 constraint, and disabling the
+ *  listeners here would lock every drag after the first one until the user
+ *  exited and re-entered the mode (the long-press that enters the mode
+ *  starts outside it and survives the swap). */
 export function SortableHabitTile({ reorderMode, habit, swallowClickRef, ...tile }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: habit.id,
-    disabled: reorderMode,
   })
 
   const style: CSSProperties = {

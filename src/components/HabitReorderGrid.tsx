@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
   DndContext,
@@ -41,6 +41,8 @@ interface Props {
   /** Jiggle mode state, owned by the page (the header reacts to it). */
   reorderMode: boolean
   enterReorderMode: () => void
+  /** Tap/click outside a tile (or Escape on the page) exits the mode. */
+  exitReorderMode: () => void
   reorderHabits: (orderedIds: string[]) => Promise<void>
   onNotice: (kind: 'success' | 'danger', text: string) => void
   onToggle: (habit: Habit) => void
@@ -62,6 +64,7 @@ export function HabitReorderGrid({
   perRow,
   reorderMode,
   enterReorderMode,
+  exitReorderMode,
   reorderHabits,
   onNotice,
   onToggle,
@@ -73,6 +76,24 @@ export function HabitReorderGrid({
   /** Swallow-click window: set to Date.now() + 150 on every drop, checked by
    *  each SortableHabitTile's capture-phase click handler. */
   const swallowClickUntil = useRef(0)
+
+  // Exit affordance (user request): while in reorder mode, a pointerdown
+  // outside a tile exits the mode — on touch and mouse alike. Pointerdown
+  // (not click) is deliberate: drags end with pointerup, so no trailing
+  // drop event can ever accidentally exit, and mode stays on across
+  // multiple rearranges. Taps on the grid/gaps/header/footer all count;
+  // a touch starting on a tile stays a drag/tap on that tile.
+  useEffect(() => {
+    if (!reorderMode) return
+    function outside(e: PointerEvent) {
+      const target = e.target as Element | null
+      if (target?.closest('.tile-cell')) return
+      if (swallowClickUntil.current > Date.now()) return
+      exitReorderMode()
+    }
+    document.addEventListener('pointerdown', outside)
+    return () => document.removeEventListener('pointerdown', outside)
+  }, [reorderMode, exitReorderMode])
 
   // Rebuilt when the mode changes: outside reorder mode a long-press (350ms,
   // 8px tolerance) is what lifts the first tile into the mode; inside the

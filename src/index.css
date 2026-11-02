@@ -788,13 +788,15 @@ body {
   }
 }
 
-/* Opaque popovers (day-start listbox, color picker): the translucent glass
-   fill lets the content underneath bleed through, so these floating lists
-   get a solid surface instead. Theme-scoped selectors keep this at least as
-   specific as the `:root:not(.dark) .glass-card` gradient override above, so
-   it wins in both themes regardless of source order. */
+/* Opaque popovers (day-start listbox, color picker, profile toasts): the
+   translucent glass fill lets the content underneath bleed through, so these
+   floating lists get a solid surface instead. Theme-scoped selectors keep
+   this at least as specific as the `:root:not(.dark) .glass-card` gradient
+   override above, so it wins in both themes regardless of source order. */
 :root:not(.dark) .glass-card.popover-solid,
-.dark .glass-card.popover-solid {
+.dark .glass-card.popover-solid,
+:root:not(.dark) .glass-pill.popover-solid,
+.dark .glass-pill.popover-solid {
   background-color: var(--surface-solid);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;

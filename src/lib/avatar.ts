@@ -1,4 +1,10 @@
-const MAX_BYTES = 2 * 1024 * 1024
+/** Hard cap for DECODE safety only: anything ≤ 20 MB is re-encoded to a
+ *  512px WebP (tens of KB) by this module, so the input size is storage-
+ *  irrelevant; 20 MB just keeps a huge file from choking the decoder.
+ *  The OUTPUT cap mirrors the avatars bucket limit (2 MB) as belt-and-braces
+ *  — a sane WebP encode can never hit it. */
+const MAX_INPUT_BYTES = 20 * 1024 * 1024
+const MAX_OUTPUT_BYTES = 2 * 1024 * 1024
 const TARGET = 512
 
 function isImage(file: File): boolean {
@@ -10,18 +16,19 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('Could not read image'))
+    img.onerror = () => reject(new Error('Could not read image — the file may be HEIC or damaged. Try a JPEG or PNG.'))
     img.src = src
   })
 }
 
 /** Prepare an uploaded image for the avatars bucket: reject non-images and
- *  files over 2 MB, center-crop to a square, resize to 512px, and encode as
- *  WebP. Returns the resulting Blob. */
+ *  inputs over 20 MB, center-crop to a square, resize to 512px, and encode
+ *  as WebP (post-encode size is checked against the bucket's 2 MB limit,
+ *  which a WebP of this size never approaches). Returns the resulting Blob. */
 export async function prepareAvatar(file: File): Promise<Blob> {
   if (!file) throw new Error('No file provided')
-  if (!isImage(file)) throw new Error('File must be an image')
-  if (file.size > MAX_BYTES) throw new Error('Image must be 2 MB or smaller')
+  if (!isImage(file)) throw new Error('That file is not an image — choose a JPEG, PNG or WebP photo')
+  if (file.size > MAX_INPUT_BYTES) throw new Error('Choose an image 20 MB or smaller')
 
   const url = URL.createObjectURL(file)
   try {
@@ -43,6 +50,9 @@ export async function prepareAvatar(file: File): Promise<Blob> {
       canvas.toBlob((b) => resolve(b), 'image/webp', 0.9)
     })
     if (!blob) throw new Error('Could not encode image as WebP')
+    if (blob.size > MAX_OUTPUT_BYTES) {
+      throw new Error('The processed image is unexpectedly large — try another photo')
+    }
     return blob
   } finally {
     URL.revokeObjectURL(url)

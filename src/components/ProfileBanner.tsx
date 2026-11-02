@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { initialsFrom } from '../lib/profile'
 import { ConfirmDialog } from './ConfirmDialog'
-import { IconCamera, IconUser } from './icons'
+import { IconCamera, IconTrash, IconUser } from './icons'
 import { VerifiedBadge } from './VerifiedBadge'
 
 interface Props {
@@ -13,6 +13,11 @@ interface Props {
   uploading: boolean
   onPickFile: (file: File) => void
   onRemove: () => void
+  /** Toast overlay rendered ON the name + verified-badge row (user request:
+   *  warnings belong where the eyes are — viewport-bottom/top placements went
+   *  unseen). Centering inside this row also aligns to the CONTENT column,
+   *  fixing the "slightly left" look of viewport-wide centering on desktop. */
+  notice?: { kind: 'success' | 'danger'; text: string } | null
 }
 
 /** Profile banner (DESIGN.md §11): full-width grid background with a radial
@@ -28,9 +33,10 @@ export function ProfileBanner({
   uploading,
   onPickFile,
   onRemove,
+  notice = null,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const avatarRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const [imgBroken, setImgBroken] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [confirmRemoveDialog, setConfirmRemoveDialog] = useState(false)
@@ -41,10 +47,13 @@ export function ProfileBanner({
   // Reset the broken-image fallback whenever a new photo arrives.
   useEffect(() => setImgBroken(false), [avatarUrl, avatarPath])
 
-  // Close popover on outside click.
+  // Close popover on outside click. The "inside" region is only the small
+  // avatar wrapper (photo + camera button + menu): checking the wider
+  // identity column left the popover open for taps in the empty space
+  // around the avatar (user report — that column box is up to 720px wide).
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (popoverOpen && avatarRef.current && !avatarRef.current.contains(e.target as Node)) {
+      if (popoverOpen && menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setPopoverOpen(false)
         setConfirmRemoveDialog(false)
       }
@@ -79,8 +88,8 @@ export function ProfileBanner({
         <div className="banner-grid banner-bg w-full h-[20px] lg:h-[28px]" />
 
         {/* Avatar + identity block overlapping the bottom of the grid area */}
-        <div className="mx-auto -mt-6 flex w-full max-w-[720px] flex-col items-center gap-4 lg:-mt-12 lg:mt-0" ref={avatarRef}>
-        <div className="relative shrink-0">
+        <div className="mx-auto -mt-6 flex w-full max-w-[720px] flex-col items-center gap-4 lg:-mt-12 lg:mt-0">
+        <div className="relative shrink-0" ref={menuRef}>
           {hasPhoto ? (
             <img
               src={avatarUrl}
@@ -115,7 +124,11 @@ export function ProfileBanner({
               />
             </svg>
           )}
-          {/* Camera button: opens the popover menu */}
+          {/* Camera button: opens the popover menu. Solid chip (not glass):
+              translucent glass disappears against the avatar's saturated
+              gradient, especially in dark theme (user report) —
+              --surface-solid is the opaque popover fill, readable in both
+              themes on top of the glow. */}
           <button
             type="button"
             onClick={() => setPopoverOpen((p) => !p)}
@@ -124,14 +137,20 @@ export function ProfileBanner({
             title={hasPhoto ? 'Change photo' : 'Upload photo'}
             aria-haspopup="menu"
             aria-expanded={popoverOpen}
-            className="glass-pill absolute bottom-1 right-1 z-20 grid size-9 place-items-center rounded-full text-fg-secondary transition-colors duration-150 after:absolute after:-inset-1 after:content-[''] hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none active:scale-95 disabled:opacity-60"
+            style={{ backgroundColor: 'var(--surface-solid)' }}
+            className="absolute bottom-1 right-1 z-20 grid size-9 place-items-center rounded-full border border-border shadow-md text-fg-secondary transition-all duration-150 after:absolute after:-inset-1 after:content-[''] hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none active:scale-95 disabled:opacity-60"
           >
             <IconCamera className="size-4" />
           </button>
+          {/* Deliberately accept="image/*": a restrictive list made the iOS
+              Photos picker silently refuse unseen formats/oversize originals
+              (e.g. 29 MB ProRAW/HEIC) BEFORE our code ran — never fired,
+              never warned (user report). Everything the OS hands us is
+              validated in prepareAvatar, which messages every rejection. */}
           <input
             ref={inputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/*"
             aria-hidden="true"
             tabIndex={-1}
             className="absolute size-0 overflow-hidden opacity-0"
@@ -141,10 +160,12 @@ export function ProfileBanner({
               e.target.value = ''
             }}
           />
-          {/* Popover menu: Change photo / Remove photo */}
+          {/* Popover menu: Change photo / Remove photo. `popover-solid` —
+              the same OPAQUE glass fill the Day-start listbox uses, because
+              translucent glass is unreadable over the banner (user report). */}
           {popoverOpen && (
             <div
-              className="glass-pill absolute bottom-[-56px] right-0 z-20 w-48 rounded-pill border border-border shadow-lg flex flex-col"
+              className="glass-card popover-solid absolute bottom-[-60px] right-0 z-20 flex w-48 flex-col rounded-input border border-border shadow-xl"
             >
               <button
                 type="button"
@@ -153,37 +174,50 @@ export function ProfileBanner({
                   inputRef.current?.click()
                   setPopoverOpen(false)
                 }}
-                className="flex items-center gap-2 px-4 py-2 text-body text-fg hover:bg-surface-raised"
+                className="flex min-h-11 items-center gap-2.5 px-4 py-2 text-body text-fg transition-colors duration-150 hover:bg-surface-raised"
               >
                 <IconCamera className="size-4" />
                 Change photo
               </button>
               {hasPhoto && (
-                <div className="border-t border-border" />
-              )}
-              {hasPhoto && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPopoverOpen(false)
-                    setConfirmRemoveDialog(true)
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 text-body text-danger hover:bg-danger/10"
-                >
-                  <span className="size-4" aria-hidden="true">
-                    🗑️
-                  </span>
-                  Remove photo
-                </button>
+                <>
+                  <div className="border-t border-border" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPopoverOpen(false)
+                      setConfirmRemoveDialog(true)
+                    }}
+                    className="flex min-h-11 items-center gap-2.5 px-4 py-2 text-body text-danger transition-colors duration-150 hover:bg-danger/10"
+                  >
+                    <IconTrash className="size-4" />
+                    Remove photo
+                  </button>
+                </>
               )}
             </div>
           )}
         </div>
 
         <div className="mt-1 flex flex-col items-center gap-2 px-4 w-full text-center">
-          <div className="inline-flex items-center justify-center gap-2 min-w-0 w-full">
+          <div className="relative inline-flex items-center justify-center gap-2 min-w-0 w-full">
             <h1 className="text-page-title truncate overflow-hidden whitespace-nowrap min-w-0 max-w-[calc(100%-26px)]">{displayName}</h1>
             {emailConfirmed && <VerifiedBadge size={22} className="shrink-0" />}
+            {/* Toast sits on the name + badge row itself (see Props doc). */}
+            {notice && (
+              <div
+                role="status"
+                className="pointer-events-none absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center"
+              >
+                <p
+                  className={`glass-pill popover-solid rounded-pill px-5 py-2.5 text-center text-body font-medium shadow-lg ${
+                    notice.kind === 'success' ? 'text-success' : 'text-danger'
+                  }`}
+                >
+                  {notice.text}
+                </p>
+              </div>
+            )}
           </div>
           <p className="text-center text-body text-fg-secondary w-full min-w-0 overflow-hidden whitespace-nowrap truncate">
             <span className="inline-flex items-center gap-1 min-w-0">

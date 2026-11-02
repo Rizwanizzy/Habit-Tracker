@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { extractError } from '../hooks/useHabits'
 import { useHabitsContext } from '../contexts/HabitsContext'
@@ -103,9 +103,11 @@ export function Today() {
 
   // --- Reorder (jiggle) mode -------------------------------------------------
   // Long-press (350ms, 8px tolerance on both pointer and touch) lifts the tile
-  // and enters the mode; Escape or the Done pill exits it. Drag/drop saves the
-  // new order through reorderHabits (optimistic, rolls back on failure).
+  // and enters the mode; a pointerdown outside a tile (or Escape) exits it.
+  // Drag/drop saves the new order through reorderHabits (optimistic, rolls
+  // back on failure). The header shows only a hint — there is no Done button.
   const [reorderMode, setReorderMode] = useState(false)
+  const exitReorderMode = useCallback(() => setReorderMode(false), [])
   const [notice, setNotice] = useState<{ kind: 'success' | 'danger'; text: string } | null>(null)
 
   // Escape exits reorder mode.
@@ -436,16 +438,9 @@ export function Today() {
             )}
           </div>
           {reorderMode ? (
-            <div className="flex items-center gap-3">
-              <span className="text-caption text-fg-muted">Drag to reorder</span>
-              <button
-                type="button"
-                onClick={() => setReorderMode(false)}
-                className="inline-flex h-12 shrink-0 items-center rounded-pill bg-accent-gradient glow-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 hover:translate-y-[-1px]"
-              >
-                Done
-              </button>
-            </div>
+            <span className="text-caption shrink-0 text-fg-muted">
+              Drag to reorder · tap outside to finish
+            </span>
           ) : (
             <Link
               to="/habits/new"
@@ -541,6 +536,7 @@ export function Today() {
         perRow={perRow}
         reorderMode={reorderMode}
         enterReorderMode={() => setReorderMode(true)}
+        exitReorderMode={exitReorderMode}
         reorderHabits={reorderHabits}
         onNotice={(kind, text) => setNotice({ kind, text })}
         onToggle={toggle}
@@ -548,11 +544,12 @@ export function Today() {
         onSkip={skip}
       />
 
-      {/* Reorder toast: "Order saved" or the rollback error message. */}
+      {/* Reorder toast: "Order saved" or the rollback error message — pinned
+          under the page header, not the bottom edge (see Profile toast). */}
       {notice && (
         <div
           role="status"
-          className="pointer-events-none fixed inset-x-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-40 flex justify-center lg:bottom-6"
+          className="pointer-events-none fixed inset-x-4 top-[4rem] z-40 flex justify-center lg:top-[4.5rem]"
         >
           <p
             className={`glass-pill rounded-pill px-5 py-2.5 text-body font-medium ${
