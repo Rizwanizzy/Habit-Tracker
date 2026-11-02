@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { IconOverview, IconPlus, IconSettings, IconToday, IconUser } from './icons'
+import { IconHome, IconOverview, IconPlus, IconSettings, IconToday, IconUser } from './icons'
 import { useProfileContext } from '../contexts/ProfileContext'
 import type { ComponentType } from 'react'
 
@@ -114,7 +114,10 @@ export function AppShell() {
               }`
             }
           >
-            <Icon className="size-5" />
+            {/* The dock's Today slot is the app's home — use a home glyph
+                instead of `IconToday` (a sun-like icon), so the dock reads
+                as a home button. The desktop rail keeps IconToday. */}
+            {to === '/' ? <IconHome className="size-5" /> : <Icon className="size-5" />}
             <span className="sr-only">{label}</span>
           </NavLink>
         ))}

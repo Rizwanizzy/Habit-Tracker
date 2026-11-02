@@ -12,7 +12,7 @@ function periodLabel(p: VacationPeriod): string {
 }
 
 const inputClass =
-  'h-11 min-w-0 flex-1 rounded-input border border-border bg-surface-raised px-3 text-body text-fg focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+  'h-12 sm:h-11 w-full max-w-[240px] sm:max-w-none sm:flex-1 rounded-input border border-border bg-surface-raised px-3 text-body text-fg focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent'
 
 /** Settings "Vacation" card (DESIGN.md §8): a global pause for every habit.
  *  The pause switch starts an ongoing period from the logical today (off =
@@ -151,8 +151,8 @@ export function VacationCard() {
           {/* Schedule a break */}
           <form onSubmit={(e) => void handleSchedule(e)} className="mt-5">
             <p className="text-caption font-medium uppercase tracking-wide text-fg-muted">Schedule a break</p>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              <label className="flex flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+            <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:gap-4">
+              <label className="flex flex-col gap-1.5 sm:flex-1 sm:flex-row sm:items-center sm:gap-2">
                 <span className="text-caption text-fg-secondary">From</span>
                 <input
                   type="date"
@@ -166,7 +166,7 @@ export function VacationCard() {
                   className={inputClass}
                 />
               </label>
-              <label className="flex flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <label className="flex flex-col gap-1.5 sm:flex-1 sm:flex-row sm:items-center sm:gap-2">
                 <span className="text-caption text-fg-secondary">To</span>
                 <input
                   type="date"

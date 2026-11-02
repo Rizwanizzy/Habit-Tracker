@@ -195,3 +195,16 @@ export function IconTrash({ className }: { className?: string }) {
     </svg>
   )
 }
+
+/** Home icon for the mobile dock's Today button (DESIGN.md §5: the dock
+ *  Today slot is the app's home, so it gets a home glyph rather than the
+ *  sun-like `IconToday` that the desktop rail uses). */
+export function IconHome({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="M3 11l9-8 9 8" />
+      <path d="M5 10v10h14V10" />
+      <path d="M9 22v-6h6v6" />
+    </svg>
+  )
+}

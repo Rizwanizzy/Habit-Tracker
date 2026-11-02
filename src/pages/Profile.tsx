@@ -97,7 +97,9 @@ export function Profile() {
       <button
         type="button"
         onClick={() => setConfirmSignOut(true)}
-        className="relative shrink-0 hover:bg-surface-raised focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        className="relative shrink-0 rounded-full p-1 text-fg-secondary transition-colors duration-150 hover:text-danger focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        aria-label="Sign out"
+        title="Sign out"
       >
         <IconLogout className="size-6" />
       </button>
