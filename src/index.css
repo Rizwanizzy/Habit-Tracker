@@ -855,19 +855,18 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   iPhone dock inset (user request): on the installed home-screen PWA the dock
-   hugs the bottom edge like a native tab bar — Android keeps its 0.5rem inset
-   unchanged. `@supports (-webkit-touch-callout: none)` matches iOS Safari
+   iPhone dock inset (user request): on the installed home-screen PWA the
+   dock sits ~8px from the bottom edge (Android keeps its 0.5rem inset
+   unchanged). `@supports (-webkit-touch-callout: none)` matches iOS Safari
    only (Chrome / Android WebViews don't implement that property), so no
-   user-agent sniffing is needed. The env(safe-area-inset-bottom) (~34px for
-   the home indicator on Face-ID iPhones) is the dominant part of the "gap
-   under the dock", so it is SHAVED — floored at 0.25rem via max() — which
-   leaves the icon glyphs above the home indicator while the glass pill
-   reaches nearly to the screen edge. Unlayered rules out-cascade the
-   Tailwind bottom-[…] utility on .mobile-dock.
+   user-agent sniffing is needed. `env(safe-area-inset-bottom)` (~34px for
+   the home indicator on Face-ID iPhones) is the dominant part of any gap
+   under the dock, so it is shaved to 0.5rem (34 − 26, floored via max()),
+   keeping the icon glyphs above the home indicator. Unlayered rules
+   out-cascade the Tailwind bottom-[…] utility on .mobile-dock.
 --------------------------------------------------------------------------- */
 @supports (-webkit-touch-callout: none) {
   .mobile-dock {
-    bottom: max(0.25rem, calc(env(safe-area-inset-bottom) - 30px));
+    bottom: max(0.5rem, calc(env(safe-area-inset-bottom) - 26px));
   }
 }
