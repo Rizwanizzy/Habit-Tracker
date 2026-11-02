@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type AnimationEvent, type CSSProperties, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { readableColor, tint } from '../lib/color'
+import { normalizeEmoji } from '../lib/emoji'
 import { useThemeName } from '../hooks/useThemeName'
 import { IconFlame, IconPencil } from './icons'
 import { TileMoreMenu } from './TileMoreMenu'
@@ -81,6 +82,7 @@ export function HabitTile({
   overlay = false,
 }: Props) {
   const c = habit.color ?? '#3B82F6'
+  const emoji = normalizeEmoji(habit.emoji)
   const theme = useThemeName()
   const isNumeric = habit.type === 'numeric'
   const [popping, setPopping] = useState(false)
@@ -166,7 +168,9 @@ export function HabitTile({
       </Link>
       <div className="flex items-start justify-between">
         {/* 44px circular check: pending = 2px habit ring; done = fill + glow + white check;
-            skipped = dashed muted neutral ring (a check-in on a skipped day upserts done) */}
+            skipped = dashed muted neutral ring (a check-in on a skipped day upserts done).
+            A habit emoji is painted inside the ring (tinted while pending) so the tile
+            stays identifiable when the name truncates; done adds a small check badge. */}
         <button
           type="button"
           onClick={onToggle}
@@ -181,12 +185,45 @@ export function HabitTile({
             done
               ? { backgroundColor: c, boxShadow: `0 6px 18px -6px ${tint(c, 60)}` }
               : skipped
-                ? { border: `2px dashed color-mix(in srgb, ${c} 45%, transparent)` }
-                : { border: `2px solid ${c}` }
+                ? {
+                    border: `2px dashed color-mix(in srgb, ${c} 45%, transparent)`,
+                    ...(emoji ? { backgroundColor: `color-mix(in srgb, ${c} 8%, transparent)` } : {}),
+                  }
+                : {
+                    border: `2px solid ${c}`,
+                    ...(emoji ? { backgroundColor: `color-mix(in srgb, ${c} 14%, transparent)` } : {}),
+                  }
           }
           title={skipped ? `${skippedLabel} — tap to check in` : undefined}
         >
-          {done && <CheckIcon />}
+          {emoji ? (
+            <span
+              aria-hidden="true"
+              className={`tile-emoji text-xl leading-none ${skipped ? 'opacity-70' : ''}`}
+            >
+              {emoji}
+            </span>
+          ) : (
+            done && <CheckIcon />
+          )}
+          {done && emoji && (
+            <span
+              aria-hidden="true"
+              className="tile-check-badge absolute -bottom-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-white shadow-sm"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="size-2.5"
+                fill="none"
+                stroke={c}
+                strokeWidth={4}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m5 13 4 4L19 7" />
+              </svg>
+            </span>
+          )}
           {bursting && (
             <span aria-hidden="true" className="pointer-events-none absolute inset-0">
               {[0, 1, 2, 3, 4, 5].map((i) => (

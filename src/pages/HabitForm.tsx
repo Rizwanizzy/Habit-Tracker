@@ -1,17 +1,20 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ColorPicker } from '../components/ColorPicker'
+import { EmojiPickerField } from '../components/EmojiPickerField'
 import { RangeSwitch } from '../components/RangeSwitch'
 import { createHabit, extractError, updateHabit, type HabitInput } from '../hooks/useHabits'
 import { useHabitsContext } from '../contexts/HabitsContext'
 import { useSettings } from '../contexts/SettingsContext'
 import { getSupabase } from '../lib/supabase'
 import { tint } from '../lib/color'
+import { normalizeEmoji } from '../lib/emoji'
 
 const DEFAULT_COLOR = '#3B82F6'
 
 type FormState = {
   name: string
+  emoji: string
   type: 'boolean' | 'numeric'
   target: string
   unit: string
@@ -22,6 +25,7 @@ type FormState = {
 
 const BLANK: FormState = {
   name: '',
+  emoji: '',
   type: 'boolean',
   target: '1',
   unit: '',
@@ -60,6 +64,7 @@ export function HabitForm() {
         if (!active) return
         setForm({
           name: data.name,
+          emoji: data.emoji ?? '',
           type: data.type,
           target: String(data.target),
           unit: data.unit ?? '',
@@ -129,6 +134,7 @@ export function HabitForm() {
       freq_times: freqTimes,
       freq_days: freqDays,
       color: form.color,
+      emoji: normalizeEmoji(form.emoji),
     }
     setFormError(null)
     setBusy(true)
@@ -172,6 +178,37 @@ export function HabitForm() {
             placeholder="e.g., Meditate, Read 10 pages"
             className="input-field mt-2"
           />
+
+          <span className="text-caption mt-5 block text-fg-muted">Emoji (optional)</span>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <EmojiPickerField
+              value={form.emoji}
+              color={form.color}
+              onChange={(emoji) => set('emoji', emoji)}
+            />
+            <input
+              id="habit-emoji"
+              type="text"
+              value={form.emoji}
+              onChange={(e) => set('emoji', e.target.value)}
+              placeholder="🙂"
+              aria-label="Or paste an emoji"
+              className="h-12 w-16 shrink-0 rounded-input border border-border bg-surface-raised px-2 text-center text-xl text-fg focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            />
+            {form.emoji && (
+              <button
+                type="button"
+                onClick={() => set('emoji', '')}
+                className="glass-pill h-11 shrink-0 rounded-pill px-3 text-caption text-fg-secondary transition-colors duration-150 hover:text-fg"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <p className="text-caption mt-2 text-fg-muted">
+            Search the full emoji set, or paste one. It shows inside the tile&apos;s check circle so
+            the habit stays recognisable when its name is cut off.
+          </p>
 
           <span className="text-caption mt-5 block text-fg-muted">Type</span>
           <div className="mt-2 w-full">
@@ -254,7 +291,20 @@ export function HabitForm() {
             }}
           >
             <div className="flex items-center gap-2">
-              <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: c }} />
+              {form.emoji ? (
+                <span
+                  aria-hidden="true"
+                  className="grid size-8 shrink-0 place-items-center rounded-full text-lg leading-none"
+                  style={{
+                    border: `2px solid ${c}`,
+                    backgroundColor: `color-mix(in srgb, ${c} 14%, transparent)`,
+                  }}
+                >
+                  {form.emoji}
+                </span>
+              ) : (
+                <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: c }} />
+              )}
               <span className="text-habit-name min-w-0 truncate text-fg">{form.name || 'Your habit'}</span>
             </div>
           </div>

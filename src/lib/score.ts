@@ -12,6 +12,8 @@ export type Habit = {
   freq_times: number
   freq_days: number
   color?: string
+  /** Optional single emoji shown inside the tile's check ring. */
+  emoji?: string | null
   sort_order?: number
   archived?: boolean
   /** Local YYYY-MM-DD date the habit counts from. */

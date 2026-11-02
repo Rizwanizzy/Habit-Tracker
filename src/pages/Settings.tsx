@@ -6,6 +6,7 @@ import { DayStartCard } from '../components/DayStartCard'
 import { BackupCard } from '../components/BackupCard'
 import { VacationCard } from '../components/VacationCard'
 import type { Habit } from '../lib/score'
+import { normalizeEmoji } from '../lib/emoji'
 
 function ManageRow({
   habit,
@@ -17,12 +18,26 @@ function ManageRow({
   onToggleArchive: (h: Habit) => void
 }) {
   const archived = habit.archived === true
+  const emoji = normalizeEmoji(habit.emoji)
   return (
     <li className="manage-cell relative flex min-h-[64px] items-center gap-3 rounded-input border border-border bg-surface-raised px-3 py-2">
-      <span
-        className="size-3 shrink-0 rounded-full"
-        style={{ backgroundColor: habit.color ?? '#3B82F6' }}
-      />
+      {emoji ? (
+        <span
+          aria-hidden="true"
+          className="grid size-7 shrink-0 place-items-center rounded-full text-base leading-none"
+          style={{
+            border: `2px solid ${habit.color ?? '#3B82F6'}`,
+            backgroundColor: `color-mix(in srgb, ${habit.color ?? '#3B82F6'} 14%, transparent)`,
+          }}
+        >
+          {emoji}
+        </span>
+      ) : (
+        <span
+          className="size-3 shrink-0 rounded-full"
+          style={{ backgroundColor: habit.color ?? '#3B82F6' }}
+        />
+      )}
       <span className="manage-name min-w-0 flex-1 truncate text-body font-medium text-fg" title={habit.name}>
         {habit.name}
       </span>

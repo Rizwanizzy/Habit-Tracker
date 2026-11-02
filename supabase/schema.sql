@@ -13,10 +13,25 @@ create table if not exists public.habits (
   freq_times integer not null default 1 check (freq_times >= 1),
   freq_days integer not null default 1 check (freq_days >= 1),
   color text not null default '#3B82F6',
+  -- Optional emoji painted inside the tile's check ring (up to 24 code points,
+  -- enough for ZWJ families and skin-tone sequences).
+  emoji text check (emoji is null or char_length(emoji) between 1 and 24),
   sort_order integer not null default 0,
   archived boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- Added after the first release (existing projects): safe to re-run.
+alter table public.habits add column if not exists emoji text;
+
+-- The first release capped emoji at 8 code points; the full picker can produce
+-- longer ZWJ/skin-tone sequences, so widen the check to 24. Runs after the
+-- column exists and is safe to re-run (Postgres auto-names the inline check
+-- `habits_emoji_check`).
+alter table public.habits drop constraint if exists habits_emoji_check;
+alter table public.habits
+  add constraint habits_emoji_check
+  check (emoji is null or char_length(emoji) between 1 and 24);
 
 create table if not exists public.entries (
   id uuid primary key default gen_random_uuid(),

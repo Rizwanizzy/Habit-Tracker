@@ -190,6 +190,7 @@ export function useImportBackup() {
             freq_times: habit.freq_times,
             freq_days: habit.freq_days,
             color: habit.color,
+            emoji: habit.emoji,
             sort_order: habit.sort_order,
             archived: habit.archived,
             created_at: habit.created_at,

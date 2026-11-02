@@ -8,6 +8,7 @@ import { vacationDatesInRange } from '../lib/vacation'
 import { useLogicalToday } from '../hooks/useLogicalToday'
 import { useVacationsContext } from '../contexts/VacationsContext'
 import { tint } from '../lib/color'
+import { normalizeEmoji } from '../lib/emoji'
 import { StatTile, DeltaChip, HabitDotName } from '../components/StatTile'
 import { RangeSwitch } from '../components/RangeSwitch'
 import { ScoreLineChart, type ChartRow } from '../components/ScoreLineChart'
@@ -175,7 +176,7 @@ export function Overview() {
           linkLabel={`Open ${best.habit.name ?? 'habit'} details`}
         >
           <DeltaChip direction="up" text={`${pct(best.score)}%`} tone="success" />
-          <HabitDotName color={best.habit.color ?? '#3B82F6'} name={best.habit.name ?? 'Habit'} />
+          <HabitDotName color={best.habit.color ?? '#3B82F6'} name={best.habit.name ?? 'Habit'} emoji={normalizeEmoji(best.habit.emoji)} />
         </StatTile>
         <StatTile
           label="Needs attention"
@@ -185,7 +186,7 @@ export function Overview() {
           linkLabel={`Open ${worst.habit.name ?? 'habit'} details`}
         >
           <DeltaChip direction="down" text={`${pct(worst.score)}%`} tone="danger" />
-          <HabitDotName color={worst.habit.color ?? '#3B82F6'} name={worst.habit.name ?? 'Habit'} />
+          <HabitDotName color={worst.habit.color ?? '#3B82F6'} name={worst.habit.name ?? 'Habit'} emoji={normalizeEmoji(worst.habit.emoji)} />
         </StatTile>
       </div>
 
@@ -198,6 +199,7 @@ export function Overview() {
         <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Show or hide habit lines">
           {habits.map((habit) => {
             const color = habit.color ?? '#3B82F6'
+            const emoji = normalizeEmoji(habit.emoji)
             const isOff = hidden.has(habit.id)
             return (
               <button
@@ -220,7 +222,13 @@ export function Overview() {
                     : { backgroundColor: tint(color, 20), border: `1px solid ${tint(color, 40)}` }
                 }
               >
-                <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                {emoji ? (
+                  <span aria-hidden="true" className="shrink-0 text-base leading-none">
+                    {emoji}
+                  </span>
+                ) : (
+                  <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                )}
                 <span className="min-w-0 truncate text-fg">{habit.name}</span>
               </button>
             )

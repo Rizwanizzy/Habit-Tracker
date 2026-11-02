@@ -346,16 +346,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* User-controlled tile density (Today grid): the "Per row" stepper writes
    --tile-cols (1–6) inline on the <ul>; unlayered CSS beats Tailwind's
-   layered utilities, so from lg up the grid columns follow the variable
-   instead of a hardcoded count. Below 1 column the tiles are full width;
-   more columns → narrower tiles → the .tile-cell container compacts. */
+   layered utilities, so the grid columns follow the variable at EVERY width —
+   phones included (user request: the stepper only worked on desktop). The gap
+   tightens as columns grow so small screens keep usable tile widths; more
+   columns → narrower tiles → the .tile-cell container compacts. */
 .tile-grid {
   --tile-cols: 5;
+  --tile-gap: 16px;
+  grid-template-columns: repeat(var(--tile-cols), minmax(0, 1fr));
+  gap: var(--tile-gap);
 }
 
 @media (min-width: 1024px) {
   .tile-grid {
-    grid-template-columns: repeat(var(--tile-cols), minmax(0, 1fr));
+    gap: 20px;
   }
 }
 
@@ -378,11 +382,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     min-height: 104px;
     padding: 14px;
   }
-  .tile-cell .tile-check {
-    width: 36px;
-    height: 36px;
-  }
-  .tile-cell .tile-edit {
+  .tile-cell .tile-check,
+  .tile-cell .tile-edit,
+  .tile-cell .tile-more {
     width: 36px;
     height: 36px;
   }
@@ -405,6 +407,74 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     position: absolute;
     inset: -4px;
     border-radius: inherit;
+  }
+}
+
+/* Phone densities (per-row stepper now applies on mobile too).
+   ≤140px columns (3–4 on a phone): the name row gives the streak chip its
+   space back, and the numeric value text would just clip — both go. */
+@container (max-width: 139.9px) {
+  .tile-cell .habit-tile {
+    padding: 12px;
+  }
+  .tile-cell .tile-streak,
+  .tile-cell .tile-value {
+    display: none;
+  }
+}
+
+/* ≤110px columns: card and controls shrink so the check/emoji + name fit. */
+@container (max-width: 109.9px) {
+  .tile-cell .habit-tile {
+    min-height: 0;
+    padding: 8px;
+    border-radius: 14px;
+  }
+  .tile-cell .tile-check,
+  .tile-cell .tile-edit,
+  .tile-cell .tile-more {
+    width: 26px;
+    height: 26px;
+  }
+  .tile-cell .tile-name {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+  .tile-cell .tile-emoji {
+    font-size: 16px;
+  }
+  .tile-cell .tile-check-badge {
+    width: 12px;
+    height: 12px;
+  }
+  .tile-cell .tile-check-badge svg {
+    width: 7px;
+    height: 7px;
+  }
+  /* Keep every shrunk control's target at ≥44px. */
+  .tile-cell .tile-check::after,
+  .tile-cell .tile-edit::after,
+  .tile-cell .tile-more::after {
+    content: '';
+    position: absolute;
+    inset: -9px;
+    border-radius: inherit;
+  }
+}
+
+/* Icon-size tiles (5–6 per row on a phone): only the emoji/check ring and a
+   one-line name — two controls can no longer share the top row, so the more
+   menu steps aside (skip/undo stays available on the habit's page). */
+@container (max-width: 63.9px) {
+  .tile-cell .habit-tile {
+    padding: 4px;
+    border-radius: 12px;
+  }
+  .tile-cell .tile-more {
+    display: none;
+  }
+  .tile-cell .tile-name {
+    font-size: 10px;
   }
 }
 
@@ -821,6 +891,62 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-color: var(--surface-solid);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Emoji picker (emoji-picker-react v5) in the habit form. The library injects
+   its stylesheet at runtime, so each override is scoped with
+   `.emoji-picker-panel` to win the specificity tie. Cells are 44px:
+   --epr-emoji-size (28) + 2 × --epr-emoji-padding (8); the search field is
+   44px tall too. Colors ride on our tokens so both themes match the glass.
+--------------------------------------------------------------------------- */
+.emoji-picker-panel .epr-main {
+  --epr-bg-color: transparent;
+  --epr-picker-border-color: transparent;
+  --epr-picker-border-radius: 0;
+  --epr-text-color: var(--text-primary);
+  --epr-highlight-color: var(--accent);
+  --epr-hover-bg-color: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  --epr-hover-bg-color-reduced-opacity: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  --epr-focus-bg-color: color-mix(in srgb, var(--text-primary) 14%, transparent);
+  --epr-search-input-bg-color: var(--surface-2);
+  --epr-search-input-bg-color-active: var(--surface-2);
+  --epr-search-input-text-color: var(--text-primary);
+  --epr-search-input-placeholder-color: var(--text-muted);
+  --epr-search-border-color: var(--border);
+  --epr-search-input-border-radius: 12px;
+  --epr-category-label-bg-color: var(--surface-solid);
+  --epr-category-label-text-color: var(--text-muted);
+  --epr-category-icon-active-color: var(--accent);
+  --epr-category-icon-inactive-color: var(--text-muted);
+  --epr-horizontal-padding: 12px;
+  --epr-header-padding: 8px 12px;
+  --epr-search-input-height: 44px;
+  --epr-search-input-padding: 0 36px;
+  --epr-category-navigation-button-size: 40px;
+  --epr-emoji-size: 28px;
+  --epr-emoji-padding: 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Nine category tabs at 40px do not fit a 360px phone: scroll the strip
+   instead of shrinking the targets further. */
+.emoji-picker-panel .epr-category-nav {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.emoji-picker-panel .epr-category-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.emoji-picker-panel .epr-emoji-category-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* ---------------------------------------------------------------------------

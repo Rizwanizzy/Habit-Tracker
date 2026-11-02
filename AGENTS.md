@@ -15,6 +15,7 @@ Read DESIGN.md before building or changing any UI.
 - `@vite-pwa/assets-generator` (dev dependency, one-off icon generation only)
 - Heatmap is a custom component, not a library.
 - Drag-and-drop reordering: @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities (approved)
+- Emoji picker: `emoji-picker-react` (approved; lazy-loaded in `EmojiPickerField.tsx` only, so it stays in its own chunk)
 
 ## Commands
 - `npm run dev` start dev server

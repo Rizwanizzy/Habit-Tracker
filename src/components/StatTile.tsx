@@ -75,13 +75,27 @@ export function DeltaChip({
   )
 }
 
-/** Habit-colored dot + name in plain text (habit color never carries text).
- *  On tiles that are stretched links (StatTile `to`), the name underlines on
- *  hover for the drill-in affordance. */
-export function HabitDotName({ color, name }: { color: string; name: string }) {
+/** Habit-colored dot (or the habit's emoji) + name in plain text (habit color
+ *  never carries text). On tiles that are stretched links (StatTile `to`), the
+ *  name underlines on hover for the drill-in affordance. */
+export function HabitDotName({
+  color,
+  name,
+  emoji,
+}: {
+  color: string
+  name: string
+  emoji?: string | null
+}) {
   return (
     <span className="flex min-w-0 items-center gap-2">
-      <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+      {emoji ? (
+        <span aria-hidden="true" className="shrink-0 text-base leading-none">
+          {emoji}
+        </span>
+      ) : (
+        <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+      )}
       <span className="text-body min-w-0 truncate text-fg decoration-1 underline-offset-2 group-hover:underline">
         {name}
       </span>

@@ -84,15 +84,34 @@ export function Today() {
   const [actionError, setActionError] = useState<string | null>(null)
 
   // Tiles-per-row density (1–6): the user's grid-width preference — no code
-  // changes needed to rearrange rows. Persisted, validated on read.
+  // changes needed to rearrange rows. Persisted, validated on read, and it now
+  // drives the grid on phones too. The first-run default adapts to the screen
+  // (phones 2-up, tablets 3-up, desktop 5-up); a stored value only wins when
+  // the user actually used the stepper (`tile-columns-set`), because older
+  // builds also stored their 5-column default on phones.
   const [perRow, setPerRow] = useState<number>(() => {
     try {
       const stored = localStorage.getItem('tile-columns')
-      return stored && /^[1-6]$/.test(stored) ? Number(stored) : 5
+      if (localStorage.getItem('tile-columns-set') === '1' && stored && /^[1-6]$/.test(stored)) {
+        return Number(stored)
+      }
     } catch {
-      return 5
+      // Storage disabled: fall through to the width-based default.
     }
+    if (typeof window === 'undefined') return 5
+    if (window.innerWidth < 640) return 2
+    if (window.innerWidth < 1024) return 3
+    return 5
   })
+
+  const updatePerRow = (next: number) => {
+    setPerRow(next)
+    try {
+      localStorage.setItem('tile-columns-set', '1')
+    } catch {
+      // Storage disabled: the choice just doesn't persist.
+    }
+  }
   useEffect(() => {
     try {
       localStorage.setItem('tile-columns', String(perRow))
@@ -323,8 +342,15 @@ export function Today() {
           </div>
           <div className="grid gap-4">
             {Array.from({ length: 4 }).map((_, r) => (
-              <div key={r} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {Array.from({ length: 2 }).map((_, c) => (
+              <div
+                key={r}
+                className="grid"
+                style={{
+                  gridTemplateColumns: `repeat(${perRow}, minmax(0, 1fr))`,
+                  gap: perRow >= 5 ? 8 : perRow >= 3 ? 12 : 16,
+                }}
+              >
+                {Array.from({ length: perRow }).map((_, c) => (
                   <div key={c} className="glass-card rounded-tile p-4">
                     <div className="flex items-center gap-3">
                       <div className="h-12 w-12 rounded-full bg-fg/10 animate-pulse" />
@@ -461,7 +487,7 @@ export function Today() {
               ` +${ringLayout.hiddenCount} more habits are not shown in the rings.`}
           </p>
         )}
-        <TileDensity value={perRow} onChange={setPerRow} />
+        <TileDensity value={perRow} onChange={updatePerRow} />
       </div>
 
       {actionError && (

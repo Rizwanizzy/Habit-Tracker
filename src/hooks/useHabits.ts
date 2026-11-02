@@ -15,6 +15,7 @@ interface HabitRow {
   freq_times: number
   freq_days: number
   color: string
+  emoji: string | null
   sort_order: number
   archived: boolean
   created_at: string
@@ -28,6 +29,7 @@ export type HabitInput = {
   freq_times: number
   freq_days: number
   color: string
+  emoji: string | null
 }
 
 export type HabitUpdate = Partial<HabitInput> & { archived?: boolean; sort_order?: number }

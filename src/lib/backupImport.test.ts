@@ -70,6 +70,25 @@ describe('parseBackup', () => {
     expect(result.warnings).toEqual([])
   })
 
+  it('carries the habit emoji, defaulting to null for older files', () => {
+    const withEmoji = parse([habitJson({ emoji: '  🔥 ' })], [])
+    expect(withEmoji.ok).toBe(true)
+    if (!withEmoji.ok) return
+    expect(withEmoji.backup.habits[0].emoji).toBe('🔥')
+
+    // Backups made before the column existed simply have no emoji.
+    const without = parse([habitJson()], [])
+    expect(without.ok).toBe(true)
+    if (!without.ok) return
+    expect(without.backup.habits[0].emoji).toBeNull()
+
+    // A non-string emoji is invalid input, not silently coerced.
+    const bad = parse([habitJson({ emoji: 42 })], [])
+    expect(bad.ok).toBe(true)
+    if (!bad.ok) return
+    expect(bad.backup.habits).toHaveLength(0)
+  })
+
   it('rejects invalid JSON, a wrong app, and a too-new schemaVersion', () => {
     expect(parseBackup('not json')).toMatchObject({ ok: false })
     expect(parseBackup(JSON.stringify({ app: 'other', schemaVersion: 1 }))).toMatchObject({ ok: false })
@@ -170,6 +189,7 @@ const backupHabit: ImportHabit = {
   freq_times: 1,
   freq_days: 1,
   color: '#22d3ee',
+  emoji: null,
   sort_order: 5,
   archived: false,
   created_at: '2026-01-10T05:30:00.000Z',

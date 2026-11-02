@@ -1,4 +1,5 @@
 import type { BackupRow } from './backup'
+import { normalizeEmoji } from './emoji'
 import { validatePeriod } from './vacation'
 
 // --- Types ------------------------------------------------------------------
@@ -12,6 +13,7 @@ export interface ImportHabit {
   freq_times: number
   freq_days: number
   color: string
+  emoji: string | null
   sort_order: number
   archived: boolean
   created_at: string
@@ -140,6 +142,7 @@ function validHabit(row: BackupRow): ImportHabit | null {
   const freq_days = row.freq_days
   const color = row.color
   const created_at = row.created_at
+  const emoji = row.emoji
   if (!isUuid(id)) return null
   if (typeof name !== 'string' || name.trim().length === 0 || name.length > 200) return null
   if (type !== 'boolean' && type !== 'numeric') return null
@@ -147,6 +150,7 @@ function validHabit(row: BackupRow): ImportHabit | null {
   if (unit !== null && typeof unit !== 'string') return null
   if (!isPositiveInt(freq_times) || !isPositiveInt(freq_days)) return null
   if (typeof color !== 'string' || !COLOR_RE.test(color)) return null
+  if (emoji !== undefined && emoji !== null && typeof emoji !== 'string') return null
   if (!isIsoTimestamp(created_at)) return null
   return {
     id,
@@ -157,6 +161,8 @@ function validHabit(row: BackupRow): ImportHabit | null {
     freq_times,
     freq_days,
     color: color.toLowerCase(),
+    // Older backups have no emoji column — absent means "no emoji".
+    emoji: normalizeEmoji(typeof emoji === 'string' ? emoji : null),
     sort_order: Number.isInteger(row.sort_order) ? (row.sort_order as number) : 0,
     archived: row.archived === true,
     created_at,

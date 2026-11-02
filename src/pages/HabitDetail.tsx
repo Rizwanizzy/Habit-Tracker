@@ -16,6 +16,7 @@ import { RangeSwitch } from '../components/RangeSwitch'
 import { StatTile } from '../components/StatTile'
 import { IconChevronLeft, IconPencil } from '../components/icons'
 import { useHabitsContext } from '../contexts/HabitsContext'
+import { normalizeEmoji } from '../lib/emoji'
 import { useEntries } from '../hooks/useEntries'
 import {
   bestStreak,
@@ -103,6 +104,7 @@ export function HabitDetail() {
   const entries = id ? (entriesByHabit[id] ?? []) : []
   const color = habit?.color ?? '#3B82F6'
   const name = habit?.name ?? 'Habit'
+  const emoji = normalizeEmoji(habit?.emoji)
 
   /** Tap cycle on the heatmap (dayStatus helpers): empty → done → skipped →
    *  empty. done upserts status 'done' at target; skipped upserts value 0 /
@@ -195,11 +197,24 @@ export function HabitDetail() {
         >
           <IconChevronLeft className="size-5" />
         </Link>
-        <span
-          aria-hidden="true"
-          className="size-3 shrink-0 rounded-full"
-          style={{ backgroundColor: color }}
-        />
+        {emoji ? (
+          <span
+            aria-hidden="true"
+            className="grid size-8 shrink-0 place-items-center rounded-full text-lg leading-none"
+            style={{
+              border: `2px solid ${color}`,
+              backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)`,
+            }}
+          >
+            {emoji}
+          </span>
+        ) : (
+          <span
+            aria-hidden="true"
+            className="size-3 shrink-0 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+        )}
         <h1 className="text-page-title min-w-0 flex-1 truncate">{habit.name}</h1>
         <Link
           to={`/habits/${habit.id}/edit`}
