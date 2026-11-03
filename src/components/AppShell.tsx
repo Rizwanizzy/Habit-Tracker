@@ -37,7 +37,7 @@ export function AppShell() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] lg:p-4">
-      <div className="glass-card app-shell flex min-h-dvh overflow-hidden lg:rounded-shell lg:min-h-[calc(100dvh-2rem)] max-sm:flex max-sm:flex-col max-sm:min-h-[calc(100svh)] max-sm:h-[calc(100svh)]">
+      <div className="glass-card app-shell flex min-h-dvh overflow-hidden lg:rounded-shell lg:min-h-[calc(100dvh-2rem)] max-sm:flex max-sm:flex-col max-sm:min-h-0 max-sm:h-[calc(100svh)]">
         {/* Desktop rail: 72px wide column */}
         <aside aria-label="Primary" className="hidden w-[72px] shrink-0 flex-col items-center border-r border-border py-5 lg:flex">
           {/* Top: logo mark (no border/background, matches Sign in page) */}
@@ -92,7 +92,7 @@ export function AppShell() {
         </aside>
 
         {/* Content */}
-        <main className="min-w-0 flex-1 max-sm:flex max-sm:flex-col px-4 py-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:px-8 lg:py-6 lg:pb-6">
+        <main className="min-w-0 flex-1 overflow-y-auto max-sm:flex max-sm:flex-col px-4 py-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:px-8 lg:py-6 lg:pb-6">
           <Outlet />
         </main>
       </div>
