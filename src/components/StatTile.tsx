@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 interface Props {
   label: string
   numeral: string
   /** Row of chips/content beneath the numeral (delta chip, habit name line…). */
   children?: ReactNode
+  /** Optional node rendered on the SAME row as the numeral (mobile compact
+   *  layout); on desktop it falls back to the children row. */
+  delta?: ReactNode
   footnote?: string
   /** Position of the card in the fade-up stagger, ms. */
   delay?: number
@@ -13,17 +16,69 @@ interface Props {
   to?: string
   /** Accessible text for the stretched link (e.g. the habit's name). */
   linkLabel?: string
+  /** Compact variant for tight rows (e.g. 3 tiles on a 360px phone). */
+  compact?: boolean
 }
 
 /** Glass stat tile (DESIGN.md §6): caption label on top, big numeral,
  *  optional chips row and footnote. */
-export function StatTile({ label, numeral, children, footnote, delay = 0, to, linkLabel }: Props) {
+export function StatTile({
+  label,
+  numeral,
+  children,
+  delta,
+  footnote,
+  delay = 0,
+  to,
+  linkLabel,
+  compact = false,
+}: Props) {
+  // On a phone the compact tile puts the delta on the same row as the numeral;
+  // on desktop we keep the original stacked layout (numeral, then delta+name).
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window === 'undefined' ? false : window.innerWidth < 640,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    const sync = () => setIsMobile(mq.matches || window.innerWidth < 640)
+    mq.addEventListener('change', sync)
+    window.addEventListener('resize', sync)
+    return () => {
+      mq.removeEventListener('change', sync)
+      window.removeEventListener('resize', sync)
+    }
+  }, [])
+
+  const inlineDelta = Boolean(compact && isMobile && delta)
+  const pad = compact ? 'p-2 sm:p-5' : 'p-5'
+  const labelCls = compact ? 'text-[10px] sm:text-caption' : 'text-caption'
+  const numeralCls = compact ? 'text-lg sm:text-stat' : 'text-stat'
+  const numeralMt = inlineDelta ? '' : compact ? 'mt-0.5 sm:mt-2' : 'mt-2'
+  const rowGap = compact ? 'gap-1 sm:gap-2' : 'gap-2'
+  const rowMt = compact ? 'mt-1 sm:mt-3' : 'mt-3'
+  const footCls = compact ? 'text-[9px] sm:text-caption mt-0.5 sm:mt-2' : 'text-caption mt-2'
+
   return (
-    <section className="glass-card fade-up group relative rounded-card p-5" style={{ animationDelay: `${delay}ms` }}>
-      <p className="text-caption text-fg-muted">{label}</p>
-      <p className="text-stat mt-2 tabular-nums text-fg">{numeral}</p>
-      {children && <div className="mt-3 flex flex-wrap items-center gap-2">{children}</div>}
-      {footnote && <p className="text-caption mt-2 text-fg-muted">{footnote}</p>}
+    <section
+      className={`glass-card fade-up group relative rounded-card ${pad}`}
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <p className={`text-fg-muted ${labelCls}`}>{label}</p>
+      {inlineDelta ? (
+        <div className={`flex flex-wrap items-baseline gap-2 ${compact ? 'mt-0.5 sm:mt-2' : 'mt-2'}`}>
+          <p className={`tabular-nums text-fg ${numeralCls}`}>{numeral}</p>
+          <div className="flex items-center">{delta}</div>
+        </div>
+      ) : (
+        <p className={`tabular-nums text-fg ${numeralCls} ${numeralMt}`}>{numeral}</p>
+      )}
+      {((delta && !inlineDelta) || children) && (
+        <div className={`flex flex-wrap items-center ${rowGap} ${rowMt}`}>
+          {delta && !inlineDelta && <div className="flex items-center">{delta}</div>}
+          {children}
+        </div>
+      )}
+      {footnote && <p className={`text-fg-muted ${footCls}`}>{footnote}</p>}
       {to && (
         <Link
           to={to}
@@ -55,12 +110,12 @@ export function DeltaChip({
   const color = TONES[tone]
   return (
     <span
-      className="text-caption inline-flex items-center gap-1 rounded-pill px-2 py-1 font-medium"
+      className="text-[9px] sm:text-caption inline-flex items-center gap-0.5 sm:gap-1 rounded-pill px-1 sm:px-2 py-0.5 sm:py-1 font-medium"
       style={{ color, backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)` }}
     >
       <svg
         viewBox="0 0 24 24"
-        className="size-3.5"
+        className="size-2.5 sm:size-3.5"
         fill="none"
         stroke="currentColor"
         strokeWidth={2.5}
@@ -82,21 +137,30 @@ export function HabitDotName({
   color,
   name,
   emoji,
+  compact = false,
 }: {
   color: string
   name: string
   emoji?: string | null
+  compact?: boolean
 }) {
   return (
-    <span className="flex min-w-0 items-center gap-2">
+    <span className="flex min-w-0 items-center gap-1 sm:gap-2">
       {emoji ? (
-        <span aria-hidden="true" className="shrink-0 text-base leading-none">
+        <span aria-hidden="true" className={`shrink-0 leading-none ${compact ? 'text-xs' : 'text-base'}`}>
           {emoji}
         </span>
       ) : (
-        <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+        <span
+          className={`shrink-0 rounded-full ${compact ? 'size-1.5' : 'size-2.5'}`}
+          style={{ backgroundColor: color }}
+        />
       )}
-      <span className="text-body min-w-0 truncate text-fg decoration-1 underline-offset-2 group-hover:underline">
+      <span
+        className={`min-w-0 truncate text-fg decoration-1 underline-offset-2 group-hover:underline ${
+          compact ? 'text-[10px]' : 'text-body'
+        }`}
+      >
         {name}
       </span>
     </span>

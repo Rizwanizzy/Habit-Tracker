@@ -157,8 +157,59 @@ export function Overview() {
         />
       </header>
 
-      {/* Row 1: stat tiles */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:gap-5">
+      {/* Row 1: stat tiles.
+          Mobile (≤639px): compact tiles, 3 per row, delta on the same row as
+          the numeral. Desktop (≥640px): the ORIGINAL layout, unchanged. */}
+      <div className="grid grid-cols-3 gap-2 sm:hidden">
+        <StatTile
+          label="Avg score"
+          numeral={`${pct(stats.avg)}%`}
+          footnote={`vs previous ${rangeLabel}`}
+          compact
+          delta={
+            deltaPct != null && deltaPct !== 0 ? (
+              <DeltaChip
+                direction={deltaPct > 0 ? 'up' : 'down'}
+                text={`${Math.abs(deltaPct)}%`}
+                tone={deltaPct > 0 ? 'success' : 'danger'}
+              />
+            ) : undefined
+          }
+        />
+        <StatTile
+          label="Best habit"
+          numeral={`${pct(best.score)}%`}
+          delay={40}
+          to={`/habits/${best.habit.id}`}
+          linkLabel={`Open ${best.habit.name ?? 'habit'} details`}
+          compact
+          delta={<DeltaChip direction="up" text={`${pct(best.score)}%`} tone="success" />}
+        >
+          <HabitDotName
+            color={best.habit.color ?? '#3B82F6'}
+            name={best.habit.name ?? 'Habit'}
+            emoji={normalizeEmoji(best.habit.emoji)}
+            compact
+          />
+        </StatTile>
+        <StatTile
+          label="Need Attention"
+          numeral={`${pct(worst.score)}%`}
+          delay={80}
+          to={`/habits/${worst.habit.id}`}
+          linkLabel={`Open ${worst.habit.name ?? 'habit'} details`}
+          compact
+          delta={<DeltaChip direction="down" text={`${pct(worst.score)}%`} tone="danger" />}
+        >
+          <HabitDotName
+            color={worst.habit.color ?? '#3B82F6'}
+            name={worst.habit.name ?? 'Habit'}
+            emoji={normalizeEmoji(worst.habit.emoji)}
+            compact
+          />
+        </StatTile>
+      </div>
+      <div className="hidden grid-cols-1 gap-4 sm:grid sm:grid-cols-3 lg:gap-5">
         <StatTile label="Avg score" numeral={`${pct(stats.avg)}%`} footnote={`vs previous ${rangeLabel}`}>
           {deltaPct != null && deltaPct !== 0 && (
             <DeltaChip
@@ -215,21 +266,21 @@ export function Overview() {
                 }
                 aria-pressed={!isOff}
                 title={habit.name}
-                className="text-body relative flex h-9 max-w-[12rem] items-center gap-2 rounded-pill px-3 font-medium transition-all duration-150 after:absolute after:inset-x-0 after:inset-y-[-4px] after:content-[''] hover:brightness-110"
+                className="relative grid size-10 shrink-0 place-items-center rounded-full text-lg leading-none transition-all duration-150 after:absolute after:inset-[-4px] after:content-[''] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 style={
                   isOff
-                    ? { opacity: 0.5, border: '1px solid var(--border)' }
-                    : { backgroundColor: tint(color, 20), border: `1px solid ${tint(color, 40)}` }
+                    ? { opacity: 0.35, border: `1px solid var(--border)`, backgroundColor: 'transparent' }
+                    : { backgroundColor: tint(color, 20), border: `2px solid ${tint(color, 50)}` }
                 }
               >
                 {emoji ? (
-                  <span aria-hidden="true" className="shrink-0 text-base leading-none">
+                  <span aria-hidden="true" className="leading-none">
                     {emoji}
                   </span>
                 ) : (
-                  <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="size-2.5 rounded-full" style={{ backgroundColor: color }} />
                 )}
-                <span className="min-w-0 truncate text-fg">{habit.name}</span>
+                <span className="sr-only">{habit.name}</span>
               </button>
             )
           })}

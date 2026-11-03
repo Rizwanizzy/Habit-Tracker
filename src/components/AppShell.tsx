@@ -16,8 +16,8 @@ type NavItem = {
 const NAV: NavItem[] = [
   { to: '/', label: 'Today', Icon: IconToday, dock: 'left' },
   { to: '/overview', label: 'Overview', Icon: IconOverview, rail: true, dock: 'left' },
-  { to: '/profile', label: 'Profile', Icon: IconUser, dock: 'right' },
   { to: '/settings', label: 'Settings', Icon: IconSettings, rail: true, dock: 'right' },
+  { to: '/profile', label: 'Profile', Icon: IconUser, dock: 'right' },
 ]
 
 /** Rounded 48px circles used by the rail (DESIGN.md §5). */
@@ -98,7 +98,7 @@ export function AppShell() {
       </div>
 
       {/* Mobile dock: floating glass pill with center FAB (Add habit).
-          Left items: Today, Overview. Right items: Settings. */}
+          Left items: Today, Overview. Right items: Settings, Profile. */}
       <nav
         aria-label="Primary"
         className="glass-pill mobile-dock fixed inset-x-4 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 flex h-16 items-center justify-between rounded-pill px-3 lg:hidden"

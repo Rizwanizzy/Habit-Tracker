@@ -43,7 +43,7 @@ function CheckIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="size-5 text-white"
+      className="size-6 text-white"
       fill="none"
       stroke="currentColor"
       strokeWidth={3}
@@ -138,7 +138,7 @@ export function HabitTile({
   return (
     <div
       ref={tileRef}
-      className={`habit-tile group relative flex h-full min-h-[132px] flex-col rounded-tile p-5 ${overlay ? '' : 'fade-up'} ${
+      className={`habit-tile group relative flex h-full min-h-[132px] flex-col rounded-tile p-4 ${overlay ? '' : 'fade-up'} ${
         skipped ? 'saturate-50 opacity-80' : ''
       } ${menuOpen && !overlay ? 'z-10' : ''}`}
       style={cssVars({
@@ -178,7 +178,7 @@ export function HabitTile({
           aria-pressed={done}
           aria-label={done ? `Mark ${habit.name} not done` : `Mark ${habit.name} done`}
           onAnimationEnd={handleAnimationEnd}
-          className={`tile-check relative grid size-11 shrink-0 place-items-center rounded-full transition-all duration-150 active:scale-95 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${reorderMode ? 'cursor-grab opacity-60' : ''} ${
+          className={`tile-check relative grid size-[52px] shrink-0 place-items-center rounded-full transition-all duration-150 active:scale-95 hover:brightness-105 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${reorderMode ? 'cursor-grab opacity-60' : ''} ${
             popping ? 'ring-pop' : ''
           }`}
           style={
@@ -199,7 +199,7 @@ export function HabitTile({
           {emoji ? (
             <span
               aria-hidden="true"
-              className={`tile-emoji text-xl leading-none ${skipped ? 'opacity-70' : ''}`}
+              className={`tile-emoji text-2xl leading-none ${skipped ? 'opacity-70' : ''}`}
             >
               {emoji}
             </span>
@@ -209,11 +209,11 @@ export function HabitTile({
           {done && emoji && (
             <span
               aria-hidden="true"
-              className="tile-check-badge absolute -bottom-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-white shadow-sm"
+              className="tile-check-badge absolute -bottom-0.5 -right-0.5 grid size-5 place-items-center rounded-full bg-white shadow-sm"
             >
               <svg
                 viewBox="0 0 24 24"
-                className="size-2.5"
+                className="size-3"
                 fill="none"
                 stroke={c}
                 strokeWidth={4}
