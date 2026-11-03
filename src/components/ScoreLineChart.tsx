@@ -138,14 +138,14 @@ interface Props {
 export function ScoreLineChart({ data, visible, names }: Props) {
   if (data.length === 0) {
     return (
-      <div className="grid h-56 place-items-center text-center">
+      <div className="grid h-56 max-sm:absolute max-sm:inset-0 max-sm:h-auto place-items-center text-center">
         <p className="text-body text-fg-secondary">Check in a habit to see your score.</p>
       </div>
     )
   }
 
   return (
-    <div className="h-56 lg:h-64">
+    <div className="h-56 lg:h-64 max-sm:absolute max-sm:inset-0 max-sm:h-auto">
       <ResponsiveContainer>
         <LineChart data={data} margin={{ top: 8, right: 8, left: -22 }}>
           <CartesianGrid vertical={false} strokeDasharray="4 4" stroke="var(--chart-grid)" />

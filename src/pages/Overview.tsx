@@ -142,7 +142,7 @@ export function Overview() {
   const worst = stats.worst ?? fallback
 
   return (
-    <section>
+    <section className="max-sm:flex max-sm:flex-col max-sm:min-h-[calc(100svh_-_5.5rem_-_env(safe-area-inset-bottom))]">
       {/* Header with the range switch (DESIGN.md §8) */}
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
@@ -241,8 +241,14 @@ export function Overview() {
         </StatTile>
       </div>
 
-      {/* Row 2: chart card with the habit chips inside it */}
-      <section className="glass-card fade-up mt-4 rounded-card p-5 lg:mt-5 lg:p-6" style={{ animationDelay: '120ms' }}>
+      {/* Row 2: chart card with the habit chips inside it.
+          Mobile: the page column is height-filled down to the dock reserve
+          (see the root section) and this card + chart grow to absorb the
+          slack so no idle strip is left above the dock. Desktop unchanged. */}
+      <section
+        className="glass-card fade-up mt-4 rounded-card p-5 max-sm:flex max-sm:flex-1 max-sm:flex-col lg:mt-5 lg:p-6"
+        style={{ animationDelay: '120ms' }}
+      >
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="text-section-title text-fg">Score</h2>
           <p className="text-caption text-fg-muted">Exponential average per habit</p>
@@ -285,7 +291,7 @@ export function Overview() {
             )
           })}
         </div>
-        <div className="mt-4">
+        <div className="mt-4 max-sm:relative max-sm:flex-1 max-sm:min-h-56">
           <ScoreLineChart data={data} visible={visible} names={names} />
         </div>
       </section>
