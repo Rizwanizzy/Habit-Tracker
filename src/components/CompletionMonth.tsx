@@ -24,16 +24,19 @@ interface Props {
 export function CompletionMonth({ weeks, completions, color, today }: Props) {
   const theme = useThemeName()
   return (
-    <div className="flex min-h-0 flex-1 flex-col items-center">
-        <div className="flex h-full min-h-0 w-full max-w-[255px] flex-col">
-        <div className="grid grid-cols-7 gap-1 pb-1" aria-hidden="true">
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+      <div className="flex h-full min-h-0 w-full max-w-[255px] flex-col justify-center">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 pb-0.5 sm:pb-1 shrink-0" aria-hidden="true">
           {WEEKDAYS.map((wd) => (
             <span key={wd} className="text-[10px] select-none text-center uppercase tracking-wide text-fg-muted">
               {wd}
             </span>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1" style={{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }}>
+        <div
+          className="grid grid-cols-7 gap-0.5 sm:gap-1 flex-1 min-h-0"
+          style={{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }}
+        >
           {weeks.flatMap((row, r) =>
             row.map((date, col) => {
               const key = `${r}-${col}`
@@ -57,7 +60,7 @@ export function CompletionMonth({ weeks, completions, color, today }: Props) {
                   key={key}
                   title={label}
                   aria-label={label}
-                  className={`w-full rounded-lg border p-1 text-[11px] leading-none text-center select-none ${
+                  className={`w-full rounded-md sm:rounded-lg border py-0.5 sm:py-1 px-0.5 text-[10px] sm:text-[11px] leading-none text-center select-none flex items-center justify-center ${
                     isFuture ? 'border-border/40' : filled ? 'border-transparent' : 'border-border/40'
                   } ${isToday ? 'ring-1 ring-accent' : ''}`}
                   style={{

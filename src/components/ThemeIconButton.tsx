@@ -4,12 +4,13 @@ import { IconMoon, IconSun } from './icons'
 interface Props {
   /** Disabled while reorder (jiggle) mode is active, like other Today controls. */
   disabled?: boolean
+  className?: string
 }
 
 /** Theme icon button for the Today header: one compact circular glass icon
  *  showing the theme you'd switch TO — sun in dark mode, moon in light mode —
  *  with a rotate + cross-fade swap (CSS only, honors reduced motion). */
-export function ThemeIconButton({ disabled = false }: Props) {
+export function ThemeIconButton({ disabled = false, className = '' }: Props) {
   const { dark, toggle } = useTheme()
   return (
     <button
@@ -18,7 +19,9 @@ export function ThemeIconButton({ disabled = false }: Props) {
       disabled={disabled}
       aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
       title={dark ? 'Switch to light theme' : 'Switch to dark theme'}
-      className="relative grid size-13 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-surface-raised text-fg-secondary transition-colors duration-150 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60"
+      className={`relative grid shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-surface-raised text-fg-secondary transition-colors duration-150 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60 ${
+        className || 'size-11 lg:size-13'
+      }`}
     >
       <span
         aria-hidden="true"

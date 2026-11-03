@@ -131,27 +131,27 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
 
   return (
     <section
-      className={`glass-card fade-up flex h-full flex-col rounded-card p-5 lg:p-6 ${pickerOpen ? 'relative z-10' : ''}`}
+      className={`glass-card fade-up flex flex-col rounded-card p-3.5 sm:p-4 lg:p-6 h-[236px] lg:h-full ${pickerOpen ? 'relative z-10' : ''}`}
       style={{ animationDelay: '40ms' }}
     >
       {/* While the color picker popover is open the card is lifted above its
           siblings: .glass-card stacking contexts (backdrop-filter) at z-auto
           paint in DOM order, so the tile rows below would cover the popover
           where it escapes this card. Same fix as DayStartCard. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <div className="flex items-baseline gap-3">
-          <h2 className="text-section-title text-fg">{TITLES[view]}</h2>
-          <p className="text-caption text-fg-muted">% done per day</p>
+      <div className="flex items-center justify-between gap-2 lg:gap-3 shrink-0">
+        <div className="flex items-baseline gap-2 lg:gap-3 min-w-0">
+          <h2 className="text-[17px] lg:text-section-title font-semibold text-fg truncate">{TITLES[view]}</h2>
+          <p className="text-caption text-fg-muted hidden sm:inline lg:inline">% done per day</p>
         </div>
-        <div ref={pickerRef} className="relative flex items-center gap-2">
-          <div role="group" aria-label="Completion range" className="glass-pill flex items-center gap-1 rounded-pill p-1">
+        <div ref={pickerRef} className="relative flex items-center gap-1.5 lg:gap-2 shrink-0">
+          <div role="group" aria-label="Completion range" className="glass-pill flex items-center gap-0.5 lg:gap-1 rounded-pill p-0.5 lg:p-1">
             {VIEWS.map((v) => (
               <button
                 key={v.id}
                 type="button"
                 onClick={() => setView(v.id)}
                 aria-pressed={view === v.id}
-                className={`relative h-9 rounded-pill px-3 text-caption transition-colors duration-150 after:absolute after:inset-y-[-4px] after:inset-x-1 after:rounded-pill after:content-[''] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                className={`relative h-8 px-2 lg:h-9 lg:px-3 text-[11px] lg:text-caption rounded-pill transition-colors duration-150 after:absolute after:inset-y-[-4px] after:inset-x-1 after:rounded-pill after:content-[''] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
                   view === v.id
                     ? 'bg-accent font-medium text-white'
                     : 'text-fg-secondary hover:text-fg'
@@ -166,10 +166,10 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
             onClick={() => setPickerOpen((o) => !o)}
             aria-label="Change completion color"
             aria-expanded={pickerOpen}
-            className="glass-pill relative grid size-11 shrink-0 place-items-center rounded-pill transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+            className="glass-pill relative grid size-9 lg:size-11 shrink-0 place-items-center rounded-pill transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
           >
             <span
-              className="size-4 rounded-full border border-white/40"
+              className="size-3.5 lg:size-4 rounded-full border border-white/40"
               style={{ backgroundColor: color }}
             />
           </button>
@@ -187,12 +187,12 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
       </div>
 
       {!hasHabits ? (
-        <p className="text-body mt-6 flex-1 text-fg-secondary">
+        <p className="text-body mt-4 sm:mt-6 flex-1 text-fg-secondary">
           Check in a habit to see your completion progress.
         </p>
       ) : view === 'week' ? (
-        <div className="mt-5 flex min-h-[126px] flex-1 flex-col">
-          <div className="flex min-h-[88px] flex-1 items-end gap-1.5 sm:gap-2.5">
+        <div className="mt-2.5 sm:mt-3 flex min-h-0 flex-1 flex-col justify-between">
+          <div className="flex min-h-0 flex-1 items-end gap-1.5 sm:gap-2.5">
             {weekDates.map((date, i) => {
               const c = byDate.get(date)
               const frac = c ? c.frac : 0
@@ -224,7 +224,7 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
               )
             })}
           </div>
-          <div className="mt-2 grid grid-cols-7 gap-1.5 sm:gap-2.5">
+          <div className="mt-1.5 sm:mt-2 grid grid-cols-7 gap-1.5 sm:gap-2.5 shrink-0">
             {weekDates.map((date, i) => (
               <p
                 key={date}
@@ -236,16 +236,22 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
           </div>
         </div>
       ) : view === 'month' ? (
-        <div className="mt-4 flex min-h-[126px] flex-1 flex-col">
+        <div className="mt-2.5 sm:mt-3 flex min-h-0 flex-1 flex-col justify-center">
           <CompletionMonth weeks={monthWeeks} completions={byDate} color={color} today={today} />
         </div>
       ) : (
-        <div className="mt-4 flex min-h-[126px] flex-1 flex-col">
+        <div className="mt-2.5 sm:mt-3 flex min-h-0 flex-1 flex-col justify-center">
           <CompletionYear columns={yearColumns} completions={byDate} color={color} today={today} />
         </div>
       )}
 
-      {hasHabits && view !== 'week' && <IntensityLegend color={color} />}
+      {hasHabits && (
+        view !== 'week' ? (
+          <IntensityLegend color={color} />
+        ) : (
+          <div className="mt-2 sm:mt-2.5 h-3.5 shrink-0 opacity-0 pointer-events-none select-none lg:hidden" aria-hidden="true" />
+        )
+      )}
     </section>
   )
 }
@@ -253,7 +259,7 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
 function IntensityLegend({ color }: { color: string }) {
   const steps = [0.15, 0.4, 0.65, 1].map((f) => intensityPct(f))
   return (
-    <div className="mt-3 flex items-center justify-end gap-1.5">
+    <div className="mt-2 sm:mt-2.5 flex items-center justify-end gap-1.5 shrink-0">
       <span className="text-caption text-fg-muted">Less</span>
       {steps.map((p) => (
         <span

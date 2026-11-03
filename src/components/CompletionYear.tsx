@@ -25,10 +25,10 @@ export function CompletionYear({ columns, completions, color, today }: Props) {
   const gridTemplate = `${ROW_LABEL_W}px repeat(${columns.length}, minmax(0, 1fr))`
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col justify-center">
         {/* Month labels */}
         <div
-          className="grid"
+          className="grid shrink-0"
           style={{ gridTemplateColumns: gridTemplate, columnGap: GAP, height: CELL + 2 }}
         >
           <span />

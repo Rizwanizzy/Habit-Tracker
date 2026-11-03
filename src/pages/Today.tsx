@@ -283,23 +283,7 @@ export function Today() {
   // 28 shown habits); the rings component runs its own layoutRings.
   const ringLayout = useMemo(() => layoutRings(habits.map((h) => h.id)), [habits])
 
-  const dateInputRef = useRef<HTMLInputElement>(null)
 
-  function openDayPicker() {
-    const el = dateInputRef.current
-    if (!el) return
-    // iOS Safari won't open the native calendar on a hidden input.
-    // Temporarily un-hide it, trigger showPicker(), then hide again.
-    const wasHidden = el.classList.contains('sr-only')
-    if (wasHidden) el.classList.remove('sr-only')
-    el.focus()
-    if (typeof el.showPicker === 'function') el.showPicker()
-    else el.click()
-    if (wasHidden) {
-      // Re-hide after a tick so the picker has time to open on iOS.
-      requestAnimationFrame(() => el.classList.add('sr-only'))
-    }
-  }
 
   const dateLabel = DATE_FMT.format(parseLocalDate(selectedDate))
   const todayLabel = DATE_FMT.format(parseLocalDate(today))
@@ -392,26 +376,112 @@ export function Today() {
 
   return (
     <section>
-      {/* Header: single-row app bar on all viewports.
-          Mobile: compact greeting (avatar + name) + smaller controls.
-          Desktop (lg+): full greeting (greeting + name + date) + larger controls. */}
-      <header className="mb-5 flex flex-wrap items-center justify-between gap-3 lg:gap-6">
+      {/* Mobile header (below lg): two rows */}
+      <header className="mb-3 flex flex-col gap-3 lg:hidden">
+        {/* Row 1 (flex, items-center, justify-between, 44px high) */}
+        <div className="flex h-11 items-center justify-between gap-3">
+          <TodayGreeting compact reorderMode={reorderMode} />
+          {reorderMode ? (
+            <button
+              type="button"
+              onClick={exitReorderMode}
+              className="bg-accent-gradient glow-accent inline-flex h-11 items-center justify-center rounded-pill px-5 text-body font-semibold text-white transition-all duration-150 active:scale-95"
+            >
+              Done
+            </button>
+          ) : (
+            <ThemeIconButton disabled={reorderMode} className="size-11" />
+          )}
+        </div>
+
+        {/* Row 2: date navigation pill (50% / 65% past) and per-row density stepper (50% / 35% past) */}
+        <div className="w-full">
+          <div className="flex w-full items-center gap-2">
+            <div
+              role="group"
+              aria-label="Date navigation"
+              className={`glass-pill flex h-11 sm:h-12 items-center justify-between rounded-pill p-1 transition-[flex-grow,flex-basis] duration-150 ${
+                isPast ? 'flex-[65] basis-[65%] min-w-0' : 'flex-1 basis-1/2 min-w-0'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setSelectedDate(addDays(selectedDate, -1))}
+                aria-label="Previous day"
+                className="relative grid size-8 sm:size-9 shrink-0 place-items-center rounded-pill text-fg-secondary transition-colors duration-150 hover:text-fg after:absolute after:inset-[-6px] after:content-['']"
+              >
+                <IconChevronLeft className="size-4 sm:size-5" />
+              </button>
+
+              <div className="relative flex flex-1 items-center justify-center min-w-0 h-full">
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none flex h-9 sm:h-10 items-center justify-center gap-1 rounded-pill px-1 sm:px-2 text-[12px] sm:text-caption font-medium text-fg max-w-full min-w-0"
+                >
+                  <span className="truncate">{pillDateLabel}</span>
+                  <IconChevronDown className="size-3.5 sm:size-4 shrink-0 text-fg-muted" />
+                </div>
+                {/* Transparent input overlay: user tap hits native input directly, opening OS picker without programmatic showPicker() */}
+                <input
+                  type="date"
+                  value={selectedDate}
+                  max={today}
+                  onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+                  aria-label={`Pick a date to log, ${dateLabel}`}
+                  className="absolute inset-0 h-full w-full cursor-pointer rounded-pill opacity-0"
+                />
+              </div>
+
+              <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+                {isPast && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDate(today)}
+                    className="text-[11px] sm:text-caption h-7 sm:h-8 rounded-pill bg-accent px-1.5 sm:px-2 font-medium text-white transition-all duration-150 hover:brightness-110 active:scale-95"
+                  >
+                    Today
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                  disabled={isPast === false}
+                  aria-label="Next day"
+                  className="relative grid size-8 sm:size-9 place-items-center rounded-pill text-fg-secondary transition-colors duration-150 hover:text-fg disabled:opacity-40 after:absolute after:inset-[-6px] after:content-['']"
+                >
+                  <IconChevronRight className="size-4 sm:size-5" />
+                </button>
+              </div>
+            </div>
+
+            <TileDensity
+              value={perRow}
+              onChange={updatePerRow}
+              className={`h-11 sm:h-12 transition-[flex-grow,flex-basis] duration-150 justify-center ${
+                isPast ? 'flex-[35] basis-[35%] min-w-0' : 'flex-1 basis-1/2 min-w-0'
+              }`}
+            />
+          </div>
+
+          {dayShifted && (
+            <p className="text-caption mt-1.5 text-center text-fg-muted">
+              Counting as {todayLabel} until {formatDayStart(dayStartHour)}
+            </p>
+          )}
+        </div>
+      </header>
+
+      {/* Desktop header (lg+): exact original single row */}
+      <header className="mb-5 hidden lg:flex flex-wrap items-center justify-between gap-6">
         <div className="flex items-center gap-3 min-w-0">
-          {/* Mobile: compact greeting (avatar + "Hi, name" on one line). */}
-          <div className="lg:hidden">
-            <TodayGreeting compact />
-          </div>
-          {/* Desktop: full greeting (time-of-day + "Hi, name" + date caption). */}
-          <div className="hidden lg:flex items-center gap-3 min-w-0">
-            <TodayGreeting />
-          </div>
+          <TodayGreeting />
           {dayShifted && (
             <p className="text-caption text-fg-muted lg:flex-1 lg:text-center">
               Counting as {todayLabel} until {formatDayStart(dayStartHour)}
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2 lg:gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <ThemeIconButton disabled={reorderMode} />
           <div
             role="group"
@@ -426,24 +496,23 @@ export function Today() {
             >
               <IconChevronLeft className="size-5" />
             </button>
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={selectedDate}
-              max={today}
-              onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-              aria-label="Pick a date to log"
-              className="sr-only h-11 w-36 min-w-[5.5rem] rounded-pill px-2 text-body text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            />
-            <button
-              type="button"
-              onClick={openDayPicker}
-              aria-label={`Pick a date to log, ${dateLabel}`}
-              className="flex h-11 min-w-[5.5rem] items-center justify-center gap-1.5 rounded-pill px-2.5 text-body text-fg transition-colors duration-150 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              <span className="truncate">{pillDateLabel}</span>
-              <IconChevronDown className="size-4 shrink-0 text-fg-muted" />
-            </button>
+            <div className="relative flex items-center justify-center min-w-[5.5rem] h-11">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none flex h-11 min-w-[5.5rem] items-center justify-center gap-1.5 rounded-pill px-2.5 text-body text-fg"
+              >
+                <span className="truncate">{pillDateLabel}</span>
+                <IconChevronDown className="size-4 shrink-0 text-fg-muted" />
+              </div>
+              <input
+                type="date"
+                value={selectedDate}
+                max={today}
+                onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+                aria-label={`Pick a date to log, ${dateLabel}`}
+                className="absolute inset-0 h-full w-full cursor-pointer rounded-pill opacity-0"
+              />
+            </div>
             <button
               type="button"
               onClick={() => setSelectedDate(addDays(selectedDate, 1))}
@@ -470,7 +539,7 @@ export function Today() {
           ) : (
             <Link
               to="/habits/new"
-              className="hidden lg:inline-flex h-12 shrink-0 items-center rounded-pill bg-accent-gradient glow-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 hover:translate-y-[-1px]"
+              className="inline-flex h-12 shrink-0 items-center rounded-pill bg-accent-gradient glow-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 hover:translate-y-[-1px]"
             >
               Add habit
             </Link>
@@ -478,7 +547,8 @@ export function Today() {
         </div>
       </header>
 
-      <div className="mb-3 mt-1 flex flex-wrap items-end justify-between gap-3 lg:mt-0">
+      {/* Desktop >7 habits note & TileDensity stepper (hidden below lg) */}
+      <div className="mb-3 mt-1 hidden lg:flex flex-wrap items-end justify-between gap-3 lg:mt-0">
         {habits.length > 7 && (
           <p className="text-caption max-w-[70%] text-fg-muted">
             You have {habits.length} active habits. Rings are shared from here on (up to 4 habits
@@ -490,15 +560,22 @@ export function Today() {
         <TileDensity value={perRow} onChange={updatePerRow} />
       </div>
 
+      {/* Mobile hidden-count note only (when > 28 habits) */}
+      {ringLayout.hiddenCount > 0 && (
+        <p className="text-caption text-center text-fg-muted mb-3 lg:hidden">
+          +{ringLayout.hiddenCount} more habits are not shown in the rings.
+        </p>
+      )}
+
       {actionError && (
-        <p role="alert" className="text-body mb-4 rounded-input bg-danger/10 px-3 py-2 text-danger">
+        <p role="alert" className="text-body mb-3 lg:mb-4 rounded-input bg-danger/10 px-3 py-2 text-danger">
           {actionError}
         </p>
       )}
 
       {vacationToday && (
         <div
-          className="glass-card fade-up mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card px-5 py-4"
+          className="glass-card fade-up mb-3 lg:mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card px-4 py-3.5 lg:px-5 lg:py-4"
           style={{ animationDelay: '20ms' }}
           role="status"
         >
@@ -518,11 +595,56 @@ export function Today() {
         </div>
       )}
 
-      {/* Bento row 1: hero (rings) + weekly completion */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
-        <section className="glass-card fade-up rounded-card p-5 lg:col-span-5 lg:p-6">
-          <div className="flex flex-col items-center gap-5 lg:flex-row lg:gap-6">
-            <div className="w-full max-w-[220px] shrink-0 self-center lg:max-w-[200px]">
+      {/* Bento grid (desktop) / Stack (mobile):
+          Order: 1. Hero rings -> 2. Completion card (Week/Month/Year) -> 3. Habit tiles.
+          Desktop layout: Row 1 = Hero (5 cols) + Completion card (7 cols), Row 2 = Habit tiles (12 cols). */}
+      <div className="flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:gap-5">
+        {/* Hero card */}
+        <section className="glass-card fade-up rounded-card p-4 lg:col-span-5 lg:p-6">
+          <div className="flex flex-row items-center gap-4 lg:gap-6">
+            {/* Mobile Left stat block (hidden on lg+) */}
+            <div className="min-w-0 flex-1 lg:hidden">
+              {vacationToday && selectedDate === today ? (
+                <p className="font-display text-[28px] sm:text-[34px] font-bold leading-none text-fg">
+                  Paused
+                </p>
+              ) : totalToday === 0 && habits.length > 0 ? (
+                <p className="font-display text-[22px] sm:text-[28px] font-bold leading-tight text-fg">
+                  All caught up.
+                </p>
+              ) : (
+                <p className="font-display text-[38px] sm:text-[40px] leading-none tabular-nums font-bold text-fg">
+                  {doneToday} / {totalToday}
+                </p>
+              )}
+              <p className="text-caption mt-1 text-fg-muted">
+                {vacationToday && selectedDate === today
+                  ? 'habits are paused'
+                  : totalToday === 0 && habits.length > 0
+                    ? 'all habits skipped'
+                    : isPast
+                      ? 'done that day'
+                      : 'done today'}
+              </p>
+              {motivational && totalToday !== 0 && (
+                <p className="text-[14px] leading-snug text-fg-secondary line-clamp-2 mt-1.5">
+                  {motivational}
+                </p>
+              )}
+              <div className="mt-2.5">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-2.5 py-1 text-caption text-fg-muted whitespace-nowrap"
+                  title="Longest active streak"
+                >
+                  <IconFlame className="size-3.5 text-accent" />
+                  <span>Best streak</span>
+                  <span className="tabular-nums font-semibold text-fg">{overallStreak}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* ProgressRings (both viewports: Right on mobile via order-2, Left on desktop via lg:order-1) */}
+            <div className="size-[120px] sm:size-[140px] shrink-0 order-2 lg:order-1 lg:size-auto lg:w-full lg:max-w-[200px] lg:self-center">
               <ProgressRings
                 habits={habits}
                 entriesByHabit={entriesByHabit}
@@ -532,7 +654,9 @@ export function Today() {
                 vacations={vacationDays}
               />
             </div>
-            <div className="min-w-0 flex-1">
+
+            {/* Desktop Right stat block (hidden below lg) */}
+            <div className="hidden lg:block min-w-0 flex-1 lg:order-2">
               <p className="text-body text-fg-secondary">{motivational}</p>
               <span
                 className="mt-4 inline-flex items-center gap-2 rounded-pill border border-border bg-surface px-3"
@@ -547,28 +671,36 @@ export function Today() {
           </div>
         </section>
 
-        <div className="lg:col-span-7">
-          <CompletionCard habits={habits} entriesByHabit={entriesByHabit} today={today} vacations={vacationDays} />
+        {/* Completion card */}
+        <div className="w-full lg:col-span-7">
+          <CompletionCard
+            habits={habits}
+            entriesByHabit={entriesByHabit}
+            today={today}
+            vacations={vacationDays}
+          />
+        </div>
+
+        {/* Habit tiles (sortable grid; long-press enters jiggle mode) */}
+        <div className="w-full lg:col-span-12">
+          <HabitReorderGrid
+            habits={habits}
+            entriesByHabit={entriesByHabit}
+            selectedDate={selectedDate}
+            today={today}
+            vacations={vacationDays}
+            perRow={perRow}
+            reorderMode={reorderMode}
+            enterReorderMode={() => setReorderMode(true)}
+            exitReorderMode={exitReorderMode}
+            reorderHabits={reorderHabits}
+            onNotice={(kind, text) => setNotice({ kind, text })}
+            onToggle={toggle}
+            onLogValue={logValue}
+            onSkip={skip}
+          />
         </div>
       </div>
-
-      {/* Bento row 2: habit tiles (sortable grid; long-press enters jiggle mode) */}
-      <HabitReorderGrid
-        habits={habits}
-        entriesByHabit={entriesByHabit}
-        selectedDate={selectedDate}
-        today={today}
-        vacations={vacationDays}
-        perRow={perRow}
-        reorderMode={reorderMode}
-        enterReorderMode={() => setReorderMode(true)}
-        exitReorderMode={exitReorderMode}
-        reorderHabits={reorderHabits}
-        onNotice={(kind, text) => setNotice({ kind, text })}
-        onToggle={toggle}
-        onLogValue={logValue}
-        onSkip={skip}
-      />
 
       {/* Reorder toast: "Order saved" or the rollback error message — pinned
           under the page header, not the bottom edge (see Profile toast). */}

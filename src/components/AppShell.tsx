@@ -92,7 +92,7 @@ export function AppShell() {
         </aside>
 
         {/* Content */}
-        <main className="min-w-0 flex-1 max-sm:flex max-sm:flex-col px-4 py-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:px-8 lg:py-6 lg:pb-6">
+        <main className="min-w-0 flex-1 max-sm:flex max-sm:flex-col px-4 py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:px-8 lg:py-6 lg:pb-6">
           <Outlet />
         </main>
       </div>

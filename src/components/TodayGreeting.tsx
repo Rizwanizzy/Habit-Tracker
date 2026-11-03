@@ -37,7 +37,12 @@ function getDisplayName(fullName: string | null, email: string | null): string {
   return source
 }
 
-export function TodayGreeting({ compact = false }: { compact?: boolean } = {}) {
+interface TodayGreetingProps {
+  compact?: boolean
+  reorderMode?: boolean
+}
+
+export function TodayGreeting({ compact = false, reorderMode = false }: TodayGreetingProps = {}) {
   const { profile, loading, email, avatarUrl } = useProfileContext()
   // Date caption under the greeting: the LOGICAL day (day-start aware), so
   // after midnight with a later day start it still shows the previous day.
@@ -58,21 +63,22 @@ export function TodayGreeting({ compact = false }: { compact?: boolean } = {}) {
           if (loading) e.preventDefault()
         }}
         className="relative shrink-0"
+        aria-label="View profile"
       >
         <div className="relative">
           {hasPhoto ? (
             <img
               src={avatarUrl!}
               alt="Profile"
-              className="size-[48px] rounded-full object-cover ring-4 ring-background"
+              className="size-11 lg:size-[48px] rounded-full object-cover ring-2 lg:ring-4 ring-background"
               loading="lazy"
             />
           ) : (
             <div
               aria-hidden="true"
-              className="bg-accent-gradient glow-accent grid size-[48px] place-items-center rounded-full ring-4 ring-background"
+              className="bg-accent-gradient glow-accent grid size-11 lg:size-[48px] place-items-center rounded-full ring-2 lg:ring-4 ring-background"
             >
-              <span className="text-stat text-white">{initials}</span>
+              <span className="text-[17px] lg:text-stat font-bold font-display text-white">{initials}</span>
             </div>
           )}
           <span
@@ -84,7 +90,14 @@ export function TodayGreeting({ compact = false }: { compact?: boolean } = {}) {
       </Link>
       <div className="min-w-0">
         {compact ? (
-          <p className="text-body font-bold truncate text-fg">Hi, {name}</p>
+          <>
+            <p className="text-[12px] uppercase tracking-[0.08em] font-medium text-fg-muted leading-tight">
+              {reorderMode ? 'Drag to reorder' : greeting}
+            </p>
+            <h1 className="text-[22px] font-bold font-display leading-tight truncate text-fg">
+              Hi, {name}
+            </h1>
+          </>
         ) : (
           <>
             <p className="text-caption text-fg-muted">{greeting}</p>

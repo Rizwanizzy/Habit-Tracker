@@ -185,7 +185,7 @@ export function HabitReorderGrid({
       <SortableContext items={habits.map((h) => h.id)} strategy={rectSortingStrategy}>
         <ul
           aria-label="Habits"
-          className={`tile-grid mt-4 grid pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:mt-5 lg:pb-0 ${reorderMode ? 'reorder-grid' : ''}`}
+          className={`tile-grid grid ${reorderMode ? 'reorder-grid' : ''}`}
           style={
             {
               '--tile-cols': perRow,

@@ -142,7 +142,7 @@ export function Overview() {
   const worst = stats.worst ?? fallback
 
   return (
-    <section className="max-sm:flex max-sm:flex-col max-sm:flex-1 max-sm:min-h-[calc(100svh_-_5.5rem_-_env(safe-area-inset-bottom))]">
+    <section className="max-sm:flex max-sm:flex-col max-sm:flex-1 max-sm:min-h-[calc(100svh_-_6.5rem_-_env(safe-area-inset-bottom))]">
       {/* Header with the range switch (DESIGN.md §8) */}
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">

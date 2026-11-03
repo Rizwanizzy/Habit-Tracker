@@ -267,7 +267,8 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
       {/* Center: totals over all active habits; numeral shrinks when the
           inner ring is tight, caption hidden when it would not fit. */}
       <div className="pointer-events-none absolute inset-0 grid place-items-center">
-        <div className="text-center">
+        {/* Desktop in-ring center: full numerals & caption (hidden below lg) */}
+        <div className="hidden lg:block text-center">
           <p className="text-stat tabular-nums text-fg" style={numeralSize ? { fontSize: numeralSize } : undefined}>
             {paused ? <span className="text-body font-semibold">Paused</span> : (
               <>
@@ -275,7 +276,19 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
               </>
             )}
           </p>
-          {showCaption && <p className="text-caption text-fg-muted">{caption}</p>}        </div>
+          {showCaption && <p className="text-caption text-fg-muted">{caption}</p>}
+        </div>
+
+        {/* Mobile in-ring center: small percentage (hidden on lg+) */}
+        <div className="lg:hidden text-center" aria-hidden="true">
+          <p className="text-[13px] font-bold tabular-nums text-fg leading-none">
+            {paused ? (
+              <span className="text-[11px] font-semibold">Paused</span>
+            ) : (
+              `${total > 0 ? Math.round((done / total) * 100) : 0}%`
+            )}
+          </p>
+        </div>
       </div>
 
       {tip &&

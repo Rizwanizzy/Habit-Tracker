@@ -1,0 +1,8 @@
+{
+  "name": "Habit Tracker",
+  "description": "Track habits with one-tap check-ins, streaks, scores and charts. A personal, installable habit tracker.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
