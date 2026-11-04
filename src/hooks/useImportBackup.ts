@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { getSupabase } from '../lib/supabase'
+import { newId as newUuid } from '../lib/id'
 import { useHabitsContext } from '../contexts/HabitsContext'
 import { extractError } from './useHabits'
 import { isDayStartHour } from '../lib/dates'
@@ -205,7 +206,7 @@ export function useImportBackup() {
             // retry once with a fresh id and remap this habit's entries.
             const code = (e as { code?: string }).code
             if (code !== '23505' && !String(e).includes('duplicate key')) throw e
-            const newId = crypto.randomUUID()
+            const newId = newUuid()
             const { error: retryError } = await sb.from('habits').insert({ ...payload, id: newId })
             if (retryError) {
               result.habitsFailed++

@@ -235,3 +235,53 @@ export function IconCalendar({ className }: { className?: string }) {
     </svg>
   )
 }
+
+/* --- Settings — Data card pills and habit manage tiles (phone layout) --- */
+
+/** Arrow down to a baseline — "Export backup" pill. */
+export function IconDownload({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="M12 4v11" />
+      <path d="m7 10.5 5 5 5-5" />
+      <path d="M5 20h14" />
+    </svg>
+  )
+}
+
+/** Arrow up from a baseline — "Import backup" pill. */
+export function IconUpload({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="M12 19V8" />
+      <path d="m7 12.5 5-5 5 5" />
+      <path d="M5 21h14" />
+    </svg>
+  )
+}
+
+/** Storage box with an arrow going down into it — archive (Settings phone
+ *  tiles). Thinner 1.8 stroke so the box detail stays legible at 20px. */
+export function IconArchive({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} strokeWidth={1.8} aria-hidden="true">
+      <rect x="3" y="4" width="18" height="4.5" rx="1.2" />
+      <path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5" />
+      <path d="M12 11.5v5" />
+      <path d="m9.5 14.5 2.5 2.5 2.5-2.5" />
+    </svg>
+  )
+}
+
+/** Storage box with an arrow coming up out of it — unarchive (Settings
+ *  phone tiles), the mirror of IconArchive at the same 1.8 stroke. */
+export function IconUnarchive({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} strokeWidth={1.8} aria-hidden="true">
+      <rect x="3" y="4" width="18" height="4.5" rx="1.2" />
+      <path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5" />
+      <path d="M12 16.5v-5" />
+      <path d="m9.5 9.5 2.5-2.5 2.5 2.5" />
+    </svg>
+  )
+}

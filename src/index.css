@@ -557,6 +557,87 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   line-height: 1.5rem;
 }
 
+/* Phone (below lg, same breakpoint as Tailwind's max-lg): 44px .input-field
+   trigger with a 14px label (Settings "Day" card) so the short day-start
+   label stays on ONE line. Desktop keeps 52px and the 15px text-body. */
+@media (max-width: 1023.98px) {
+  .input-field-phone {
+    height: 2.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Native date inputs (Vacation card's phone form). iPhone Safari root
+   cause of the overflow: a date input ignores its CSS width and keeps a
+   wide intrinsic size until -webkit-appearance is removed, so the "To"
+   input refused to shrink inside its 50% grid column and overflowed the
+   card (Android shrinks fine). Also: iOS Safari does not vertically
+   center its inner value box (`::-webkit-date-and-time-value`) inside a
+   FIXED height — the value sat at the top of the 48px field. So the box
+   is sized by symmetric padding instead of a height: height:auto +
+   min-height 48px + 12px padding-block (12 + 24 + 12 = 48) with a fixed
+   24px line-height on the input AND on the inner value/edit boxes, which
+   centers the value reliably on iOS, Android and desktop. The 24px
+   min-height on the value box also keeps the empty iOS field from
+   collapsing. 16px font keeps iOS Safari from zooming on focus. Desktop
+   (≥lg) never renders this form — the min-width block restores stock
+   date-input behaviour should the class ever be reused there. */
+.date-field {
+  -webkit-appearance: none;
+  appearance: none;
+  height: auto; /* NO fixed height: iOS centers by padding, not by height */
+  min-height: 3rem; /* 48px (12 + 24 + 12) */
+  padding-block: 0.75rem; /* 12px */
+  padding-inline: 0.75rem; /* 12px */
+  box-sizing: border-box;
+  font-size: 1rem; /* 16px: iOS Safari zooms on focus below 16px */
+  line-height: 1.5rem; /* 24px — fixed value-box line height */
+}
+.date-field::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  padding: 0;
+  min-height: 1.5rem; /* 24px: stops the empty iOS value box collapsing */
+  line-height: 1.5rem;
+}
+.date-field::-webkit-datetime-edit {
+  padding: 0;
+  line-height: 1.5rem;
+}
+/* While the "dd-mm-yyyy" overlay placeholder is shown (data-empty set by
+   VacationCard), hide Chromium's own empty-state text so it never renders
+   twice — iOS paints nothing when empty, so the overlay is the only text
+   there. Below lg only; the attribute is only set on phone inputs. */
+@media (max-width: 1023.98px) {
+  .date-field[data-empty='true']::-webkit-datetime-edit {
+    opacity: 0;
+  }
+}
+@media (min-width: 1024px) {
+  .date-field {
+    -webkit-appearance: auto;
+    appearance: auto;
+    height: auto;
+    min-height: 0;
+    padding-block: 0;
+    padding-inline: 0;
+    box-sizing: content-box;
+    font-size: inherit;
+    line-height: normal;
+  }
+  .date-field::-webkit-date-and-time-value {
+    text-align: initial;
+    margin: initial;
+    padding: initial;
+    min-height: initial;
+    line-height: initial;
+  }
+  .date-field::-webkit-datetime-edit {
+    padding: initial;
+    line-height: initial;
+  }
+}
+
 /* Alarm-clock wheel (WheelPicker): hidden scrollbar, and the rows fade out
    toward the edges via a gradient mask (one row = 36px). */
 .no-scrollbar {

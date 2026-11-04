@@ -5,6 +5,7 @@ import { useHabitsContext } from '../contexts/HabitsContext'
 import { DayStartCard } from '../components/DayStartCard'
 import { BackupCard } from '../components/BackupCard'
 import { VacationCard } from '../components/VacationCard'
+import { ManageTileMobile } from '../components/ManageTileMobile'
 import type { Habit } from '../lib/score'
 import { normalizeEmoji } from '../lib/emoji'
 
@@ -53,6 +54,46 @@ function ManageRow({
   )
 }
 
+/* Shared list states for both habit cards (desktop rows + phone tiles) —
+   identical markup/wording in each, so they live here once. */
+
+function ManageLoading() {
+  return (
+    <div className="mt-4 grid place-items-center p-6" role="status">
+      <span className="text-body text-fg-muted">Loading…</span>
+    </div>
+  )
+}
+
+function ManageError({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div className="mt-4 rounded-input bg-danger/10 px-3 py-3" role="alert">
+      <p className="text-body text-danger">{error}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="glass-pill mt-3 h-11 rounded-pill px-4 text-body font-medium text-fg"
+      >
+        Retry
+      </button>
+    </div>
+  )
+}
+
+function ManageEmpty() {
+  return (
+    <div className="mt-4 text-center">
+      <p className="text-body text-fg-secondary">No habits yet — add one from Today.</p>
+      <Link
+        to="/"
+        className="glass-pill mt-4 inline-flex h-11 items-center rounded-pill px-4 text-body font-medium text-fg"
+      >
+        Go to Today
+      </Link>
+    </div>
+  )
+}
+
 export function Settings() {
   const { habits, loading, error, reload, archiveHabit } = useHabitsContext()
   const [busy, setBusy] = useState(false)
@@ -75,17 +116,23 @@ export function Settings() {
 
   return (
     <section>
-      <header className="mb-5">
-        <h1 className="text-page-title">Settings</h1>
+      <header className="mb-4 lg:mb-5">
+        <h1 className="text-page-title max-lg:[font-size:1.75rem] max-lg:[line-height:2rem]">Settings</h1>
         <p className="text-caption mt-1 text-fg-muted">Habits and preferences</p>
       </header>
 
-      {/* Two columns on desktop (DESIGN.md §8): Day (day-start) + Data
-          (backup) cards left, Habits right. Profile is reached via the
+      {/* Desktop (DESIGN.md §8): Day (day-start) + Vacation + Data (backup)
+          cards stacked left, Habits right. Profile is reached via the
           Today-header avatar and the dock; the Account card was removed
-          (user request) — Profile shows the signed-in email. */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
-        <div className="grid content-start gap-4 lg:gap-5">
+          (user request) — Profile shows the signed-in email.
+          Phones (below lg) reorder the SAME cards into rows: Day | Data
+          side by side, then Vacation, then Habits full width. The order
+          classes live on each card's root element (they are Settings-only
+          components); lg:order-none restores the desktop DOM order
+          (Day, Vacation, Data), which flex needs because order:0 ≠
+          "no order property" once a sibling has an order. */}
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-5">
+        <div className="grid grid-cols-2 content-start gap-3 lg:flex lg:flex-col lg:gap-5">
           <DayStartCard />
 
           {/* Vacation card (DESIGN.md §8): the global pause + scheduled breaks. */}
@@ -95,7 +142,9 @@ export function Settings() {
           <BackupCard />
         </div>
 
-        <div className="glass-card fade-up rounded-card p-6" style={{ animationDelay: '120ms' }}>
+        {/* Habits card — desktop rows (hidden below lg; the phone tile card
+            below replaces it there). */}
+        <div className="glass-card fade-up rounded-card p-6 max-lg:hidden" style={{ animationDelay: '120ms' }}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-section-title">Habits</h2>
             {habits.length > 0 && (
@@ -106,30 +155,11 @@ export function Settings() {
           </div>
 
           {loading ? (
-            <div className="mt-4 grid place-items-center p-6" role="status">
-              <span className="text-body text-fg-muted">Loading…</span>
-            </div>
+            <ManageLoading />
           ) : error ? (
-            <div className="mt-4 rounded-input bg-danger/10 px-3 py-3" role="alert">
-              <p className="text-body text-danger">{error}</p>
-              <button
-                type="button"
-                onClick={() => void reload()}
-                className="glass-pill mt-3 h-11 rounded-pill px-4 text-body font-medium text-fg"
-              >
-                Retry
-              </button>
-            </div>
+            <ManageError error={error} onRetry={() => void reload()} />
           ) : habits.length === 0 ? (
-            <div className="mt-4 text-center">
-              <p className="text-body text-fg-secondary">No habits yet — add one from Today.</p>
-              <Link
-                to="/"
-                className="glass-pill mt-4 inline-flex h-11 items-center rounded-pill px-4 text-body font-medium text-fg"
-              >
-                Go to Today
-              </Link>
-            </div>
+            <ManageEmpty />
           ) : (
             <>
               {actionError && (
@@ -151,6 +181,59 @@ export function Settings() {
                   <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {archived.map((h) => (
                       <ManageRow key={h.id} habit={h} busy={busy} onToggleArchive={(h) => void toggleArchive(h)} />
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Habits card — phone tiles (below lg only): 2-column grid of
+            ManageTileMobile, same handlers/state as the desktop rows. */}
+        <div className="glass-card fade-up rounded-card p-4 lg:hidden" style={{ animationDelay: '120ms' }}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-section-title">Habits</h2>
+            {habits.length > 0 && <p className="text-caption text-fg-muted">{active.length} active</p>}
+          </div>
+
+          {loading ? (
+            <ManageLoading />
+          ) : error ? (
+            <ManageError error={error} onRetry={() => void reload()} />
+          ) : habits.length === 0 ? (
+            <ManageEmpty />
+          ) : (
+            <>
+              {actionError && (
+                <p role="alert" className="mt-4 rounded-input bg-danger/10 px-3 py-2 text-body text-danger">
+                  {actionError}
+                </p>
+              )}
+              <ul className="mt-4 grid grid-cols-2 gap-2">
+                {active.map((h) => (
+                  <ManageTileMobile
+                    key={h.id}
+                    habit={h}
+                    busy={busy}
+                    archived={false}
+                    onToggleArchive={(h) => void toggleArchive(h)}
+                  />
+                ))}
+              </ul>
+              {archived.length > 0 && (
+                <>
+                  <p className="text-caption mt-5 text-fg-muted">Archived · {archived.length}</p>
+                  <p className="mt-1 text-[12px] text-fg-secondary">Hidden from Today and Overview.</p>
+                  <ul className="mt-2 grid grid-cols-2 gap-2">
+                    {archived.map((h) => (
+                      <ManageTileMobile
+                        key={h.id}
+                        habit={h}
+                        busy={busy}
+                        archived
+                        onToggleArchive={(h) => void toggleArchive(h)}
+                      />
                     ))}
                   </ul>
                 </>

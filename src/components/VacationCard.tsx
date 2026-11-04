@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ConfirmDialog } from './ConfirmDialog'
 import { IconCalendar, IconTrash } from './icons'
 import { useVacationsContext } from '../contexts/VacationsContext'
+import { extractError } from '../hooks/useHabits'
 import { validatePeriod, isVacationDay, type VacationPeriod } from '../lib/vacation'
 
 const DAY_FMT = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short' })
@@ -83,7 +84,11 @@ export function VacationCard() {
   }
 
   /** Pause now: an ongoing period from the logical today. Validation runs
-   *  here too (a scheduled future break must not silently overlap). */
+   *  here too (a scheduled future break must not silently overlap).
+   *  startVacation EXPOSES database errors, but anything else it hits
+   *  (network failure during auth.getUser / the throw paths) REJECTS — so
+   *  the awaits must be wrapped: busy must always be cleared and the
+   *  failure shown, otherwise both controls stay dimmed with no reason. */
   async function handlePause(on: boolean) {
     if (busy) return
     clearMessages()
@@ -94,16 +99,27 @@ export function VacationCard() {
         return
       }
       setBusy(true)
-      await store.startVacation({ start_date: today, end_date: null })
+      try {
+        await store.startVacation({ start_date: today, end_date: null })
+      } catch (e) {
+        setSwitchError(extractError(e))
+      } finally {
+        setBusy(false)
+      }
     } else {
       if (!coveringToday) {
         setSwitchError('No break is currently ongoing.')
         return
       }
       setBusy(true)
-      await store.endVacation(coveringToday.id)
+      try {
+        await store.endVacation(coveringToday.id)
+      } catch (e) {
+        setSwitchError(extractError(e))
+      } finally {
+        setBusy(false)
+      }
     }
-    setBusy(false)
   }
 
   /** Add a scheduled break (past dates allowed, for backfill). An empty end
@@ -120,8 +136,13 @@ export function VacationCard() {
       return
     }
     setBusy(true)
-    await store.startVacation(candidate)
-    setBusy(false)
+    try {
+      await store.startVacation(candidate)
+    } catch (e) {
+      setFormErrors([extractError(e)])
+    } finally {
+      setBusy(false)
+    }
     setStartInput('')
     setEndInput('')
   }
@@ -130,17 +151,28 @@ export function VacationCard() {
     if (!deleteTarget) return
     clearMessages()
     setBusy(true)
-    await store.removeVacation(deleteTarget.id)
-    setBusy(false)
+    try {
+      await store.removeVacation(deleteTarget.id)
+    } catch (e) {
+      setSwitchError(extractError(e))
+    } finally {
+      setBusy(false)
+    }
     setDeleteTarget(null)
   }
 
   return (
-    <div className="glass-card fade-up rounded-card p-6" style={{ animationDelay: '40ms' }}>
+    <div
+      className="glass-card fade-up min-w-0 rounded-card p-4 lg:col-span-1 lg:order-none lg:p-6 order-3 col-span-2"
+      style={{ animationDelay: '40ms' }}
+    >
       <h2 className="text-section-title">Vacation</h2>
-      <p className="mt-1 text-body text-fg-secondary">
+      <p className="mt-1 text-body text-fg-secondary max-lg:hidden">
         Pause all habits for a while. Vacation days are neutral — nothing breaks a streak, and
         check-ins you do make still count.
+      </p>
+      <p className="mt-1 text-[14px] leading-5 text-fg-secondary lg:hidden">
+        Pause habits without breaking streaks.
       </p>
 
       {loading ? (
@@ -149,21 +181,28 @@ export function VacationCard() {
         </div>
       ) : (
         <>
-          {/* Pause switch */}
+          {/* Pause switch (56px row on phones, existing 44px on desktop). */}
           <button
             type="button"
             role="switch"
             aria-checked={onVacationNow}
             disabled={busy}
             onClick={() => void handlePause(!onVacationNow)}
-            className="mt-4 flex min-h-11 w-full items-center justify-between gap-3 rounded-input border border-border bg-surface-raised px-3 py-2 text-left transition-colors duration-150 hover:bg-surface focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60"
+            className="mt-3 flex min-h-14 w-full items-center justify-between gap-3 rounded-input border border-border bg-surface-raised px-3 py-2 text-left transition-colors duration-150 hover:bg-surface focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60 lg:mt-4 lg:min-h-11"
           >
             <span className="min-w-0">
               <span className="text-body block text-fg">
                 {onVacationNow ? 'Habits are paused' : 'Pause all habits'}
               </span>
-              <span className="text-caption mt-0.5 block text-fg-muted">
-                {onVacationNow ? (coveringToday ? periodLabel(coveringToday) : 'Ongoing break') : 'Starts an ongoing break from today'}
+              <span className="text-caption mt-0.5 block text-fg-muted max-lg:hidden">
+                {onVacationNow
+                  ? coveringToday
+                    ? periodLabel(coveringToday)
+                    : 'Ongoing break'
+                  : 'Starts an ongoing break from today'}
+              </span>
+              <span className="text-caption mt-0.5 block text-fg-muted lg:hidden">
+                {onVacationNow ? (coveringToday ? periodLabel(coveringToday) : 'Ongoing break') : 'Starts today'}
               </span>
             </span>
             <span
@@ -186,8 +225,11 @@ export function VacationCard() {
             </p>
           )}
 
-          {/* Schedule a break */}
-          <form onSubmit={(e) => void handleSchedule(e)} className="mt-5">
+          {/* Schedule a break — desktop keeps the custom date fields (icon +
+              dd/mm/yyyy placeholder with the native input stretched on top
+              for iOS); phones put two plain native date inputs side by side
+              at 16px font (iOS zooms on focus otherwise), no overlay. */}
+          <form onSubmit={(e) => void handleSchedule(e)} className="mt-5 max-lg:hidden">
             <p className="text-caption font-medium uppercase tracking-wide text-fg-muted">Schedule a break</p>
             <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:gap-4">
               <div className="flex flex-col gap-1.5 sm:flex-1 sm:flex-row sm:items-center sm:gap-2">
@@ -214,6 +256,89 @@ export function VacationCard() {
               </div>
             </div>
             <p className="text-caption mt-1 text-fg-muted">Leave “To” empty for an ongoing break. Past dates are allowed for backfill.</p>
+            {formErrors && formErrors.length > 0 && (
+              <ul role="alert" className="text-caption mt-2 rounded-input bg-danger/10 px-3 py-2 text-danger">
+                {formErrors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+            )}
+            <button
+              type="submit"
+              disabled={busy || !startInput}
+              className="mt-3 inline-flex h-11 items-center rounded-pill bg-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 active:scale-95 disabled:opacity-60"
+            >
+              Add break
+            </button>
+          </form>
+
+          {/* Phone (below lg) schedule form: same state, validation, errors,
+              button. Native date inputs in 50/50 columns — the visual box is
+              Tailwind; the iOS-critical bits (appearance, height, padding,
+              16px font, line-height + the ::-webkit pseudo fixes) live in
+              the `.date-field` CSS class (see index.css for the root cause
+              of the iPhone overflow this fixes). While empty, an overlay
+              "dd-mm-yyyy" span stands in for the value (iOS paints nothing
+              when empty, Chromium's own text is hidden via data-empty). */}
+          <form onSubmit={(e) => void handleSchedule(e)} className="mt-5 lg:hidden">
+            <p className="text-caption font-medium uppercase tracking-wide text-fg-muted">Schedule a break</p>
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <label htmlFor="break-start" className="text-caption text-fg-secondary">
+                  From
+                </label>
+                <div className="relative min-w-0">
+                  <input
+                    id="break-start"
+                    type="date"
+                    value={startInput}
+                    onChange={(e) => {
+                      setStartInput(e.target.value)
+                      clearMessages()
+                    }}
+                    max="9999-12-31"
+                    data-empty={startInput === '' ? 'true' : undefined}
+                    className="date-field block w-full min-w-0 max-w-full box-border rounded-input border border-border bg-surface-raised text-fg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+                  />
+                  {startInput === '' && (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-y-0 left-3 right-3 flex items-center truncate text-[14px] text-fg-secondary lg:hidden"
+                    >
+                      dd-mm-yyyy
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <label htmlFor="break-end" className="text-caption text-fg-secondary">
+                  To
+                </label>
+                <div className="relative min-w-0">
+                  <input
+                    id="break-end"
+                    type="date"
+                    value={endInput}
+                    onChange={(e) => {
+                      setEndInput(e.target.value)
+                      clearMessages()
+                    }}
+                    max="9999-12-31"
+                    data-empty={endInput === '' ? 'true' : undefined}
+                    className="date-field block w-full min-w-0 max-w-full box-border rounded-input border border-border bg-surface-raised text-fg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+                  />
+                  {endInput === '' && (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-y-0 left-3 right-3 flex items-center truncate text-[14px] text-fg-secondary lg:hidden"
+                    >
+                      dd-mm-yyyy
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <p className="text-caption mt-1 text-fg-muted">Leave “To” empty for an ongoing break.</p>
             {formErrors && formErrors.length > 0 && (
               <ul role="alert" className="text-caption mt-2 rounded-input bg-danger/10 px-3 py-2 text-danger">
                 {formErrors.map((err, i) => (

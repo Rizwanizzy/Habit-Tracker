@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getSupabase } from '../lib/supabase'
+import { newId } from '../lib/id'
 import { addDays, logicalToday } from '../lib/dates'
 import { isVacationDay, sortPeriods, type VacationPeriod } from '../lib/vacation'
 import { now } from '../lib/clock'
@@ -61,7 +62,7 @@ export function useVacations() {
       // Optimistic: temp id until the row comes back; snapshot for rollback.
       const snapshot = periods
       const temp: VacationPeriod = {
-        id: crypto.randomUUID(),
+        id: newId(),
         start_date,
         end_date,
         created_at: now().toISOString(),
