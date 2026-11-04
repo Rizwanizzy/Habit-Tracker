@@ -1216,6 +1216,55 @@ input[type="date"]::-webkit-calendar-picker-indicator {
       min-height: 14rem;
       height: 100%;
     }
+
+    /* -------------------------------------------------------------------------
+       HabitForm page on iPhone: remove sticky positioning so buttons flow naturally,
+       and correct the double-counted safe-area inset in bottom padding.
+       Dock is at bottom: max(0.5rem, calc(env(safe-area-inset-bottom) - 26px)) with height 4rem (64px).
+       Dock top edge = 72px (8px bottom + 64px height on Face-ID).
+       Bottom padding = dock height (4rem) + dock bottom inset + 12px target gap
+                      = calc(4.75rem + max(0.5rem, calc(env(safe-area-inset-bottom) - 26px))) (84px on Face-ID).
+       Content bottom rests at 84px - 72px = 12px above the dock top edge.
+    ------------------------------------------------------------------------- */
+    main:has(.habit-form-page) {
+      padding-bottom: calc(4.75rem + max(0.5rem, calc(env(safe-area-inset-bottom) - 26px)));
+    }
+
+    .habit-form-page #habit-form-mobile {
+      padding-bottom: 0;
+    }
+
+    .habit-form-page .habit-form-actions {
+      position: static;
+      bottom: auto;
+    }
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Emoji picker trigger button pulse (phone habit form)
+   Gentle accent ring pulse twice on initial render, disabled under reduced motion.
+--------------------------------------------------------------------------- */
+@keyframes emoji-button-pulse {
+  0% {
+    box-shadow: 0 10px 30px -8px color-mix(in srgb, var(--accent) 60%, transparent), 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  50% {
+    box-shadow: 0 10px 30px -8px color-mix(in srgb, var(--accent) 60%, transparent), 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 10px 30px -8px color-mix(in srgb, var(--accent) 60%, transparent), 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
+.emoji-trigger-pulse {
+  animation: emoji-button-pulse 1.4s ease-out 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emoji-trigger-pulse {
+    animation: none;
+  }
+}
+
 

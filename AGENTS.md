@@ -71,6 +71,8 @@ Read DESIGN.md before building or changing any UI.
 - Tap targets at least 44px. Show loading and empty states on every page.
 - Charts must have a tooltip, readable axis labels, and a toggle per habit on the Overview page.
 - Overview page Score card on iPhone Safari scales dynamically to maintain the exact 12px gap above the floating dock across expanded/collapsed toolbars without shrinking on short screens (iPhone SE).
+- HabitForm page on iPhone Safari clears the dock by setting main's bottom padding to `calc(4.75rem + max(0.5rem, calc(env(safe-area-inset-bottom) - 26px)))` with non-sticky action buttons (`position: static; bottom: auto;`) so the resting gap above the dock is 12px without floating or jumping.
+- Phone HabitForm name row includes a prominent 52px circular emoji trigger showing a default 🙂 with an accent '+' badge and soft glow/pulse when unselected; purely visual hint (never saved to form state).
 
 ## Code style
 - Functional components and hooks only. Named exports. No `any`.

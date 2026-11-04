@@ -135,7 +135,7 @@ export function HabitForm() {
   const c = form.color
 
   return (
-    <section>
+    <section className="habit-form-page">
       {/* ── Phone layout (below lg): shared state, separate <form>. ── */}
       <div className="lg:hidden">
         <HabitFormMobile

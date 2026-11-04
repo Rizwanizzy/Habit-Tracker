@@ -221,7 +221,7 @@ export function HabitFormMobile({
 
       {/* 5 · ACTIONS: sticky above the dock — Cancel (glass) + primary pill,
           same pair as the desktop layout. */}
-      <div className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 mt-4 flex gap-3">
+      <div className="sticky bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 mt-4 flex gap-3 habit-form-actions">
         <button
           type="button"
           onClick={goBack}

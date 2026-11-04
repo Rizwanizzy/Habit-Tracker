@@ -182,14 +182,36 @@ export function EmojiPickerField({ value, color, onChange, variant = 'pill' }: P
         aria-expanded={open}
         aria-label={shown ? 'Change habit emoji' : 'Pick a habit emoji'}
         title={shown ? 'Change habit emoji' : 'Pick a habit emoji'}
-        className="glass-pill grid size-[52px] shrink-0 place-items-center rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        className={`relative glass-pill grid size-[52px] shrink-0 place-items-center rounded-full border-[1.5px] border-accent transition-all duration-150 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+          shown ? '' : 'glow-accent emoji-trigger-pulse'
+        }`}
       >
         {shown ? (
           <span aria-hidden="true" className="text-2xl leading-none">
             {shown}
           </span>
         ) : (
-          <IconSmileyPlus className="size-5 text-fg-muted" />
+          <>
+            <span aria-hidden="true" className="text-2xl leading-none lg:hidden">
+              🙂
+            </span>
+            <IconSmileyPlus className="hidden size-5 text-fg-muted lg:block" />
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-accent-gradient text-white ring-2 ring-background lg:hidden"
+            >
+              <svg
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                className="size-2.5"
+              >
+                <path d="M6 2.5v7M2.5 6h7" />
+              </svg>
+            </span>
+          </>
         )}
       </button>
     ) : (
