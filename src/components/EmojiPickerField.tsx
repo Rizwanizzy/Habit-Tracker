@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import type { EmojiClickData } from 'emoji-picker-react'
 import { useThemeName } from '../hooks/useThemeName'
 import { normalizeEmoji } from '../lib/emoji'
+import { IconSmileyPlus } from './icons'
 
 /** The picker engine (search, categories, skin tones, recents) is lazy-loaded:
  *  it is a ~300 KB chunk that only matters while the panel is open. */
@@ -14,6 +15,9 @@ interface Props {
   /** Habit color, so the preview ring matches the tile. */
   color: string
   onChange: (emoji: string) => void
+  /** Trigger shape. `pill` (default) is the original 44px glass pill;
+   *  `circle` is the 52px round trigger used by the phone habit form. */
+  variant?: 'pill' | 'circle'
 }
 
 /** Picker chunk failed (offline before the PWA cached it): say so instead of
@@ -43,8 +47,9 @@ class PickerBoundary extends Component<{ children: ReactNode }, { failed: boolea
  *  full Unicode picker — an anchored glass popover on desktop and a bottom
  *  sheet on phones, so the keyboard never hides the grid on a 360px screen.
  *  Cells are 44px (`--epr-emoji-size` 28 + padding 8) and the picker follows
- *  the light/dark theme. The free-text input in the form stays for pasting. */
-export function EmojiPickerField({ value, color, onChange }: Props) {
+ *  the light/dark theme. The free-text input in the form stays for pasting.
+ *  The `circle` variant replaces the pill on the phone form layout. */
+export function EmojiPickerField({ value, color, onChange, variant = 'pill' }: Props) {
   const [open, setOpen] = useState(false)
   const [desktop, setDesktop] = useState(() =>
     typeof window === 'undefined' ? true : window.matchMedia('(min-width: 640px)').matches,
@@ -164,8 +169,30 @@ export function EmojiPickerField({ value, color, onChange }: Props) {
     </>
   )
 
-  return (
-    <>
+  const trigger =
+    variant === 'circle' ? (
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => {
+          setPos(null)
+          setOpen(true)
+        }}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={shown ? 'Change habit emoji' : 'Pick a habit emoji'}
+        title={shown ? 'Change habit emoji' : 'Pick a habit emoji'}
+        className="glass-pill grid size-[52px] shrink-0 place-items-center rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+      >
+        {shown ? (
+          <span aria-hidden="true" className="text-2xl leading-none">
+            {shown}
+          </span>
+        ) : (
+          <IconSmileyPlus className="size-5 text-fg-muted" />
+        )}
+      </button>
+    ) : (
       <button
         ref={triggerRef}
         type="button"
@@ -194,6 +221,11 @@ export function EmojiPickerField({ value, color, onChange }: Props) {
         </span>
         <span className="text-caption font-medium">{shown ? 'Change emoji' : 'Pick emoji'}</span>
       </button>
+    )
+
+  return (
+    <>
+      {trigger}
 
       {open &&
         createPortal(
@@ -222,8 +254,14 @@ export function EmojiPickerField({ value, color, onChange }: Props) {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Choose an emoji"
-                className="glass-card popover-solid fixed inset-x-0 bottom-0 z-50 flex h-[62dvh] flex-col rounded-t-card pb-[env(safe-area-inset-bottom)] shadow-2xl"
+                className="glass-card popover-solid fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-card pb-[env(safe-area-inset-bottom)] shadow-2xl"
+                style={{ height: 'min(70dvh, 620px)' }}
               >
+                {/* Grab handle on the sheet. */}
+                <span
+                  aria-hidden="true"
+                  className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-fg/25"
+                />
                 {panel}
               </div>
             )}

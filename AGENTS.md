@@ -24,11 +24,11 @@ Read DESIGN.md before building or changing any UI.
 - `npm run icons` generate PWA icons and favicons from `public/logo.png` (uses `@vite-pwa/assets-generator`, see `pwa-assets.config.js`)
 
 ## Folder structure
-- `src/lib/` pure logic: `score.ts`, `dayStatus.ts`, `dates.ts`, `clock.ts`, `supabase.ts`, `color.ts`, `profile.ts`, `avatar.ts`, `order.ts`, `rings.ts`, `completion.ts`, `backup.ts`, `backupImport.ts`, `vacation.ts`
+- `src/lib/` pure logic: `score.ts`, `dayStatus.ts`, `dates.ts`, `clock.ts`, `supabase.ts`, `color.ts`, `profile.ts`, `avatar.ts`, `order.ts`, `rings.ts`, `completion.ts`, `backup.ts`, `backupImport.ts`, `vacation.ts`, `emoji.ts`, `wheel.ts` (wheel-picker snap math), `haptics.ts` (`navigator.vibrate` tick, no-op on iOS)
 - `src/hooks/` data hooks (`useHabits`, `useEntries`, `useTheme`, `useProfile`, `useUserSettings`, `useLogicalToday`, `useBackup`, `useImportBackup`, `useVacations`)
 - `src/contexts/` React context providers (`ProfileContext` shares profile state across Today header, rail avatar, and Profile page; `SettingsContext` shares the day-start setting; `HabitsContext` shares the habit list; `VacationsContext` shares the vacation-period list)
-- `src/components/` reusable UI (HabitRow, HabitTile, TileMoreMenu, Heatmap, ScoreChart, ColorPicker, TodayGreeting, RangeSwitch, ProfileBanner, BackupCard, ImportPreviewDialog, VacationCard, ...)
-- `src/pages/` Today, Overview, HabitDetail, WeeklyReview, Settings, Login, Profile
+- `src/components/` reusable UI (HabitRow, HabitTile, TileMoreMenu, Heatmap, ScoreChart, ColorPicker, TodayGreeting, RangeSwitch (+ optional `compact`), ProfileBanner, BackupCard, ImportPreviewDialog, VacationCard, WheelPicker, HabitFormMobile, ColorPickerCircle, HabitPreview, EmojiPickerField, ...)
+- `src/pages/` Today, Overview, HabitDetail, WeeklyReview, Settings, Login, Profile, HabitForm (desktop layout lg+ + shared state feeding `HabitFormMobile` below lg)
 - `scripts/` one-off scripts (`generate-icons.mjs` - superseded by `pwa-assets.config.js` + `npm run icons`)
 - `public/` favicon.ico, favicon.svg, logo.png, icon-192.png, icon-512.png, icon-maskable-512.png, apple-touch-icon.png, icons.svg
 - Keep files under about 200 lines; split when larger.

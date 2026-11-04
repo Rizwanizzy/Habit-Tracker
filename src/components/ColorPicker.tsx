@@ -16,6 +16,10 @@ const PRESETS = [
 interface Props {
   color: string
   onChange: (hex: string) => void
+  /** Optional extra callback fired ONLY by the preset swatches — the mobile
+   *  popover uses it to close shortly after a preset pick while the custom
+   *  picker and hex field keep it open. Untouched when omitted. */
+  onPreset?: (hex: string) => void
 }
 
 const isHex = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v) || /^#[0-9a-fA-F]{3}$/.test(v)
@@ -23,7 +27,7 @@ const isHex = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v) || /^#[0-9a-fA-F]{3}$/.
 /** Color picker (DESIGN.md §6): 10 preset 32px round swatches with a ring on
  *  the selected one, plus a rainbow "custom" swatch that opens the native
  *  color input for any hex. */
-export function ColorPicker({ color, onChange }: Props) {
+export function ColorPicker({ color, onChange, onPreset }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const isPreset = PRESETS.some((hex) => hex.toLowerCase() === color.toLowerCase())
   const ringFor = (selected: boolean, hex: string) =>
@@ -43,7 +47,10 @@ export function ColorPicker({ color, onChange }: Props) {
               type="button"
               aria-label={`Use color ${hex}`}
               aria-pressed={selected}
-              onClick={() => onChange(hex)}
+              onClick={() => {
+                onChange(hex)
+                onPreset?.(hex)
+              }}
               className="relative size-8 rounded-full transition-transform duration-150 hover:scale-105 active:scale-95 after:absolute after:-inset-1.5 after:content-[''] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
               style={{ backgroundColor: hex, boxShadow: ringFor(selected, hex) }}
             />

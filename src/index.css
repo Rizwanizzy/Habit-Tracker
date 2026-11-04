@@ -550,6 +550,46 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--text-muted);
 }
 
+/* 17px name input (HabitFormMobile phone layout). Plain rules beat Tailwind
+   utilities, so the override is a class instead of text-[17px]. */
+.input-field-lg {
+  font-size: 1.0625rem; /* 17/24, text-habit-name size */
+  line-height: 1.5rem;
+}
+
+/* Alarm-clock wheel (WheelPicker): hidden scrollbar, and the rows fade out
+   toward the edges via a gradient mask (one row = 36px). */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.wheel-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 36px,
+    black calc(100% - 36px),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 36px,
+    black calc(100% - 36px),
+    transparent
+  );
+}
+.wheel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+
 /* Profile banner (DESIGN.md §11): 1px chart-grid lines in 56px cells, plus a
    couple of cells tinted at 4% white. */
 .banner-grid {

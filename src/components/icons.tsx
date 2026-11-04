@@ -119,6 +119,21 @@ export function IconPlus({ className }: { className?: string }) {
   )
 }
 
+/** Smiley with a small plus at the corner — "add an emoji" placeholder on
+ *  the phone form's circle trigger. */
+export function IconSmileyPlus({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <circle cx="10.5" cy="12.5" r="6.5" />
+      <circle cx="8.5" cy="11" r="0.5" fill="currentColor" stroke="none" />
+      <circle cx="12.5" cy="11" r="0.5" fill="currentColor" stroke="none" />
+      <path d="M8 14c.6.8 1.5 1.3 2.5 1.3s1.9-.5 2.5-1.3" />
+      <path d="M18.5 2.5v5" />
+      <path d="M16 5h5" />
+    </svg>
+  )
+}
+
 export function IconCheck({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
