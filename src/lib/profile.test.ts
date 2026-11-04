@@ -3,6 +3,8 @@ import {
   GENDERS,
   initialsFrom,
   isGender,
+  normalizeBio,
+  validateBio,
   validateDateOfBirth,
   validateFullName,
   validateGender,
@@ -87,10 +89,53 @@ describe('isGender', () => {
   })
 })
 
+describe('validateBio', () => {
+  it('allows null and empty', () => {
+    expect(validateBio(null)).toBeNull()
+    expect(validateBio('')).toBeNull()
+    expect(validateBio('   ')).toBeNull()
+    expect(validateBio('\n\t  ')).toBeNull()
+  })
+
+  it('normalizes by trimming and collapsing whitespace', () => {
+    expect(normalizeBio('  Keep   going  \n strong! \t')).toBe('Keep going strong!')
+    expect(normalizeBio('   ')).toBeNull()
+    expect(normalizeBio(null)).toBeNull()
+  })
+
+  it('allows exactly 140 characters', () => {
+    const exactly140 = 'a'.repeat(140)
+    expect(validateBio(exactly140)).toBeNull()
+  })
+
+  it('rejects 141 characters', () => {
+    const chars141 = 'a'.repeat(141)
+    expect(validateBio(chars141)).toBe('Keep it under 140 characters')
+  })
+
+  it('counts unicode code points correctly for emojis', () => {
+    // 140 emojis: each emoji is 1 code point, so 140 emojis is exactly 140
+    const emojis140 = '🔥'.repeat(140)
+    expect(Array.from(emojis140).length).toBe(140)
+    expect(validateBio(emojis140)).toBeNull()
+
+    const emojis141 = '🔥'.repeat(141)
+    expect(Array.from(emojis141).length).toBe(141)
+    expect(validateBio(emojis141)).toBe('Keep it under 140 characters')
+  })
+
+  it('validates collapsed text rather than raw newlines', () => {
+    // 'a' * 139 with newlines that collapse to spaces
+    const multiline = 'a'.repeat(70) + '\n\t  \n' + 'b'.repeat(69)
+    expect(validateBio(multiline)).toBeNull()
+  })
+})
+
 describe('validateProfile', () => {
   it('returns valid with no errors for an empty profile', () => {
     const r = validateProfile({
       full_name: null,
+      bio: null,
       date_of_birth: null,
       gender: null,
       nationality: null,
@@ -105,6 +150,7 @@ describe('validateProfile', () => {
   it('collects multiple errors at once', () => {
     const r = validateProfile({
       full_name: 'A'.repeat(81),
+      bio: 'B'.repeat(141),
       date_of_birth: '2999-01-01',
       gender: 'robot' as never,
       nationality: null,
@@ -115,6 +161,7 @@ describe('validateProfile', () => {
     })
     expect(r.valid).toBe(false)
     expect(r.errors.full_name).toBeDefined()
+    expect(r.errors.bio).toBe('Keep it under 140 characters')
     expect(r.errors.date_of_birth).toBeDefined()
     expect(r.errors.gender).toBeDefined()
     expect(r.errors.phone).toBeDefined()

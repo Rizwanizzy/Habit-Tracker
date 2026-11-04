@@ -7,6 +7,7 @@ export const GENDERS: readonly Gender[] = ['female', 'male', 'other', 'prefer_no
 export interface Profile {
   user_id: string
   full_name: string | null
+  bio: string | null
   date_of_birth: string | null // YYYY-MM-DD
   gender: Gender | null
   nationality: string | null
@@ -24,6 +25,23 @@ export type ProfileErrors = Partial<Record<keyof ProfileInput, string>>
 
 export function isGender(value: unknown): value is Gender {
   return typeof value === 'string' && (GENDERS as readonly string[]).includes(value)
+}
+
+/** Normalize bio: trim, convert newlines and tabs to single spaces; empty -> null. */
+export function normalizeBio(value: string | null | undefined): string | null {
+  if (value == null) return null
+  const collapsed = value.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim()
+  return collapsed.length === 0 ? null : collapsed
+}
+
+/** Bio: optional Quote line, max 140 code points matching Postgres char_length. */
+export function validateBio(value: string | null | undefined): string | null {
+  const normalized = normalizeBio(value)
+  if (normalized == null) return null
+  if (Array.from(normalized).length > 140) {
+    return 'Keep it under 140 characters'
+  }
+  return null
 }
 
 /** Full name: optional, but no more than 80 characters. */
@@ -68,6 +86,8 @@ export function validateProfile(input: ProfileInput, today: string = todayString
   const errors: ProfileErrors = {}
   const fn = validateFullName(input.full_name)
   if (fn) errors.full_name = fn
+  const bio = validateBio(input.bio)
+  if (bio) errors.bio = bio
   const dob = validateDateOfBirth(input.date_of_birth, today)
   if (dob) errors.date_of_birth = dob
   const ph = validatePhone(input.phone)

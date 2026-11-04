@@ -17,7 +17,7 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 - **Stats & charts** — glass stat tiles, a glowing gradient score line chart, 10px rounded completion bars, and a 14px-cell calendar heatmap on each habit's detail page; Overview with stat tiles (average score, best habit, needs attention — the last two drill into those habits) and a glowing multi-line score chart with habit toggle chips (dynamically scaled on iPhone Safari to maintain the exact 12px gap above the floating dock across expanded/collapsed toolbars)
 - **Color picker** — preset swatches, native color input, and custom hex per habit; every foreground use stays readable in both themes
 - **Auth** — Supabase email/password sign in, **Sign in with Google** (brand-styled OAuth pill), session guard, sign out
-- **Profile & avatar** — banner with grid pattern and overlapping avatar (camera upload; inputs up to 20 MB are compressed to a small 512px WebP, with clear warnings for non-images or oversized files; remove photo), name with verified badge, and email shown under the avatar. The **"Personal details" card** features a compact 2-column grid (Full name | DOB, Gender | Nationality, Country | Phone, Address spanning both columns) with continuous dashed dividers, fitting on one screen without scrolling; in-place edit mode provides responsive inputs (single column on phones, two columns on desktop with iOS date-field formatting and localized errors), with full validation and loading/error/toast states.
+- **Profile & avatar** — banner with grid pattern and overlapping avatar (camera upload; inputs up to 20 MB are compressed to a small 512px WebP, with clear warnings for non-images or oversized files; remove photo), name with verified badge, email, and an optional **motivation line (bio)** up to 140 code points (with inline 140-char textarea editor, single-line sanitization, and ghost button trigger). The page features **"Your journey" lifetime stats** (longest streak with habit indicator, total check-ins across all-time history, 30-day consistency percentage, days tracking) and **"Milestones" badges** (4 streak milestones: 7, 21, 66, 100 days; 4 check-in milestones: 25, 100, 500, 1000 check-ins with animated progress rings for the next locked badge). On desktop (≥1024px), Personal details side (7/12) and Journey + Milestones cards side (5/12) form a balanced 2-column grid.
 - **Theming** — light/dark via a sliding sun/moon switch; design tokens from `DESIGN.md`
 
 ## Tech stack
@@ -78,9 +78,9 @@ The app is a static Vite SPA (all backend work happens in Supabase), so any stat
 
 ```
 src/
-  lib/        pure logic (score, dayStatus, dates, clock, color, profile, order, rings, avatar, backup + backupImport, vacation, wheel, haptics, supabase client)
-  hooks/      data hooks (useHabits, useEntries, useProfile, useAuth, useTheme, useUserSettings, useLogicalToday, useBackup, useImportBackup, useVacations)
-  components/ reusable UI (AppShell, HabitTile, TileMoreMenu, HabitReorderGrid, ProgressRings, Heatmap, ColorPicker, DayStartCard, ManageTileMobile (phone Settings tiles), VacationCard, WheelPicker, HabitFormMobile, Profile*)
+  lib/        pure logic (score, dayStatus, dates, clock, color, profile, order, rings, avatar, backup + backupImport, vacation, wheel, haptics, stats, milestones, supabase client)
+  hooks/      data hooks (useHabits, useEntries, useProfile, useAuth, useTheme, useUserSettings, useLogicalToday, useBackup, useImportBackup, useVacations, useLifetimeStats)
+  components/ reusable UI (AppShell, HabitTile, TileMoreMenu, HabitReorderGrid, ProgressRings, Heatmap, ColorPicker, DayStartCard, ManageTileMobile (phone Settings tiles), VacationCard, WheelPicker, HabitFormMobile, JourneyCard, MilestonesCard, Profile*)
   contexts/   React context providers (ProfileContext, HabitsContext, SettingsContext, VacationsContext)
   pages/      Today (bento), Overview, Profile, Settings, HabitForm (desktop lg+ + phone layout), HabitDetail, Login, Privacy, Landing
 ```

@@ -8,7 +8,7 @@ const PAGE_SIZE = 1000 // Supabase returns at most 1000 rows per request
 
 /** Fetch ALL entries, paging with .range(from, from + 999) ordered by date
  *  then habit_id, until a page has fewer than 1000 rows. */
-async function fetchAllEntries(sb: ReturnType<typeof getSupabase>): Promise<BackupRow[]> {
+export async function fetchAllEntries(sb: ReturnType<typeof getSupabase>): Promise<BackupRow[]> {
   const all: BackupRow[] = []
   let from = 0
   for (;;) {

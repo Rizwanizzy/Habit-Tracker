@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getSupabase } from '../lib/supabase'
 import { extractError } from './useHabits'
 import type { Profile, ProfileInput } from '../lib/profile'
+import { normalizeBio } from '../lib/profile'
 import { prepareAvatar } from '../lib/avatar'
 import { now } from '../lib/clock'
 
@@ -11,6 +12,7 @@ const REFRESH_BEFORE = 5 * 60 * 1000 // refresh 5 minutes before expiry
 function toInput(profile: Profile | null): ProfileInput {
   return {
     full_name: profile?.full_name ?? null,
+    bio: profile?.bio ?? null,
     date_of_birth: profile?.date_of_birth ?? null,
     gender: profile?.gender ?? null,
     nationality: profile?.nationality ?? null,
@@ -61,13 +63,20 @@ export function useProfile(): UseProfileResult {
       setAvatarUrl(null)
       return
     }
-    const sb = getSupabase()
-    const { data, error: e } = await sb.storage.from('avatars').createSignedUrl(path, SIGNED_URL_TTL)
-    if (e) throw e
-    setAvatarUrl(data.signedUrl)
-    refreshTimer.current = setTimeout(() => {
-      void loadSignedUrl(path)
-    }, SIGNED_URL_TTL * 1000 - REFRESH_BEFORE)
+    try {
+      const sb = getSupabase()
+      const { data, error: e } = await sb.storage.from('avatars').createSignedUrl(path, SIGNED_URL_TTL)
+      if (e || !data?.signedUrl) {
+        setAvatarUrl(null)
+        return
+      }
+      setAvatarUrl(data.signedUrl)
+      refreshTimer.current = setTimeout(() => {
+        void loadSignedUrl(path)
+      }, SIGNED_URL_TTL * 1000 - REFRESH_BEFORE)
+    } catch {
+      setAvatarUrl(null)
+    }
   }, [])
 
   const reload = useCallback(async () => {
@@ -116,7 +125,12 @@ export function useProfile(): UseProfileResult {
         if (sessionError) throw sessionError
         const user = sessionData.session?.user
         if (!user) throw new Error('You must be signed in')
-        const payload = { ...input, user_id: user.id, updated_at: now().toISOString() }
+        const payload = {
+          ...input,
+          bio: normalizeBio(input.bio),
+          user_id: user.id,
+          updated_at: now().toISOString(),
+        }
         const { data, error: upsertError } = await sb
           .from('profiles')
           .upsert(payload, { onConflict: 'user_id' })
@@ -182,7 +196,10 @@ export function useProfile(): UseProfileResult {
       if (!user) throw new Error('You must be signed in')
       const path = profile?.avatar_path ?? `${user.id}/avatar.webp`
       const { error: delError } = await sb.storage.from('avatars').remove([path])
-      if (delError) throw delError
+      if (delError) {
+        // Log warning if object removal failed (e.g., object not found), but continue clearing profile.avatar_path
+        console.warn('Avatar removal warning:', delError)
+      }
       await save({ ...toInput(profile), avatar_path: null })
     } catch (e) {
       setError(extractError(e))

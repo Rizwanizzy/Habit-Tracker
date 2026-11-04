@@ -71,7 +71,7 @@ async function fetchAllEntryKeys(
 /** Profile fields the import is allowed to restore. Never avatar_path or
  *  email (identity/photo data, per backup.ts): the payload only includes
  *  keys present in the file, so columns missing from it are never nulled. */
-const PROFILE_FIELDS = ['full_name', 'date_of_birth', 'gender', 'nationality', 'country', 'address', 'phone'] as const
+const PROFILE_FIELDS = ['full_name', 'bio', 'date_of_birth', 'gender', 'nationality', 'country', 'address', 'phone'] as const
 
 function profilePayload(userId: string, profile: BackupRow): BackupRow {
   const payload: BackupRow = { user_id: userId }

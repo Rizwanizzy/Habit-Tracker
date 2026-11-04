@@ -396,6 +396,30 @@ VITE_SUPABASE_ANON_KEY=<anon key>
       - Scoped exclusively to phone layout (`lg:hidden`). Desktop form (≥1024px) retains its original `IconSmileyPlus` trigger and remains pixel-identical.
   - Tests 193/193 green, build clean.
 
+- 99. **Profile page enhancements — Motivation line (bio), Your journey lifetime stats, Milestones card, & 2-column desktop grid (user request):**
+  - **Motivation line (bio):**
+    - `src/lib/profile.ts`: added `bio: string | null` to `Profile` / `ProfileInput` types; added `normalizeBio` (trim, collapse newlines/tabs/spaces) and `validateBio` (max 140 code points matching Postgres `char_length(bio) <= 140` so emojis count as 1, error "Keep it under 140 characters"). Integrated into `validateProfile`.
+    - `useProfile`/`ProfileContext`: load and save `bio` (sending current `bio` in payload so it is never nulled by another edit). `useImportBackup` whitelist includes `bio`.
+    - `ProfileBanner`: renders `bio` below email in 14px italic `text-secondary`, wrapped in typographic quotes “ ”. If unset, shows a ghost button "Add a motivation line" (44px tap) that triggers edit mode with bio field focused.
+    - `ProfileDetailsEdit`: added Bio textarea as first field (spans 2 cols on lg, 3 rows, `.input-field` styling, label "Motivation line", placeholder "A line that keeps you going", live "X/140" counter, Enter key prevented to enforce single-line).
+  - **Lifetime stats ("Your journey" card):**
+    - `src/lib/stats.ts`: pure `lifetimeStats({ habits, entries, today, vacations })` returning `longestStreak` (all-time bestStreak across all habits incl. archived), `totalCheckIns` (counting completed habit-days via `isDone`), `consistency30` (% over last 30 logical days for active habits, excluding skipped/vacation days), `daysTracking` (days from earliest habit created_at through today inclusive), and active/archived counts. Fully unit tested (`src/lib/stats.test.ts`).
+    - `src/hooks/useLifetimeStats.ts`: hook reusing exported `fetchAllEntries` from `useBackup.ts` (paging 1000 rows/req) and `useLogicalToday()`.
+    - `src/components/JourneyCard.tsx`: glass card displaying 4 stat tiles (Longest streak with habit dot/name indicator, Total check-ins, 30-day consistency, Days tracking).
+  - **Milestones card:**
+    - `src/lib/milestones.ts`: pure constants `STREAK_MILESTONES = [7, 21, 66, 100]` and `CHECKIN_MILESTONES = [25, 100, 500, 1000]`; `milestoneStatus(stats)` returning badge status list and identifying next locked badges. Unit tested (`src/lib/milestones.test.ts`).
+    - `src/components/MilestonesCard.tsx`: 8-badge grid (4 columns on mobile/desktop), 44px badge circles with flame/check icons. Unlocked badges use accent gradient + glow; next locked badge displays an animated SVG thin progress ring and current/threshold caption (e.g. "4 / 21"). Accessible `role="list"` labels.
+  - **Responsive 2-column page layout:**
+    - Mobile (<1024px): Banner -> Your journey -> Milestones -> Personal details (12px gaps).
+    - Desktop (≥1024px): Personal details on left (`lg:col-span-7`), Your journey + Milestones stacked on right (`lg:col-span-5 flex flex-col gap-6`) inside `max-w-[1140px]`.
+    - Skeleton shimmer mirrors both mobile and 2-column desktop layouts.
+  - Tests 212/212 green, build clean.
+
+- 100. **Storage object error handling fix (`StorageApiError: Object not found`):**
+  - Updated `loadSignedUrl` in `src/hooks/useProfile.ts` to wrap `createSignedUrl` in a try/catch block and handle non-existent storage objects gracefully (`avatarUrl` set to `null` fallback) without throwing or setting a global page error.
+  - Updated `removeAvatar` to catch removal warnings if an avatar object is already missing from storage, allowing the database profile `avatar_path: null` update to proceed smoothly.
+  - Build & 212/212 unit tests green.
+
 ### Remaining next steps (Aurora Glass passes still to do)
 - All main pages are implemented and the PWA is live (manifest + generated service worker, auto-update). Every page is restyled to DESIGN.md except one motion detail: big-numeral count-up on stat tiles.
 - 38. **Hosting on Vercel (user deployed):** live at `https://habbt-tracker.vercel.app` (user renamed the project — note Vercel quirk: project rename does NOT rename its assigned domains; domains are swapped in Settings → Domains, and the per-deployment `*.vercel.app` URLs change every deploy and are never used for auth). Earlier attempt on Cloudflare Pages (`habit-tracker-7kq.pages.dev`) is redundant/retirable. Repo additions: `vercel.json` SPA rewrite (`/(.*) → /index.html`) so deep-link refreshes work; README gained a Hosting section (env vars `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` must exist BEFORE the build since Vite inlines them, `NODE_VERSION` = 22 for Vite 8, and the Supabase/Google dashboard wiring for the deployed origin: Site URL + Redirect URLs `<origin>/login`, Google OAuth JavaScript origin, Branding authorized domain). Both env vars confirmed working (user signed in and their data loaded). The user also asked why the App name/logo still don't show on Google's sign-in screens after deploying: the account CHOOSER "to continue to …" line is derived from the OAuth redirect domain (the Supabase callback) and can never show the app name without a Supabase Pro custom domain; the CONSENT page shows the branding's App name only once the app is PUBLISHED to production (Google Auth Platform → Audience → Publish app) with a public non-localhost Application home page — which the Vercel deployment finally satisfies (fill Branding → App domain → Home page = the vercel URL, add the vercel host to Authorised domains, then publish — where the Publish button initially refused with "Valid app name, support email, homepage URL and privacy policy URL are required", fixed by serving a public **Privacy page at `/privacy`** (new `src/pages/Privacy.tsx`, public route outside RequireAuth per its pattern: simple glass card — what the app stores, the Google profile data it receives [name/email/photo, identity-only], no ads/analytics/sharing, data control + contact email in sync with the consent screen's support email).

@@ -128,8 +128,29 @@ Layout from the reference, in the Aurora Glass theme (same tokens, glass cards, 
 - Banner: full-width background layer (no card border, no glass-card, no rounded corners), 160px high on desktop and 120px on mobile, with a subtle square-grid pattern (1px lines at chart-grid color, 56px cells, a few cells filled at 4% white). A radial mask-image fades the grid out toward the bottom and the sides so it blends into the page background. Dark theme keeps the soft aurora tint; light theme uses very faint grid lines.
 - Avatar: 120px circle (96px on mobile) sitting inside the grid area, starting about 24px below the top of the grid block, 4px ring in bg-base, soft glow in the accent color. Fallback when there is no photo: initials on accent-gradient. A 36px circular camera button sits at its bottom-right corner — **a SOLID chip on `var(--surface-solid)` + border + small shadow, not glass** (translucent glass disappears against the avatar's saturated accent gradient, dark theme especially; user report) — and opens a keyboard-accessible popover menu with "Change photo" and "Remove photo" (the second only when a photo exists; a confirmation step precedes removal). The popover closes on outside click and Escape.
 - Below the avatar: full name in 32/40 Space Grotesk 700, with a verified badge (22px on desktop, 18px on mobile) after it when the email is confirmed; the email below in text-secondary.
+  - **Motivation line (bio):** rendered below the email in the banner, centered, 14px italic text-secondary, wrapped in typographic quotes (“ ”), up to 3 lines (`line-clamp-3`), only when set. When empty, renders a 44px ghost text button "Add a motivation line" that enters edit mode with the bio field focused. No layout shift occurs above it.
   - **Verified badge:** blue scalloped seal (r(theta) = 10 + 1.1 * cos(8 * theta), 120 points) with a white checkmark, rendered as an inline SVG via the `VerifiedBadge` component (`src/components/VerifiedBadge.tsx`). The seal uses a linearGradient from #4DA6FF to #1D7CF2, has a drop-shadow glow, and carries `role="img"` with `aria-label="Verified"`. Name and badge sit in one inline-flex container with the name truncating on overflow.
-- "Personal details" card: glass card, 28px radius (`rounded-card`), compact padding `p-4 sm:p-5 lg:p-6`, max 720px wide and centered under the avatar block. A header row (title 16px 600 plus the edit control on the right) separated by a 1px border.
+- **Profile page layout (all widths):**
+  - **Phones (<1024px):** single column with 12px gaps (`gap-3`): banner -> "Your journey" card (2x2 grid) -> "Milestones" card -> "Personal details" card. Bottom clearance above the dock is provided globally by the `<main>` shell element (`pb-[calc(5.5rem+env(safe-area-inset-bottom))]`).
+  - **Desktop (≥1024px):** full-width banner -> full-width "Your journey" card (4 stats in 1 row) -> 2-column subgrid below with equal height (`items-stretch`): "Personal details" card on the left (`lg:col-span-7`) and "Milestones" card on the right (`lg:col-span-5`).
+- **Your journey card (`src/components/JourneyCard.tsx`):** one glass card (no nested pill tiles) with 1px hairline dividers (`border-r border-b border-border md:border-b-0`):
+  - 4 stats in a 2x2 grid on phone / 4-col on desktop, cell padding 16px. Outer card radius 28px (`rounded-card`).
+  - Each cell uses a 3-row grid: 12px normal-case caption label on top, fluid tabular numeral (`text-[clamp(1.5rem,4vw,2.125rem)]`) with separate `whitespace-nowrap` unit middle, single-line caption bottom.
+  - Longest streak: numeral "N days", with habit dot + normal-case habit name underneath (never uppercase text, truncate with ellipsis).
+  - Total check-ins: lifetime completed habit-days.
+  - 30-day consistency: percentage of completed habit-days over eligible days for active habits over the trailing 30 logical days ("78%" or "-").
+  - Days tracking: days elapsed from the earliest habit's created date through today inclusive.
+  - States: skeleton shimmer while loading, isolated danger notice with Retry on error (keeping the rest of the page usable).
+- **Milestones card (`src/components/MilestonesCard.tsx`):** glass card holding an 8-badge list (4 columns, 2 rows):
+  - 4 streak badges: 7, 21, 66, 100 days (using all-time longestStreak so broken streaks never re-lock).
+  - 4 check-in badges: 25, 100, 500, 1000 check-ins.
+  - Each badge is a 44px circle with `IconFlame` (streak) or `IconCheck` (check-ins), number label, and 11px caption.
+  - Unlocked: accent gradient fill with glow (`bg-accent-gradient glow-accent text-white shadow-md ring-2 ring-accent/60`).
+  - Locked: dimmed outline (`border border-border bg-surface-2 text-fg-muted/40`).
+  - Next locked badge: animated thin SVG progress ring with caption showing live progress (e.g. "4 / 21").
+  - `role="list"` with rich accessible labels (e.g. "7-day streak, unlocked", "21-day streak, locked, 4 of 21 days").
+  - Empty state hint: "Check in a habit to start your first streak."
+- "Personal details" card: glass card, 28px radius (`rounded-card`), compact padding `p-4 sm:p-5 lg:p-6`. A header row (title 16px 600 plus edit controls) separated by a 1px border.
   - **Email removed:** Email is shown exclusively under the avatar in the banner and is omitted from the personal details card in both display and edit mode.
   - **Display mode (two columns at all widths):** replaces the stacked / 35-65% rows with a compact 2-column grid (`grid-cols-1 min-[340px]:grid-cols-2 gap-x-4 lg:gap-x-8`, falling back to 1 column only below 340px):
     - Row 1: Full name | Date of birth
@@ -138,15 +159,13 @@ Layout from the reference, in the Aurora Glass theme (same tokens, glass cards, 
     - Row 4: Address (spans both columns, `col-span-1 min-[340px]:col-span-2`)
     - Continuous dashed dividers (`border-b border-dashed border-border py-3 lg:py-3.5`) across both columns between rows.
     - Each cell: uppercase caption label on top (11-12px, `text-caption text-secondary`), value below (15px, `text-primary`, `break-words`). Empty values show "Not added" in `text-muted`.
-    - Compact vertical rhythm fits comfortably without scrolling at 390x844 (phones) and 1440x900 (desktop) with zero empty space on the right.
   - **Edit mode:**
-    - Phones (below lg): single column with all inputs, validation messages, and sticky Save/Cancel header (Email row removed).
-    - lg and up: two balanced columns with no blank cells: Full name | Date of birth; Gender (span 2); Nationality | Country; Phone (span 2); Address (span 2). `items-start` alignment ensures inline errors stay localized without shifting opposite fields.
+    - Field 1 (top, full width): Motivation line textarea (3 rows, `.input-field` styling, label "Motivation line", live "42/140" counter, single-line only with Enter key prevented, inline validation error from validateBio).
+    - Other fields: Full name | Date of birth; Gender (span 2); Nationality | Country; Phone (span 2); Address (span 2). `items-start` alignment ensures inline errors stay localized without shifting opposite fields.
     - Date of birth input uses the `.date-field` styling (`-webkit-appearance: none; appearance: none; min-height: 3rem; padding-block: 0.75rem`) preventing iOS Safari intrinsic width overflow and focus zoom while keeping text vertically centered. On desktop (≥lg), `.input-field.date-field` restores the 52px height and 0.875rem padding.
 - Avatar upload: crop to a centered square, resize to 512px, convert to webp, then upload. The file input accepts `image/*` (a restrictive list made iOS silently swallow photos like 29 MB ProRAW originals before our code ran); inputs up to **20 MB** are accepted and compressed to a small WebP (tens of KB); a non-image file or an input over 20 MB shows a **warning toast (6 s, clearly visible)** rather than failing silently; the post-encode blob is checked against the bucket's 2 MB limit as belt-and-braces. Show a progress ring on the avatar while uploading. Remove photo is accessed via the camera button popover.
-- States: skeleton shimmer while loading (matching the 2 + 2 + 2 + 1 grid structure with continuous dashed dividers), inline error with Retry, success toast "Profile saved". **Toasts render ON the name + verified-badge row** (an overlay centered in that row via `ProfileBanner`'s `notice` slot) — viewport placements (bottom edge, then under the header) went unseen or off-center; centering in the row also aligns to the CONTENT column on desktop. `pointer-events-none`, success/danger tinted glass pills, auto-dismissing at 2.6 s (success) / 6 s (danger). Today's reorder toast stays pinned under its page header.
-- Desktop: the card is max 720px wide and centered under the avatar block. Mobile: full width, compact 2-column display.
-- Navigation: Profile is accessed via the avatar in the Today header (navigates to /profile) and via the "View profile" link in Settings; not in the rail or mobile dock.
+- States: skeleton shimmer while loading (mirroring both the mobile and 2-column desktop layouts), inline error with Retry, success toast "Profile saved". **Toasts render ON the name + verified-badge row** (an overlay centered in that row via `ProfileBanner`'s `notice` slot) — viewport placements (bottom edge, then under the header) went unseen or off-center; centering in the row also aligns to the CONTENT column on desktop. `pointer-events-none`, success/danger tinted glass pills, auto-dismissing at 2.6 s (success) / 6 s (danger).
+- Navigation: Profile is accessed via the avatar in the Today header (navigates to /profile), rail profile avatar on desktop, and the bottom dock profile icon on mobile.
 
 ## 12. Brand and icons
 - Logo source: `design-refs/habit-tracker-logo.png` (PNG master) or `public/logo.png` (served copy).

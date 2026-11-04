@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Gender, Profile, ProfileErrors, ProfileInput } from '../lib/profile'
-import { validateProfile } from '../lib/profile'
+import { normalizeBio, validateProfile } from '../lib/profile'
 import { useLogicalToday } from '../hooks/useLogicalToday'
 import { RangeSwitch } from './RangeSwitch'
 
 type Draft = {
   full_name: string
+  bio: string
   date_of_birth: string
   gender: Gender
   nationality: string
@@ -24,6 +25,7 @@ const GENDER_OPTIONS = [
 function draftFrom(profile: Profile | null): Draft {
   return {
     full_name: profile?.full_name ?? '',
+    bio: profile?.bio ?? '',
     date_of_birth: profile?.date_of_birth ?? '',
     gender: profile?.gender ?? 'prefer_not_to_say',
     nationality: profile?.nationality ?? '',
@@ -42,22 +44,32 @@ function draftFrom(profile: Profile | null): Draft {
 export function ProfileDetailsEdit({
   profile,
   saving,
+  focusBio = false,
   onCancel,
   onSave,
 }: {
   profile: Profile | null
   saving: boolean
+  focusBio?: boolean
   onCancel: () => void
   onSave: (input: ProfileInput) => Promise<void>
 }) {
   const [draft, setDraft] = useState<Draft>(() => draftFrom(profile))
   const [errors, setErrors] = useState<ProfileErrors>({})
+  const bioInputRef = useRef<HTMLTextAreaElement>(null)
   // DOB validation and its date-input max use the logical today.
   const today = useLogicalToday()
+
+  useEffect(() => {
+    if (focusBio && bioInputRef.current) {
+      bioInputRef.current.focus()
+    }
+  }, [focusBio])
 
   async function handleSave() {
     const input: ProfileInput = {
       full_name: draft.full_name.trim() || null,
+      bio: normalizeBio(draft.bio),
       date_of_birth: draft.date_of_birth || null,
       gender: draft.gender,
       nationality: draft.nationality.trim() || null,
@@ -102,6 +114,41 @@ export function ProfileDetailsEdit({
       </div>
 
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 lg:gap-x-6 lg:items-start">
+        {/* Field 1: Quote (Bio, spans both columns) */}
+        <div className="col-span-1 lg:col-span-2 border-b border-dashed border-border py-3 lg:py-3.5 min-w-0">
+          <div className="flex items-baseline justify-between mb-1.5">
+            <label htmlFor="profile-bio" className="text-caption text-fg-secondary">
+              Quote
+            </label>
+            <span className="text-caption text-fg-muted font-mono">
+              {Array.from(draft.bio).length}/140
+            </span>
+          </div>
+          <textarea
+            id="profile-bio"
+            ref={bioInputRef}
+            rows={3}
+            value={draft.bio}
+            placeholder="A line that keeps you going"
+            disabled={saving}
+            className="input-field h-auto min-h-[5rem] py-2.5 resize-none leading-relaxed"
+            onChange={(e) => {
+              const singleLine = e.target.value.replace(/[\r\n]+/g, ' ')
+              setDraft((d) => ({ ...d, bio: singleLine }))
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+              }
+            }}
+          />
+          {errors.bio && (
+            <p role="alert" className="text-body text-danger mt-1">
+              {errors.bio}
+            </p>
+          )}
+        </div>
+
         {/* Row 1: Full name | Date of birth */}
         <div className="col-span-1 border-b border-dashed border-border py-3 lg:py-3.5 min-w-0">
           <label htmlFor="profile-full_name" className="text-caption text-fg-secondary block mb-1.5">

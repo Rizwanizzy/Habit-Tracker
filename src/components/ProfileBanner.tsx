@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { initialsFrom } from '../lib/profile'
 import { ConfirmDialog } from './ConfirmDialog'
-import { IconCamera, IconTrash, IconUser } from './icons'
+import { IconCamera, IconPencil, IconTrash, IconUser } from './icons'
 import { VerifiedBadge } from './VerifiedBadge'
 
 interface Props {
   name: string | null
   email: string | null
   emailConfirmed: boolean
+  bio?: string | null
   avatarPath: string | null
   avatarUrl: string | null
   uploading: boolean
   onPickFile: (file: File) => void
   onRemove: () => void
+  onAddBio?: () => void
   /** Toast overlay rendered ON the name + verified-badge row (user request:
    *  warnings belong where the eyes are — viewport-bottom/top placements went
    *  unseen). Centering inside this row also aligns to the CONTENT column,
@@ -28,11 +30,13 @@ export function ProfileBanner({
   name,
   email,
   emailConfirmed,
+  bio = null,
   avatarPath,
   avatarUrl,
   uploading,
   onPickFile,
   onRemove,
+  onAddBio,
   notice = null,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -225,6 +229,20 @@ export function ProfileBanner({
               <span className="truncate">{email}</span>
             </span>
           </p>
+          {bio ? (
+            <p className="max-w-[540px] text-center text-sm italic text-fg-secondary line-clamp-3 break-words px-2">
+              “{bio}”
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={onAddBio}
+              className="inline-flex h-11 items-center gap-2 rounded-pill border border-dashed border-border px-4 text-sm font-medium text-fg-secondary transition-colors hover:border-fg-secondary hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+            >
+              <IconPencil className="size-4 shrink-0" />
+              <span>Add your quote</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
