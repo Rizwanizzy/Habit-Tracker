@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ColorPicker } from './ColorPicker'
 import { CompletionMonth } from './CompletionMonth'
 import { CompletionYear } from './CompletionYear'
@@ -77,7 +78,9 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
   })
   const [pickerOpen, setPickerOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
-  const pickerRef = useRef<HTMLDivElement>(null)
+  const colorButtonRef = useRef<HTMLButtonElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number; width: number } | null>(null)
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768)
@@ -88,11 +91,38 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
   useEffect(() => store(LS_VIEW, view), [view])
   useEffect(() => store(LS_COLOR, color), [color])
 
+  // Calculate viewport-clamped position for popover when open
+  useEffect(() => {
+    if (!pickerOpen) {
+      setPopoverPos(null)
+      return
+    }
+    const updatePos = () => {
+      const r = colorButtonRef.current?.getBoundingClientRect()
+      if (!r) return
+      const desiredWidth = window.innerWidth < 640 ? 280 : 320
+      const margin = 12
+      const width = Math.min(desiredWidth, window.innerWidth - margin * 2)
+      let left = r.right - width
+      left = Math.max(margin, Math.min(left, window.innerWidth - width - margin))
+      setPopoverPos({ top: r.bottom + 8, left, width })
+    }
+    updatePos()
+    window.addEventListener('resize', updatePos)
+    window.addEventListener('scroll', updatePos, true)
+    return () => {
+      window.removeEventListener('resize', updatePos)
+      window.removeEventListener('scroll', updatePos, true)
+    }
+  }, [pickerOpen])
+
   // Close the palette popover on outside click / Escape.
   useEffect(() => {
     if (!pickerOpen) return
     const onDown = (e: MouseEvent) => {
-      if (!pickerRef.current?.contains(e.target as Node)) setPickerOpen(false)
+      if (colorButtonRef.current?.contains(e.target as Node)) return
+      if (popoverRef.current?.contains(e.target as Node)) return
+      setPickerOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setPickerOpen(false)
@@ -134,16 +164,12 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
       className={`glass-card fade-up flex flex-col rounded-card p-3.5 sm:p-4 lg:p-6 h-[236px] lg:h-full ${pickerOpen ? 'relative z-10' : ''}`}
       style={{ animationDelay: '40ms' }}
     >
-      {/* While the color picker popover is open the card is lifted above its
-          siblings: .glass-card stacking contexts (backdrop-filter) at z-auto
-          paint in DOM order, so the tile rows below would cover the popover
-          where it escapes this card. Same fix as DayStartCard. */}
       <div className="flex items-center justify-between gap-2 lg:gap-3 shrink-0">
         <div className="flex items-baseline gap-2 lg:gap-3 min-w-0">
           <h2 className="text-[17px] lg:text-section-title font-semibold text-fg truncate">{TITLES[view]}</h2>
           <p className="text-caption text-fg-muted hidden sm:inline lg:inline">% done per day</p>
         </div>
-        <div ref={pickerRef} className="relative flex items-center gap-1.5 lg:gap-2 shrink-0">
+        <div className="relative flex items-center gap-1.5 lg:gap-2 shrink-0">
           <div role="group" aria-label="Completion range" className="glass-pill flex items-center gap-0.5 lg:gap-1 rounded-pill p-0.5 lg:p-1">
             {VIEWS.map((v) => (
               <button
@@ -162,6 +188,7 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
             ))}
           </div>
           <button
+            ref={colorButtonRef}
             type="button"
             onClick={() => setPickerOpen((o) => !o)}
             aria-label="Change completion color"
@@ -173,13 +200,23 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
               style={{ backgroundColor: color }}
             />
           </button>
-          {pickerOpen && (
-            <div className="glass-card popover-solid absolute right-0 top-[calc(100%+8px)] z-30 w-[280px] sm:w-80 max-w-[calc(100vw-2rem)] rounded-card p-4 shadow-xl">
+          {pickerOpen && popoverPos && createPortal(
+            <div
+              ref={popoverRef}
+              style={{
+                position: 'fixed',
+                top: popoverPos.top,
+                left: popoverPos.left,
+                width: popoverPos.width,
+              }}
+              className="glass-card popover-solid z-50 rounded-card p-4 shadow-xl"
+            >
               <ColorPicker
                 color={color}
                 onChange={(hex) => setColor(hex)}
               />
-            </div>
+            </div>,
+            document.body,
           )}
         </div>
       </div>

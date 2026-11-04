@@ -312,8 +312,8 @@ VITE_SUPABASE_ANON_KEY=<anon key>
   - **Dynamic 65% / 35% past-day split on mobile:** on Today (`!isPast`), the date navigation pill and the "Per row" `TileDensity` stepper share the row 50%/50% (`flex-1 basis-1/2 min-w-0`). When navigating to past dates (`isPast === true`), the date pill dynamically expands to 65% width (`flex-[65] basis-[65%] min-w-0`) and `TileDensity` flexes to 35% width (`flex-[35] basis-[35%] min-w-0`), giving ample space for the full date label, chevron down, and the "Today" shortcut button without truncation or ellipsis. `TileDensity` sizing optimized with responsive compact sizing and `after:inset-[-8px]` hit pads keeping all tap targets ≥44px. Desktop (≥1024px) remains completely unchanged.
   - Tests 180/180 green, build clean.
 
-- 89. **CompletionCard color picker popover viewport clamping (user request):**
-  - **Right alignment on mobile:** fixed the ColorPicker popover in `CompletionCard.tsx` extending off the right edge of the screen on mobile devices. Replaced centered relative offset (`left-1/2 -translate-x-1/2`) with `right-0 top-[calc(100%+8px)] w-[280px] sm:w-80 max-w-[calc(100vw-2rem)]`, aligning the popover's right border flush with the palette trigger container inside the card. All borders, swatches, and hex input are fully visible inside the viewport bounds with 16px+ margins.
+- 89. **CompletionCard color picker popover universal portal clamping (Android & iOS):**
+  - **Portalled fixed positioning:** updated the ColorPicker popover in `CompletionCard.tsx` to render directly into `document.body` via `createPortal` with `position: fixed` and dynamic viewport clamping (`left = Math.max(margin, Math.min(r.right - width, window.innerWidth - width - margin))`). This bypasses parent card `backdrop-filter` stacking contexts, `h-[236px]` card height boundaries, and WebKit/Blink GPU layer compositor clipping on Android WebViews and Android Chrome. All swatches, hex inputs, and popover borders are guaranteed to stay within viewport bounds on both Android and iOS devices.
   - Tests 180/180 green, build clean.
 
 ### Remaining next steps (Aurora Glass passes still to do)
