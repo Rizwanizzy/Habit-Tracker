@@ -367,6 +367,17 @@ VITE_SUPABASE_ANON_KEY=<anon key>
     - Date input: styled with `.date-field` to prevent iOS Safari intrinsic-width overflow and focus-zoom while centering text vertically via padding-based sizing. On desktop (≥1024px), `.input-field.date-field` in `index.css` restores the standard 52px height and 0.875rem padding.
   - **Loading skeleton:** updated `Profile.tsx` skeleton card (`mt-4 w-full max-w-[720px] rounded-card p-4 sm:p-5 lg:mt-6 lg:p-6`) to mirror the 2 + 2 + 2 + 1 grid structure with matching continuous dashed dividers and cell labels.
   - Tests 193/193 green, build clean.
+
+- 97. **Overview page — iPhone Safari Score card dock clearance & dynamic height fix (user request):**
+  - **Issue diagnosed:** On iPhone Safari, the Score chart card ended ~70-80px above the floating bottom dock rather than the standard 12px gap seen on Android and desktop emulation. Two root causes were identified:
+    1. *Safe-area dock clearance discrepancy:* `.mobile-dock` has its bottom offset reduced on iOS to `max(0.5rem, calc(env(safe-area-inset-bottom) - 26px))` (~8px), placing its top edge at 72px from screen bottom. Meanwhile, `<main>`'s default padding used `pb-[calc(5.5rem + env(safe-area-inset-bottom))]` (122px with 34px Face-ID inset), creating an unintended 50px gap (122px - 72px).
+    2. *Collapsing toolbar viewport mismatch:* `Overview.tsx`'s container was locked to `100svh`. When Safari's collapsible toolbar collapses on scroll or in dynamic mode, the viewport expands by ~20-30px+ to `100dvh`. Because the section stayed clamped at `100svh`, this compounded the gap to the observed 70-80px.
+  - **Scoped solution (<768px iPhone only):** Scoped strictly to iOS WebKit via `@supports (-webkit-touch-callout: none) { @media (max-width: 767px) { ... } }` in `src/index.css`. Android, desktop browsers, devtools emulation, and iPads (≥768px) remain 100% untouched.
+    - Updated `<main:has(.overview-score-card)>` bottom padding to `calc(4.75rem + max(0.5rem, calc(env(safe-area-inset-bottom) - 26px)))` (84px on Face-ID), aligning the content bottom edge exactly 12px above the dock's 72px top edge.
+    - Set `.app-shell` and `.overview-page` to `100dvh` (with `100svh` fallback), tracking dynamic viewport changes seamlessly as Safari's toolbar collapses/expands.
+    - `.overview-score-card` uses `flex: 1 1 auto; min-height: 360px`, absorbing extra space and preserving height on short screens (iPhone SE 375x667).
+    - Extra height flows down into `.overview-chart-wrapper` (`flex: 1 1 auto; height: 100%; min-height: 14rem`), stretching the Recharts `ResponsiveContainer` SVG plot area to fill the card.
+  - Tests 193/193 green, build clean.
   
 ### Remaining next steps (Aurora Glass passes still to do)
 - All main pages are implemented and the PWA is live (manifest + generated service worker, auto-update). Every page is restyled to DESIGN.md except one motion detail: big-numeral count-up on stat tiles.

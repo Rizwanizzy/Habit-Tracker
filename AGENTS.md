@@ -70,6 +70,7 @@ Read DESIGN.md before building or changing any UI.
 - Support light and dark themes using CSS variables from DESIGN.md.
 - Tap targets at least 44px. Show loading and empty states on every page.
 - Charts must have a tooltip, readable axis labels, and a toggle per habit on the Overview page.
+- Overview page Score card on iPhone Safari scales dynamically to maintain the exact 12px gap above the floating dock across expanded/collapsed toolbars without shrinking on short screens (iPhone SE).
 
 ## Code style
 - Functional components and hooks only. Named exports. No `any`.

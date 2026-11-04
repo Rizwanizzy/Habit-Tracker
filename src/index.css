@@ -1154,3 +1154,68 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     bottom: max(0.5rem, calc(env(safe-area-inset-bottom) - 26px));
   }
 }
+
+/* ---------------------------------------------------------------------------
+   iPhone Safari: Overview Score Card Dock Clearance & Dynamic Viewport Height
+   Scoped strictly to iPhone iOS WebKit (<768px) via @supports (-webkit-touch-callout: none).
+   Android, desktop browsers, devtools emulation, and iPads (>=768px) are completely unaffected.
+   
+   Cause diagnosed:
+   1. Safe-area double-counting / dock offset discrepancy:
+      In index.css, .mobile-dock sits at bottom: max(0.5rem, calc(env(safe-area-inset-bottom) - 26px)) (~8px),
+      giving a dock top edge of 72px (8px + 64px dock height). However, <main>'s default bottom padding
+      used pb-[calc(5.5rem + env(safe-area-inset-bottom))] (122px on 34px Face-ID insets), which assumed
+      unreduced safe-area inset on the dock, producing a 50px resting gap instead of the intended 12px.
+   2. Viewport unit discrepancy:
+      Overview's container was locked to 100svh. In Safari on iOS, when the collapsible toolbar
+      collapses on scroll or in dynamic mode, the viewport expands by ~20-30px+ (from 100svh to 100dvh).
+      Because the section stayed clamped at 100svh, this compounded into the observed 70-80px gap.
+   
+   Fix:
+   - Adjust <main>'s bottom padding on Overview to:
+     calc(4.75rem + max(0.5rem, calc(env(safe-area-inset-bottom) - 26px))) (84px),
+     positioning the content bottom edge exactly 12px above the 72px dock top edge.
+   - Set .overview-page and .app-shell to 100dvh (with 100svh/100vh fallbacks) so the page
+     flex column expands continuously with Safari's toolbar in both collapsed and expanded states.
+   - Score card (.overview-score-card) grows via flex: 1 1 auto (with min-height: 360px preserving
+     size on short screens like iPhone SE so it never shrinks below current height).
+   - Extra vertical height passes down to .overview-chart-wrapper (flex: 1 1 auto; min-height: 14rem; height: 100%),
+     stretching the Recharts ResponsiveContainer plot area rather than leaving empty space.
+--------------------------------------------------------------------------- */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 767px) {
+    .app-shell {
+      min-height: 100dvh;
+    }
+
+    main:has(.overview-score-card) {
+      padding-bottom: calc(4.75rem + max(0.5rem, calc(env(safe-area-inset-bottom) - 26px)));
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+    }
+
+    .overview-page {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: calc(100svh - 5.75rem - max(0.5rem, calc(env(safe-area-inset-bottom) - 26px)));
+      min-height: calc(100dvh - 5.75rem - max(0.5rem, calc(env(safe-area-inset-bottom) - 26px)));
+    }
+
+    .overview-score-card {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 360px;
+    }
+
+    .overview-chart-wrapper {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 14rem;
+      height: 100%;
+    }
+  }
+}
+
