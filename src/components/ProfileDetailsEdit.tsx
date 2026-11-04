@@ -3,7 +3,6 @@ import type { Gender, Profile, ProfileErrors, ProfileInput } from '../lib/profil
 import { validateProfile } from '../lib/profile'
 import { useLogicalToday } from '../hooks/useLogicalToday'
 import { RangeSwitch } from './RangeSwitch'
-import { IconLock } from './icons'
 
 type Draft = {
   full_name: string
@@ -22,15 +21,6 @@ const GENDER_OPTIONS = [
   { key: 'prefer_not_to_say', label: 'Not said' },
 ]
 
-const FIELDS: { key: keyof Omit<Draft, 'gender'>; label: string; type: 'text' | 'date' | 'tel'; placeholder: string }[] = [
-  { key: 'full_name', label: 'Full name', type: 'text', placeholder: 'Your name' },
-  { key: 'date_of_birth', label: 'Date of birth', type: 'date', placeholder: '' },
-  { key: 'nationality', label: 'Nationality', type: 'text', placeholder: 'e.g. Indian' },
-  { key: 'country', label: 'Country', type: 'text', placeholder: 'e.g. India' },
-  { key: 'address', label: 'Address', type: 'text', placeholder: 'Country, city or region' },
-  { key: 'phone', label: 'Phone number', type: 'tel', placeholder: '+91 …' },
-]
-
 function draftFrom(profile: Profile | null): Draft {
   return {
     full_name: profile?.full_name ?? '',
@@ -43,17 +33,19 @@ function draftFrom(profile: Profile | null): Draft {
   }
 }
 
-/** Personal details card, edit mode (DESIGN.md §11): rows become inputs in
- *  place; Save/Cancel live in the card header and stay visible on scroll. */
+/** Personal details card, edit mode (DESIGN.md §11):
+ *  - Phones (below lg): single column.
+ *  - Desktop (lg and up): 2 columns with no blank cells
+ *    (Full name | Date of birth; Gender span 2; Nationality | Country; Phone span 2; Address span 2).
+ *  - Inline errors stay under their own field with items-start so they never shift adjacent inputs.
+ *  - Email row is removed. */
 export function ProfileDetailsEdit({
   profile,
-  email,
   saving,
   onCancel,
   onSave,
 }: {
   profile: Profile | null
-  email: string | null
   saving: boolean
   onCancel: () => void
   onSave: (input: ProfileInput) => Promise<void>
@@ -109,33 +101,51 @@ export function ProfileDetailsEdit({
         </div>
       </div>
 
-      <div className="mt-5">
-        {FIELDS.map((f) => (
-          <div key={f.key} className="grid grid-cols-1 gap-1.5 border-b border-dashed border-border py-4">
-            <label htmlFor={`profile-${f.key}`} className="text-caption text-fg-secondary">
-              {f.label}
-            </label>
-            <input
-              id={`profile-${f.key}`}
-              type={f.type}
-              value={draft[f.key]}
-              placeholder={f.placeholder}
-              max={f.type === 'date' ? today : undefined}
-              disabled={saving}
-              className="input-field"
-              onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))}
-            />
-            {errors[f.key] && (
-              <p role="alert" className="text-body text-danger">
-                {errors[f.key]}
-              </p>
-            )}
-          </div>
-        ))}
+      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 lg:gap-x-6 lg:items-start">
+        {/* Row 1: Full name | Date of birth */}
+        <div className="col-span-1 border-b border-dashed border-border py-3 lg:py-3.5 min-w-0">
+          <label htmlFor="profile-full_name" className="text-caption text-fg-secondary block mb-1.5">
+            Full name
+          </label>
+          <input
+            id="profile-full_name"
+            type="text"
+            value={draft.full_name}
+            placeholder="Your name"
+            disabled={saving}
+            className="input-field"
+            onChange={(e) => setDraft((d) => ({ ...d, full_name: e.target.value }))}
+          />
+          {errors.full_name && (
+            <p role="alert" className="text-body text-danger mt-1">
+              {errors.full_name}
+            </p>
+          )}
+        </div>
 
-        {/* Gender: segmented control (null counts as "prefer not to say"). */}
-        <div className="grid grid-cols-1 gap-1.5 border-b border-dashed border-border py-4">
-          <span className="text-caption text-fg-secondary">Gender</span>
+        <div className="col-span-1 border-b border-dashed border-border py-3 lg:py-3.5 min-w-0">
+          <label htmlFor="profile-date_of_birth" className="text-caption text-fg-secondary block mb-1.5">
+            Date of birth
+          </label>
+          <input
+            id="profile-date_of_birth"
+            type="date"
+            value={draft.date_of_birth}
+            max={today}
+            disabled={saving}
+            className="input-field date-field min-w-0"
+            onChange={(e) => setDraft((d) => ({ ...d, date_of_birth: e.target.value }))}
+          />
+          {errors.date_of_birth && (
+            <p role="alert" className="text-body text-danger mt-1">
+              {errors.date_of_birth}
+            </p>
+          )}
+        </div>
+
+        {/* Row 2: Gender (span 2) */}
+        <div className="col-span-1 lg:col-span-2 border-b border-dashed border-border py-3 lg:py-3.5 min-w-0">
+          <span className="text-caption text-fg-secondary block mb-1.5">Gender</span>
           <RangeSwitch
             options={GENDER_OPTIONS}
             value={draft.gender}
@@ -143,19 +153,93 @@ export function ProfileDetailsEdit({
             onChange={(key) => setDraft((d) => ({ ...d, gender: key as Gender }))}
           />
           {errors.gender && (
-            <p role="alert" className="text-body text-danger">
+            <p role="alert" className="text-body text-danger mt-1">
               {errors.gender}
             </p>
           )}
         </div>
 
-        {/* Email is read-only; it lives in the auth session, not in profiles. */}
-        <div className="grid grid-cols-1 gap-1.5 py-4">
-          <span className="text-caption text-fg-secondary">Email</span>
-          <div className="input-field flex cursor-not-allowed items-center gap-2 text-fg-secondary" aria-disabled="true">
-            <IconLock className="size-4 shrink-0 text-fg-muted" aria-hidden="true" />
-            <span className="truncate">{email ?? '—'}</span>
-          </div>
+        {/* Row 3: Nationality | Country */}
+        <div className="col-span-1 border-b border-dashed border-border py-3 lg:py-3.5 min-w-0">
+          <label htmlFor="profile-nationality" className="text-caption text-fg-secondary block mb-1.5">
+            Nationality
+          </label>
+          <input
+            id="profile-nationality"
+            type="text"
+            value={draft.nationality}
+            placeholder="e.g. Indian"
+            disabled={saving}
+            className="input-field"
+            onChange={(e) => setDraft((d) => ({ ...d, nationality: e.target.value }))}
+          />
+          {errors.nationality && (
+            <p role="alert" className="text-body text-danger mt-1">
+              {errors.nationality}
+            </p>
+          )}
+        </div>
+
+        <div className="col-span-1 border-b border-dashed border-border py-3 lg:py-3.5 min-w-0">
+          <label htmlFor="profile-country" className="text-caption text-fg-secondary block mb-1.5">
+            Country
+          </label>
+          <input
+            id="profile-country"
+            type="text"
+            value={draft.country}
+            placeholder="e.g. India"
+            disabled={saving}
+            className="input-field"
+            onChange={(e) => setDraft((d) => ({ ...d, country: e.target.value }))}
+          />
+          {errors.country && (
+            <p role="alert" className="text-body text-danger mt-1">
+              {errors.country}
+            </p>
+          )}
+        </div>
+
+        {/* Row 4: Phone (span 2) */}
+        <div className="col-span-1 lg:col-span-2 border-b border-dashed border-border py-3 lg:py-3.5 min-w-0">
+          <label htmlFor="profile-phone" className="text-caption text-fg-secondary block mb-1.5">
+            Phone number
+          </label>
+          <input
+            id="profile-phone"
+            type="tel"
+            value={draft.phone}
+            placeholder="+91 …"
+            disabled={saving}
+            className="input-field"
+            onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
+          />
+          {errors.phone && (
+            <p role="alert" className="text-body text-danger mt-1">
+              {errors.phone}
+            </p>
+          )}
+        </div>
+
+        {/* Row 5: Address (span 2) */}
+        <div className="col-span-1 lg:col-span-2 pt-3 lg:pt-3.5 min-w-0">
+          <label htmlFor="profile-address" className="text-caption text-fg-secondary block mb-1.5">
+            Address
+          </label>
+          <input
+            id="profile-address"
+            type="text"
+            value={draft.address}
+            placeholder="Country, city or region"
+            disabled={saving}
+            className="input-field"
+            onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))}
+          />
+          {errors.address && (
+            <p role="alert" className="text-body text-danger mt-1">
+              {errors.address}
+            </p>
+          )}
         </div>
       </div>
     </>

@@ -4,7 +4,6 @@ import { ProfileDetailsEdit } from './ProfileDetailsEdit'
 
 interface Props {
   profile: Profile | null
-  email: string | null
   editing: boolean
   onEdit: () => void
   onCancel: () => void
@@ -16,7 +15,6 @@ interface Props {
  *  display rows or the in-place edit form, max 720px on desktop. */
 export function ProfileDetails({
   profile,
-  email,
   editing,
   onEdit,
   onCancel,
@@ -24,17 +22,16 @@ export function ProfileDetails({
   saving,
 }: Props) {
   return (
-    <section aria-label="Personal details card" className="glass-card rounded-card p-5 lg:p-6">
+    <section aria-label="Personal details card" className="glass-card rounded-card p-4 sm:p-5 lg:p-6">
       {editing ? (
         <ProfileDetailsEdit
           profile={profile}
-          email={email}
           saving={saving}
           onCancel={onCancel}
           onSave={onSave}
         />
       ) : (
-        <ProfileDetailsDisplay profile={profile} email={email} onEdit={onEdit} />
+        <ProfileDetailsDisplay profile={profile} onEdit={onEdit} />
       )}
     </section>
   )

@@ -351,6 +351,22 @@ VITE_SUPABASE_ANON_KEY=<anon key>
 - 95. **Settings phone pass 4 (user report + screenshot): `crypto.randomUUID is not a function` on LAN http, and the Day card's live line now uses the full date**:
   - **The crash is confirmed and fixed at the source:** the user's screenshot shows the red chip `CRYPTO.RANDOMUUID IS NOT A FUNCTION. (IN 'CRYPTO.RANDOMUUID()', 'CRYPTO.RANDOMUUID' IS UNDEFINED)` — exactly the diagnosis in 94, reproduced on iPhone and Android over the LAN dev origin `http://192.168.29.33:5173` (plain http = non-secure context, no `crypto.randomUUID`). **Fix (approved, hooks/lib touched):** new pure helper `src/lib/id.ts` `newId()` — `crypto.randomUUID()` when it exists, otherwise a `crypto.getRandomValues` v4 generator (version/variant bits set) — with 3 new Vitest cases (v4 shape, survives a missing `randomUUID`, 1000 unique ids); `src/hooks/useVacations.ts:64` and the two bare `crypto.randomUUID()` calls in `src/hooks/useImportBackup.ts:209,241` now call it. The card-level `try`/`catch`/`finally` from 94 stays as a safety net. Tests 193/193, build green.
   - **Day card phone live line:** "Counts as Wed Nov 4" (short weekday + short month) is replaced by the full date "Counts as Wednesday November 4" via the existing `DATE_FMT` (`weekday:'long', day:'numeric', month:'long'`) with `line-clamp-2 min-w-0` (no `truncate`/`nowrap`, no `WEEKDAY_SHORT`/`DAY_MONTH_SHORT` formatters — they were removed). The Day card is inherently shorter than the Data card (which carries the two pills), so the two-line date fills some of the vacant space the grid stretch already allocates — it never exceeds two lines and never grows either card (Day and Data stay equal by grid stretch). Desktop keeps its exact wording (`max-lg:hidden`).
+
+- 96. **Profile personal details card 2-column layout & email row removal (user request):**
+  - **Scope & boundaries:** UI only — no changes to `src/lib` (`profile.ts`, `avatar.ts`, validation), data hooks/contexts (`useProfile`, `ProfileContext`), save/database logic, the breadcrumb/sign-out row, banner/avatar block, name + verified badge, or the bottom dock/rail.
+  - **Email removal:** removed the Email row from the Personal details card in both display mode and edit mode (`ProfileDetailsDisplay.tsx`, `ProfileDetailsEdit.tsx`). Email continues to be displayed prominently under the avatar in `ProfileBanner.tsx` and read directly from the auth session (never stored in `profiles`). Removed unused `IconLock` import from display component.
+  - **Display mode (compact 2-column grid at all widths):** replaced the 35%/65% label-value rows and mobile stacked layout with a balanced 2-column grid (`grid grid-cols-1 min-[340px]:grid-cols-2 gap-x-4 lg:gap-x-8`) with continuous dashed dividers across both columns (`border-b border-dashed border-border py-3 lg:py-3.5`):
+    - Row 1: Full name | Date of birth
+    - Row 2: Gender | Nationality
+    - Row 3: Country | Phone number
+    - Row 4: Address (spans both columns, `col-span-1 min-[340px]:col-span-2`)
+    - Left-aligned cells with uppercase caption label (11-12px, `text-caption text-secondary`) and value (15px, `text-primary`, `break-words`). Empty values display "Not added" in `text-muted`. Fits comfortably without scrolling at 390x844 (phones) and 1440x900 (desktop) with zero dead space on the right.
+  - **Edit mode:**
+    - Phones (<1024px): single column keeping all inputs, validation messages, and sticky Save/Cancel header (Email row removed).
+    - Desktop (≥1024px): 2 balanced columns with no blank cells: Full name | Date of birth; Gender (span 2); Nationality | Country; Phone (span 2); Address (span 2). `items-start` alignment ensures inline validation errors stay localized under their respective fields without vertically shifting the opposite column.
+    - Date input: styled with `.date-field` to prevent iOS Safari intrinsic-width overflow and focus-zoom while centering text vertically via padding-based sizing. On desktop (≥1024px), `.input-field.date-field` in `index.css` restores the standard 52px height and 0.875rem padding.
+  - **Loading skeleton:** updated `Profile.tsx` skeleton card (`mt-4 w-full max-w-[720px] rounded-card p-4 sm:p-5 lg:mt-6 lg:p-6`) to mirror the 2 + 2 + 2 + 1 grid structure with matching continuous dashed dividers and cell labels.
+  - Tests 193/193 green, build clean.
   
 ### Remaining next steps (Aurora Glass passes still to do)
 - All main pages are implemented and the PWA is live (manifest + generated service worker, auto-update). Every page is restyled to DESIGN.md except one motion detail: big-numeral count-up on stat tiles.
@@ -460,8 +476,8 @@ src/
     VerifiedBadge.tsx  inline SVG verified badge: blue scalloped seal + white checkmark, role=img aria-label Verified
     ProfileBanner.tsx  banner + avatar/camera/progress + name/verified badge/email + remove photo
     ProfileDetails.tsx details card shell (routes display ↔ edit)
-    ProfileDetailsDisplay.tsx  35/65 label-value rows with dashed dividers
-    ProfileDetailsEdit.tsx     in-place edit form + sticky Save/Cancel header
+    ProfileDetailsDisplay.tsx  2-column grid (2+2+2+1) with continuous dashed dividers
+    ProfileDetailsEdit.tsx     in-place edit form (single-col mobile, 2-col desktop) + sticky Save/Cancel header
   contexts/
     ProfileContext.tsx ProfileProvider wrapping useProfile — shared profile state across Today header, rail avatar, Profile page
     HabitsContext.tsx  HabitsProvider wrapping useHabits (all habits incl. archived) — one ordered list for Today, rings, Overview, Settings; mounts inside RequireAuth around AppShell (inside SettingsProvider, whose setting the created_at conversion needs)

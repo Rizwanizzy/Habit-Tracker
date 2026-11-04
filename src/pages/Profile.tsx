@@ -116,12 +116,53 @@ export function Profile() {
           <div className="skeleton h-8 w-56 rounded-pill" />
           <div className="skeleton h-4 w-64 max-w-full rounded-pill" />
         </div>
-        <div className="glass-card mx-auto mt-8 max-w-[720px] rounded-card p-5 lg:p-6">
-          <div className="skeleton h-5 w-40 rounded-pill" />
-          <div className="mt-5 space-y-4">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className="skeleton h-4 w-full rounded-pill" />
-            ))}
+        <div className="glass-card mx-auto mt-4 w-full max-w-[720px] rounded-card p-4 sm:p-5 lg:mt-6 lg:p-6">
+          <div className="flex items-center justify-between border-b border-border pb-3 lg:pb-4">
+            <div className="skeleton h-5 w-36 rounded-pill" />
+            <div className="skeleton h-9 w-16 rounded-pill" />
+          </div>
+          <div>
+            {/* Row 1: Full name | Date of birth */}
+            <div className="grid grid-cols-1 min-[340px]:grid-cols-2 gap-x-4 lg:gap-x-8 border-b border-dashed border-border py-3 lg:py-3.5">
+              <div>
+                <div className="skeleton h-3.5 w-16 rounded-pill" />
+                <div className="skeleton mt-2 h-4 w-32 rounded-pill" />
+              </div>
+              <div className="max-[339px]:mt-2.5">
+                <div className="skeleton h-3.5 w-20 rounded-pill" />
+                <div className="skeleton mt-2 h-4 w-28 rounded-pill" />
+              </div>
+            </div>
+
+            {/* Row 2: Gender | Nationality */}
+            <div className="grid grid-cols-1 min-[340px]:grid-cols-2 gap-x-4 lg:gap-x-8 border-b border-dashed border-border py-3 lg:py-3.5">
+              <div>
+                <div className="skeleton h-3.5 w-14 rounded-pill" />
+                <div className="skeleton mt-2 h-4 w-20 rounded-pill" />
+              </div>
+              <div className="max-[339px]:mt-2.5">
+                <div className="skeleton h-3.5 w-18 rounded-pill" />
+                <div className="skeleton mt-2 h-4 w-24 rounded-pill" />
+              </div>
+            </div>
+
+            {/* Row 3: Country | Phone number */}
+            <div className="grid grid-cols-1 min-[340px]:grid-cols-2 gap-x-4 lg:gap-x-8 border-b border-dashed border-border py-3 lg:py-3.5">
+              <div>
+                <div className="skeleton h-3.5 w-14 rounded-pill" />
+                <div className="skeleton mt-2 h-4 w-24 rounded-pill" />
+              </div>
+              <div className="max-[339px]:mt-2.5">
+                <div className="skeleton h-3.5 w-24 rounded-pill" />
+                <div className="skeleton mt-2 h-4 w-32 rounded-pill" />
+              </div>
+            </div>
+
+            {/* Row 4: Address */}
+            <div className="pt-3 lg:pt-3.5">
+              <div className="skeleton h-3.5 w-16 rounded-pill" />
+              <div className="skeleton mt-2 h-4 w-48 rounded-pill" />
+            </div>
           </div>
         </div>
       </section>
@@ -164,7 +205,6 @@ export function Profile() {
       <div className="mx-auto mt-4 w-full max-w-[720px] lg:mt-6">
         <ProfileDetails
           profile={profile}
-          email={email}
           editing={editing}
           onEdit={() => setEditing(true)}
           onCancel={() => setEditing(false)}

@@ -625,6 +625,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-size: inherit;
     line-height: normal;
   }
+  .input-field.date-field {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 52px;
+    min-height: 52px;
+    padding-inline: 0.875rem;
+    padding-block: 0.75rem;
+    box-sizing: border-box;
+    font-size: 0.9375rem;
+    line-height: 1.5rem;
+  }
   .date-field::-webkit-date-and-time-value {
     text-align: initial;
     margin: initial;
