@@ -174,9 +174,7 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [] }
             />
           </button>
           {pickerOpen && (
-            <div className={`glass-card popover-solid absolute z-30 top-[calc(100%+8px)] rounded-card p-4 shadow-xl ${
-              isMobile ? 'left-1/2 -translate-x-1/2 w-[280px] max-w-[calc(100vw-2rem)]' : 'right-0 w-80'
-            }`}>
+            <div className="glass-card popover-solid absolute right-0 top-[calc(100%+8px)] z-30 w-[280px] sm:w-80 max-w-[calc(100vw-2rem)] rounded-card p-4 shadow-xl">
               <ColorPicker
                 color={color}
                 onChange={(hex) => setColor(hex)}
