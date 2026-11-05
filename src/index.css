@@ -383,7 +383,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     padding: 14px;
   }
   .tile-cell .tile-check,
-  .tile-cell .tile-edit,
   .tile-cell .tile-more {
     width: 42px;
     height: 42px;
@@ -402,7 +401,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   /* Hit pads: 42px controls get 1px invisible padding all round → 44px. */
   .tile-cell .tile-check::after,
-  .tile-cell .tile-edit::after {
+  .tile-cell .tile-more::after {
     content: '';
     position: absolute;
     inset: -1px;
@@ -431,7 +430,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     border-radius: 14px;
   }
   .tile-cell .tile-check,
-  .tile-cell .tile-edit,
   .tile-cell .tile-more {
     width: 30px;
     height: 30px;
@@ -453,7 +451,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
   /* Keep every shrunk control's target at ≥44px. */
   .tile-cell .tile-check::after,
-  .tile-cell .tile-edit::after,
   .tile-cell .tile-more::after {
     content: '';
     position: absolute;

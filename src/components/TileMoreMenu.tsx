@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { IconMore } from './icons'
+import { IconMore, IconPencil, IconSkip } from './icons'
 
 interface Props {
   habitId: string
@@ -11,44 +11,54 @@ interface Props {
   skipped: boolean
   /** Reorder mode: the menu is disabled (and closed). */
   disabled: boolean
-  /** Compact tiles hide the pencil (container query < 232px), so the menu
-   *  carries the edit item instead. */
-  showEditItem: boolean
-  onSkipToggle: () => void
+  onSkipToggle?: () => void
   /** Lets the tile lift itself above sibling contexts while open. */
   onOpenChange?: (open: boolean) => void
 }
 
-/** The habit tile's "more" popover (DESIGN.md §6, skip task): the same size
- *  and hover rules as the edit pencil, opening a small glass menu with
- *  "Skip <day>" / "Undo skip" (and "Edit habit" in compact mode). Outside
- *  click and Escape close it — the CompletionCard popover pattern.
+/** The habit tile's "more" popover (DESIGN.md §6): single icon button (three dots)
+ *  opening a glass menu with "Edit habit" and "Skip <day>" / "Undo skip".
+ *  Outside click and Escape close it, arrow keys navigate between items.
  *
- *  Portalled + clamped to the viewport so a tile in the first column on a
- *  360px phone doesn't crop half the menu off the left edge. */
+ *  Portalled + clamped to the viewport and dock clearance so it opens fully visible. */
 export function TileMoreMenu({
   habitId,
   habitName,
   dayLabel,
   skipped,
   disabled,
-  showEditItem,
   onSkipToggle,
   onOpenChange,
 }: Props) {
   const [open, setOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const itemRefs = useRef<(HTMLAnchorElement | HTMLButtonElement | null)[]>([])
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null)
 
-  // Reorder mode disables (and hides) the menu — no state sync needed, the
-  // open popover simply isn't rendered while disabled. The open change is
+  // Reorder mode disables (and hides) the menu. The open change is
   // reported as false while disabled so the tile drops its z-lift too.
   useEffect(() => {
     onOpenChange?.(open && !disabled)
   }, [open, disabled, onOpenChange])
 
-  // Anchor under the trigger, right-aligned, clamped inside the viewport.
+  // Reset active item index to 0 whenever opening.
+  useEffect(() => {
+    if (open) {
+      setActiveIndex(0)
+    }
+  }, [open])
+
+  // Move focus to the active menuitem when open and positioned.
+  useEffect(() => {
+    if (open && pos) {
+      itemRefs.current[activeIndex]?.focus()
+    }
+  }, [open, activeIndex, pos])
+
+  // Anchor relative to trigger, right-aligned by default, clamped inside viewport,
+  // flipping upward if colliding with bottom dock or screen edge.
   useEffect(() => {
     if (!open || disabled) {
       setPos(null)
@@ -57,11 +67,24 @@ export function TileMoreMenu({
     const update = () => {
       const r = triggerRef.current?.getBoundingClientRect()
       if (!r) return
-      const width = 108 // ~20% wider than 88px for comfortable reading
-      const margin = 8
-      let left = r.right - width
-      left = Math.max(margin, Math.min(left, window.innerWidth - width - margin))
-      setPos({ top: r.bottom + 4, left })
+      const menuWidth = Math.min(176, window.innerWidth - 32)
+      const menuHeight = 98 // 2 × 44px rows + 10px padding & border
+      const margin = 16
+      const dockMargin = window.innerWidth < 1024 ? 80 : 16
+
+      let left = r.right - menuWidth
+      left = Math.max(margin, Math.min(left, window.innerWidth - menuWidth - margin))
+
+      let top: number
+      if (r.bottom + 4 + menuHeight > window.innerHeight - dockMargin && r.top - 4 - menuHeight >= margin) {
+        // Flip upward above the trigger button
+        top = r.top - 4 - menuHeight
+      } else {
+        // Open downward under the trigger button
+        top = Math.min(r.bottom + 4, window.innerHeight - menuHeight - dockMargin)
+      }
+
+      setPos({ top, left, width: menuWidth })
     }
     update()
     window.addEventListener('resize', update)
@@ -72,8 +95,7 @@ export function TileMoreMenu({
     }
   }, [open, disabled])
 
-  // Outside click + Escape close. Clicks on the trigger itself are ignored
-  // here so the button's own toggle still works.
+  // Outside click + Keyboard navigation (Escape closes & returns focus; Up/Down arrows navigate items).
   useEffect(() => {
     if (!open || disabled) return
     const onDown = (e: MouseEvent) => {
@@ -81,7 +103,23 @@ export function TileMoreMenu({
       if (!menuRef.current?.contains(e.target as Node)) setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setOpen(false)
+        triggerRef.current?.focus()
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setActiveIndex((i) => (i + 1) % 2)
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setActiveIndex((i) => (i - 1 + 2) % 2)
+      } else if (e.key === 'Home') {
+        e.preventDefault()
+        setActiveIndex(0)
+      } else if (e.key === 'End') {
+        e.preventDefault()
+        setActiveIndex(1)
+      }
     }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
@@ -94,7 +132,7 @@ export function TileMoreMenu({
   const close = () => setOpen(false)
 
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <button
         ref={triggerRef}
         type="button"
@@ -114,30 +152,39 @@ export function TileMoreMenu({
           ref={menuRef}
           role="menu"
           aria-label={`Actions for ${habitName}`}
-          style={{ top: pos.top, left: pos.left }}
-          className="glass-card popover-solid fixed z-50 w-[108px] max-w-[min(6.75rem,calc(100vw-2rem))] rounded-input p-1 shadow-xl"
+          style={{ top: pos.top, left: pos.left, width: pos.width }}
+          className="glass-card popover-solid fixed z-[60] min-w-[176px] max-w-[calc(100vw-32px)] rounded-input p-1 shadow-xl"
         >
+          <Link
+            ref={(el) => { itemRefs.current[0] = el }}
+            role="menuitem"
+            to={`/habits/${habitId}/edit`}
+            tabIndex={activeIndex === 0 ? 0 : -1}
+            onClick={close}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                close()
+              }
+            }}
+            className="flex h-11 w-full items-center gap-2.5 rounded-input px-3 text-left text-[15px] text-fg transition-colors duration-150 hover:bg-surface-raised focus:bg-surface-raised focus:outline-none"
+          >
+            <IconPencil className="size-[18px] shrink-0 text-fg-muted" />
+            <span className="truncate">Edit habit</span>
+          </Link>
           <button
+            ref={(el) => { itemRefs.current[1] = el }}
             type="button"
             role="menuitem"
+            tabIndex={activeIndex === 1 ? 0 : -1}
             onClick={() => {
               close()
-              onSkipToggle()
+              onSkipToggle?.()
             }}
-            className="flex h-11 w-full items-center justify-center rounded-input px-2.5 text-[13px] text-fg transition-colors duration-150 hover:bg-surface-raised"
+            className="flex h-11 w-full items-center gap-2.5 rounded-input px-3 text-left text-[15px] text-fg transition-colors duration-150 hover:bg-surface-raised focus:bg-surface-raised focus:outline-none"
           >
-            {skipped ? 'Undo skip' : `Skip ${dayLabel}`}
+            <IconSkip className="size-[18px] shrink-0 text-fg-muted" />
+            <span className="truncate">{skipped ? 'Undo skip' : `Skip ${dayLabel}`}</span>
           </button>
-          {showEditItem && (
-            <Link
-              role="menuitem"
-              to={`/habits/${habitId}/edit`}
-              onClick={close}
-              className="flex h-11 w-full items-center justify-center rounded-input px-2.5 text-[13px] text-fg transition-colors duration-150 hover:bg-surface-raised"
-            >
-              Edit habit
-            </Link>
-          )}
         </div>,
         document.body,
       )}

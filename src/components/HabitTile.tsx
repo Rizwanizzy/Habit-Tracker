@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, type AnimationEvent, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useState, type AnimationEvent, type CSSProperties, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { readableColor, tint } from '../lib/color'
 import { normalizeEmoji } from '../lib/emoji'
 import { useThemeName } from '../hooks/useThemeName'
-import { IconCheck, IconFlame, IconPencil, IconX } from './icons'
+import { IconCheck, IconFlame, IconX } from './icons'
 import { TileMoreMenu } from './TileMoreMenu'
 import type { Habit } from '../lib/score'
 
@@ -90,11 +90,6 @@ export function HabitTile({
   const [editing, setEditing] = useState(false)
   const [input, setInput] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
-  // Mirrors the CSS container query on .tile-cell (< 232px compacts): in
-  // compact tiles only the "more" button fits, so the pencil hides and the
-  // menu gains an "Edit habit" item.
-  const [compact, setCompact] = useState(false)
-  const tileRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (done) {
@@ -102,14 +97,6 @@ export function HabitTile({
       setBursting(true)
     }
   }, [done])
-
-  useEffect(() => {
-    const el = tileRef.current
-    if (!el || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(([e]) => setCompact((e?.contentRect.width ?? el.clientWidth) < 232))
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
 
   function handleAnimationEnd(e: AnimationEvent<HTMLButtonElement>) {
     if (e.animationName === 'ring-pop') setPopping(false)
@@ -137,7 +124,6 @@ export function HabitTile({
 
   return (
     <div
-      ref={tileRef}
       className={`habit-tile group relative flex h-full min-h-[132px] flex-col rounded-tile p-4 ${overlay ? '' : 'fade-up'} ${
         skipped ? 'saturate-50 opacity-80' : ''
       } ${menuOpen && !overlay ? 'z-10' : ''}`}
@@ -236,33 +222,15 @@ export function HabitTile({
             </span>
           )}
         </button>
-        <div className="flex shrink-0 items-start">
-          <Link
-            to={`/habits/${habit.id}/edit`}
-            aria-label={`Edit ${habit.name}`}
-            title="Edit habit"
-            draggable={false}
-            tabIndex={reorderMode ? -1 : undefined}
-            aria-disabled={reorderMode || undefined}
-            className={`tile-edit relative grid size-11 place-items-center rounded-pill text-fg-muted transition-opacity duration-150 hover:bg-surface hover:text-fg focus-visible:opacity-100 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 ${reorderMode ? 'pointer-events-none opacity-60' : ''} ${
-              compact ? 'hidden' : ''
-            }`}
-          >
-            <IconPencil className="size-4" />
-          </Link>
-          {onSkipToggle && (
-            <TileMoreMenu
-              habitId={habit.id}
-              habitName={habit.name ?? 'habit'}
-              dayLabel={dayLabel}
-              skipped={skippedRow ?? skipped}
-              disabled={reorderMode}
-              showEditItem={compact}
-              onSkipToggle={onSkipToggle}
-              onOpenChange={setMenuOpen}
-            />
-          )}
-        </div>
+        <TileMoreMenu
+          habitId={habit.id}
+          habitName={habit.name ?? 'habit'}
+          dayLabel={dayLabel}
+          skipped={skippedRow ?? skipped}
+          disabled={reorderMode}
+          onSkipToggle={onSkipToggle}
+          onOpenChange={setMenuOpen}
+        />
       </div>
 
       <div className="mt-1 flex items-center gap-2">

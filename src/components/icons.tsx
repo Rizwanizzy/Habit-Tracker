@@ -152,6 +152,15 @@ export function IconMore({ className }: { className?: string }) {
   )
 }
 
+export function IconSkip({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="m5 4 10 8-10 8V4z" />
+      <line x1="19" y1="5" x2="19" y2="19" />
+    </svg>
+  )
+}
+
 export function IconPencil({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
