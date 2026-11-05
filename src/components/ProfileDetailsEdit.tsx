@@ -3,6 +3,7 @@ import type { Gender, Profile, ProfileErrors, ProfileInput } from '../lib/profil
 import { normalizeBio, validateProfile } from '../lib/profile'
 import { useLogicalToday } from '../hooks/useLogicalToday'
 import { RangeSwitch } from './RangeSwitch'
+import { IconCheck, IconX } from './icons'
 
 type Draft = {
   full_name: string
@@ -91,9 +92,13 @@ export function ProfileDetailsEdit({
   return (
     <>
       {/* Sticky header: Save/Cancel stay visible while scrolling. */}
-      <div className="glass-pill sticky top-2 z-20 flex items-center justify-between gap-2 rounded-pill px-3 py-2 lg:top-4">
-        <h2 className="text-base font-semibold">Personal details</h2>
-        <div className="flex items-center gap-2">
+      <div className="glass-pill sticky top-2 z-20 flex min-w-0 items-center justify-between gap-2 rounded-pill px-3 py-2 lg:top-4">
+        <h2 className="min-w-0 flex-1 truncate text-base font-semibold whitespace-nowrap">
+          Personal details
+        </h2>
+
+        {/* Desktop controls (≥1024px) */}
+        <div className="hidden items-center gap-2 lg:flex">
           <button
             type="button"
             onClick={onCancel}
@@ -109,6 +114,34 @@ export function ProfileDetailsEdit({
             className="bg-accent-gradient glow-accent inline-flex h-12 items-center rounded-pill px-5 text-body font-semibold text-white transition-all duration-150 hover:-translate-y-px hover:brightness-110 active:scale-95 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
           >
             {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+
+        {/* Phone controls (<1024px) */}
+        <div className="flex shrink-0 items-center gap-2 lg:hidden">
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={saving}
+            aria-label="Save changes"
+            title="Save changes"
+            className="relative flex size-9 shrink-0 items-center justify-center rounded-full border border-success/35 bg-success/15 text-success transition-colors hover:bg-success/25 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60 after:absolute after:inset-x-0 after:-inset-y-1 after:content-['']"
+          >
+            {saving ? (
+              <span className="size-4 shrink-0 rounded-full border-2 border-success/30 border-t-success animate-spin" />
+            ) : (
+              <IconCheck className="size-[18px]" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving}
+            aria-label="Cancel"
+            title="Cancel"
+            className="relative flex size-9 shrink-0 items-center justify-center rounded-full border border-danger/35 bg-danger/15 text-danger transition-colors hover:bg-danger/25 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60 after:absolute after:inset-x-0 after:-inset-y-1 after:content-['']"
+          >
+            <IconX className="size-[18px]" />
           </button>
         </div>
       </div>

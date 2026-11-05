@@ -285,3 +285,12 @@ export function IconUnarchive({ className }: { className?: string }) {
     </svg>
   )
 }
+
+export function IconX({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  )
+}

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { readableColor, tint } from '../lib/color'
 import { normalizeEmoji } from '../lib/emoji'
 import { useThemeName } from '../hooks/useThemeName'
-import { IconFlame, IconPencil } from './icons'
+import { IconCheck, IconFlame, IconPencil, IconX } from './icons'
 import { TileMoreMenu } from './TileMoreMenu'
 import type { Habit } from '../lib/score'
 
@@ -289,7 +289,7 @@ export function HabitTile({
       </div>
 
       {isNumeric && (
-        <div className="mt-auto">
+        <div className="mt-auto flex w-full min-w-0 flex-col">
           {!skipped && (
             <div className="h-1.5 w-full overflow-hidden rounded-pill bg-fg/10">
               <div
@@ -299,22 +299,36 @@ export function HabitTile({
             </div>
           )}
           {showEditor ? (
-            <form onSubmit={submitValue} className="relative mt-1 flex items-center gap-2">
+            <form
+              onSubmit={submitValue}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  setEditing(false)
+                  setInput('')
+                }
+              }}
+              className="relative z-20 mt-1 flex w-full min-w-0 items-center gap-1.5"
+            >
               <input
                 autoFocus
                 type="number"
                 min={0}
+                step="any"
                 inputMode="decimal"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 aria-label={`Value for ${habit.name}`}
-                className="h-11 w-24 min-w-0 rounded-input border border-border bg-surface px-2.5 text-body text-fg focus:border-accent focus:outline-none"
+                className="h-9 flex-1 min-w-0 rounded-input border border-border bg-surface px-1.5 text-center text-[15px] tabular-nums text-fg focus:border-accent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0"
               />
               <button
                 type="submit"
-                className="h-11 shrink-0 rounded-pill bg-accent-gradient px-3 text-caption text-white transition-all duration-150 hover:brightness-110"
+                aria-label="Save value"
+                title="Save value"
+                className="relative flex size-8 shrink-0 items-center justify-center rounded-full border border-success/35 bg-success/15 text-success transition-colors hover:bg-success/25 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-['']"
               >
-                Save
+                <IconCheck className="size-[18px]" />
               </button>
               <button
                 type="button"
@@ -322,9 +336,11 @@ export function HabitTile({
                   setEditing(false)
                   setInput('')
                 }}
-                className="h-11 shrink-0 rounded-pill border border-border px-3 text-caption text-fg-secondary hover:bg-surface"
+                aria-label="Cancel"
+                title="Cancel"
+                className="relative flex size-8 shrink-0 items-center justify-center rounded-full border border-danger/35 bg-danger/15 text-danger transition-colors hover:bg-danger/25 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-['']"
               >
-                Cancel
+                <IconX className="size-[18px]" />
               </button>
             </form>
           ) : (
