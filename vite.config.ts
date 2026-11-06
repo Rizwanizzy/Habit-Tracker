@@ -9,6 +9,11 @@ export default defineConfig({
     port: 3000,
     allowedHosts: true,
   },
+  preview: {
+    host: '0.0.0.0',
+    port: process.env.PORT ? parseInt(process.env.PORT, 10) : 3000,
+    allowedHosts: true,
+  },
   test: {
     // Don't run other tools' worktree snapshots nested in this folder
     // (e.g. .kilo/worktrees/*/src/**) — only this project's own tests count.

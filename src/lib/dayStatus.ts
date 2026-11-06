@@ -1,8 +1,9 @@
 import type { Entry, Habit } from './score'
 
 /** The status of a single habit-day (the one source of truth for every
- *  "is this day counted" question). Precedence: before-start / future
- *  first, then done, then skipped, then vacation, then missed. */
+ *  "is this day counted" question). Precedence: future first, then done
+ *  (done always wins, including on backfills and vacations), then skipped,
+ *  then before-start, then vacation, then missed. */
 export type DayStatus = 'done' | 'missed' | 'skipped' | 'vacation' | 'before-start' | 'future'
 
 /** Entry status as stored in the DB (`entries.status`, default 'done'). */
@@ -35,14 +36,15 @@ export interface DayStatusInput {
   vacations?: readonly string[]
 }
 
-/** Classify one habit-day. A day the habit has not started yet or a future
- *  day is out of scope before anything else; then done, skipped, vacation
- *  and finally missed. */
+/** Classify one habit-day. A future day is out of scope before anything
+ *  else; then done (done always wins, including on backfilled entries
+ *  before created_at and check-ins during vacations), skipped, before-start,
+ *  vacation and finally missed. */
 export function dayStatus({ habit, date, entry, today, vacations = [] }: DayStatusInput): DayStatus {
-  if (date < habit.created_at) return 'before-start'
   if (date > today) return 'future'
   if (isEntryDone(habit, entry)) return 'done'
   if (entry?.status === 'skipped') return 'skipped'
+  if (date < habit.created_at) return 'before-start'
   if (vacations.includes(date)) return 'vacation'
   return 'missed'
 }

@@ -3,7 +3,7 @@
 > Purpose of this file: give any developer, AI model, or application a complete, current
 > understanding of this project — concept, purpose, stack, architecture, features, and
 > progress — without reading every source file. **Update this file after every completed task.**
-> Last updated: 2026-11-04
+> Last updated: 2026-11-06
 
 ## 1. What this project is
 
@@ -50,7 +50,8 @@ one tap (today or any past date), and sees streaks, scores, and charts in the ha
 ```
 npm run dev     # dev server (http://0.0.0.0:3000)
 npm run build   # tsc -b && vite build
-npm test        # vitest run (180/180 passing)
+npm start       # production static SPA server (node server.js, Cloud Run deploy)
+npm test        # vitest run (214/214 passing)
 npm run icons   # generate PWA icons/favicons (@vite-pwa/assets-generator)
 ```
 
@@ -500,7 +501,7 @@ src/
   index.css           Tailwind v4 + design tokens (@theme) + dark class strategy
   lib/
     score.ts          pure score/streak/completion logic (SMOOTHING_CONSTANT) — loops through dayStatus, all public fns take an optional trailing `vacations = []`
-    dayStatus.ts      the one source of truth for "is this day counted": isEntryDone (skipped row is never done), dayStatus({habit,date,entry,today,vacations}) → done|missed|skipped|vacation|before-start|future, isNeutral (skipped|vacation), nextDayAction/dayActionFor (empty → done → skipped cycle) — today is passed in, never reads the clock
+    dayStatus.ts      the one source of truth for "is this day counted": isEntryDone (skipped row is never done), dayStatus({habit,date,entry,today,vacations}) → done|missed|skipped|vacation|before-start|future (future first; done always wins including backfilled check-ins before created_at and during vacations; then skipped; then before-start; then vacation; then missed), isNeutral (skipped|vacation), nextDayAction/dayActionFor (empty → done → skipped cycle) — today is passed in, never reads the clock
     dates.ts          Asia/Kolkata local date helpers
     supabase.ts       lazy Supabase client (getSupabase)
     clock.ts          the app's single time source now(): real clock, but in DEV honours localStorage['dev-now'] (validated ISO instant) for time-travel testing

@@ -1,0 +1,480 @@
+{
+  "app": "habit-tracker",
+  "schemaVersion": 1,
+  "exportedAt": "2026-10-31T17:38:28.781Z",
+  "timezone": "Asia/Kolkata",
+  "habits": [
+    {
+      "id": "65413779-f985-4bb0-ba6a-6b629dc0fd9c",
+      "name": "WAKE UP @8:00AM",
+      "type": "boolean",
+      "target": 1,
+      "unit": null,
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#F59E0B",
+      "sort_order": 1,
+      "archived": false,
+      "created_at": "2026-10-25T18:00:01.078232+00:00"
+    },
+    {
+      "id": "5f71d9f7-7be4-4498-86d3-f94039b4f1ec",
+      "name": "REFLECTION / GRATITUDE",
+      "type": "numeric",
+      "target": 10,
+      "unit": "Minutes",
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#EAB308",
+      "sort_order": 2,
+      "archived": false,
+      "created_at": "2026-10-25T17:58:53.904799+00:00"
+    },
+    {
+      "id": "3253b95f-6727-4a04-b822-2cfd87c8f813",
+      "name": "MEDITATION",
+      "type": "numeric",
+      "target": 10,
+      "unit": "Minutes",
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#A78BFA",
+      "sort_order": 3,
+      "archived": false,
+      "created_at": "2026-10-26T16:37:19.25545+00:00"
+    },
+    {
+      "id": "d16f7825-d235-4591-8947-40e90d646693",
+      "name": "NO PHONE AFTER WAKING",
+      "type": "numeric",
+      "target": 30,
+      "unit": "Minutes",
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#06B6D4",
+      "sort_order": 4,
+      "archived": false,
+      "created_at": "2026-10-26T16:35:12.690963+00:00"
+    },
+    {
+      "id": "59aac8b7-06b5-4ddc-adf4-4570b2965a66",
+      "name": "DRINK WATER",
+      "type": "numeric",
+      "target": 3,
+      "unit": "Litres",
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#0EA5E9",
+      "sort_order": 5,
+      "archived": false,
+      "created_at": "2026-10-24T14:19:04.890228+00:00"
+    },
+    {
+      "id": "1481ec34-4f72-4256-a520-a4716c29200a",
+      "name": "SHOWER",
+      "type": "boolean",
+      "target": 1,
+      "unit": null,
+      "freq_times": 1,
+      "freq_days": 2,
+      "color": "#22D3EE",
+      "sort_order": 6,
+      "archived": false,
+      "created_at": "2026-10-23T20:01:21.743009+00:00"
+    },
+    {
+      "id": "9139a70e-189f-4c78-ae40-97bfd9a1a038",
+      "name": "DEEP WORK",
+      "type": "numeric",
+      "target": 3,
+      "unit": "Hours",
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#2563EB",
+      "sort_order": 7,
+      "archived": false,
+      "created_at": "2026-10-27T07:59:37.764041+00:00"
+    },
+    {
+      "id": "a57a11c2-cdb9-48a6-9496-d1ac18345c60",
+      "name": "FAMILY TIME",
+      "type": "boolean",
+      "target": 1,
+      "unit": null,
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#EC4899",
+      "sort_order": 8,
+      "archived": false,
+      "created_at": "2026-10-26T16:41:56.516503+00:00"
+    },
+    {
+      "id": "21c5579f-bdbb-4cb0-9168-e715030da486",
+      "name": "CONNECT",
+      "type": "boolean",
+      "target": 1,
+      "unit": null,
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#FB923C",
+      "sort_order": 9,
+      "archived": false,
+      "created_at": "2026-10-26T16:47:23.858816+00:00"
+    },
+    {
+      "id": "3800ebe6-02de-4982-b986-6117dc79d65b",
+      "name": "DOOMSCROLLING",
+      "type": "numeric",
+      "target": 1,
+      "unit": "Hour",
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#F43F5E",
+      "sort_order": 10,
+      "archived": false,
+      "created_at": "2026-10-26T16:39:00.945413+00:00"
+    },
+    {
+      "id": "0576620b-aa2b-41bc-b695-ad889fc36940",
+      "name": "TRACK SPENDING",
+      "type": "boolean",
+      "target": 1,
+      "unit": null,
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#16A34A",
+      "sort_order": 11,
+      "archived": false,
+      "created_at": "2026-10-26T16:44:16.180274+00:00"
+    },
+    {
+      "id": "555ba8f4-7bee-4e26-949d-0e86a1f0a892",
+      "name": "SLEEP @12:00 PM",
+      "type": "boolean",
+      "target": 1,
+      "unit": null,
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#4F46E5",
+      "sort_order": 12,
+      "archived": false,
+      "created_at": "2026-10-24T11:32:30.297255+00:00"
+    },
+    {
+      "id": "d6650b27-eb11-4107-957b-6ed97dea3a40",
+      "name": "EAT PROTEIN",
+      "type": "boolean",
+      "target": 1,
+      "unit": null,
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#14B8A6",
+      "sort_order": 13,
+      "archived": true,
+      "created_at": "2026-10-26T16:23:46.386746+00:00"
+    },
+    {
+      "id": "5feee6e3-3d31-45ec-845d-c5107701f994",
+      "name": "READ",
+      "type": "numeric",
+      "target": 1,
+      "unit": "Chapter",
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#B45309",
+      "sort_order": 14,
+      "archived": true,
+      "created_at": "2026-10-23T20:02:55.53485+00:00"
+    },
+    {
+      "id": "25dafe73-ed43-4fbc-aee0-a1e603c2b88d",
+      "name": "LEARN / LEETCODE",
+      "type": "boolean",
+      "target": 1,
+      "unit": null,
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#7C3AED",
+      "sort_order": 15,
+      "archived": true,
+      "created_at": "2026-10-23T20:42:50.522744+00:00"
+    },
+    {
+      "id": "245970d2-6c86-421e-bf24-373054195582",
+      "name": "INTERVIEW PREPERATION",
+      "type": "boolean",
+      "target": 1,
+      "unit": null,
+      "freq_times": 5,
+      "freq_days": 1,
+      "color": "#EF4444",
+      "sort_order": 16,
+      "archived": true,
+      "created_at": "2026-10-24T11:28:16.095065+00:00"
+    },
+    {
+      "id": "69758c98-6289-4091-8095-78d40d40d252",
+      "name": "CARDIO",
+      "type": "numeric",
+      "target": 3000,
+      "unit": "Steps",
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#22C55E",
+      "sort_order": 17,
+      "archived": true,
+      "created_at": "2026-10-27T08:02:49.740336+00:00"
+    },
+    {
+      "id": "8521b718-8921-4976-ad26-84a16852fb13",
+      "name": "WORKOUT",
+      "type": "numeric",
+      "target": 30,
+      "unit": "Minutes",
+      "freq_times": 1,
+      "freq_days": 1,
+      "color": "#EF4444",
+      "sort_order": 18,
+      "archived": true,
+      "created_at": "2026-10-23T20:03:28.154281+00:00"
+    }
+  ],
+  "entries": [
+    {
+      "id": "7edc076b-8a49-4fc1-a019-e92adb74f364",
+      "habit_id": "1481ec34-4f72-4256-a520-a4716c29200a",
+      "date": "2026-10-24",
+      "value": 1,
+      "status": "done",
+      "updated_at": "2026-10-27T18:41:26.768333+00:00"
+    },
+    {
+      "id": "bfb54783-278b-4853-8959-d9c8c9fc6b2c",
+      "habit_id": "59aac8b7-06b5-4ddc-adf4-4570b2965a66",
+      "date": "2026-10-24",
+      "value": 4,
+      "status": "done",
+      "updated_at": "2026-10-27T18:41:26.768333+00:00"
+    },
+    {
+      "id": "0716a02f-0f67-4623-ba56-3447b6acff84",
+      "habit_id": "9139a70e-189f-4c78-ae40-97bfd9a1a038",
+      "date": "2026-10-24",
+      "value": 3,
+      "status": "done",
+      "updated_at": "2026-10-27T19:04:09.181453+00:00"
+    },
+    {
+      "id": "510b517a-c0c8-4959-a645-b50c3b8a64d5",
+      "habit_id": "59aac8b7-06b5-4ddc-adf4-4570b2965a66",
+      "date": "2026-10-25",
+      "value": 4,
+      "status": "done",
+      "updated_at": "2026-10-27T18:41:26.768333+00:00"
+    },
+    {
+      "id": "bfea73b3-52ab-4f51-9167-bc7972715be1",
+      "habit_id": "9139a70e-189f-4c78-ae40-97bfd9a1a038",
+      "date": "2026-10-25",
+      "value": 3,
+      "status": "done",
+      "updated_at": "2026-10-27T19:04:15.604314+00:00"
+    },
+    {
+      "id": "06f8df9e-20ba-4e24-af26-be1f07cf1548",
+      "habit_id": "1481ec34-4f72-4256-a520-a4716c29200a",
+      "date": "2026-10-26",
+      "value": 1,
+      "status": "done",
+      "updated_at": "2026-10-27T18:41:26.768333+00:00"
+    },
+    {
+      "id": "990cfcad-c036-44e7-9e46-2016d4f2499a",
+      "habit_id": "59aac8b7-06b5-4ddc-adf4-4570b2965a66",
+      "date": "2026-10-26",
+      "value": 4,
+      "status": "done",
+      "updated_at": "2026-10-27T18:41:26.768333+00:00"
+    },
+    {
+      "id": "c82364a8-fd90-4688-889d-595ca454a2e0",
+      "habit_id": "5f71d9f7-7be4-4498-86d3-f94039b4f1ec",
+      "date": "2026-10-26",
+      "value": 10,
+      "status": "done",
+      "updated_at": "2026-10-27T18:41:26.768333+00:00"
+    },
+    {
+      "id": "7fa06c23-e125-4d4d-b4cb-2ee5394abfe0",
+      "habit_id": "21c5579f-bdbb-4cb0-9168-e715030da486",
+      "date": "2026-10-27",
+      "value": 1,
+      "status": "done",
+      "updated_at": "2026-10-27T19:23:38.039071+00:00"
+    },
+    {
+      "id": "a7b35c35-7b8f-42fd-b470-95f92e58f392",
+      "habit_id": "3800ebe6-02de-4982-b986-6117dc79d65b",
+      "date": "2026-10-27",
+      "value": 1,
+      "status": "done",
+      "updated_at": "2026-10-27T19:23:38.039071+00:00"
+    },
+    {
+      "id": "107adf2b-3902-4c95-96a5-04a0fd507f0c",
+      "habit_id": "59aac8b7-06b5-4ddc-adf4-4570b2965a66",
+      "date": "2026-10-27",
+      "value": 3,
+      "status": "done",
+      "updated_at": "2026-10-27T19:52:48.937119+00:00"
+    },
+    {
+      "id": "42403c3a-0de8-49a9-bf2a-d95c84c9cfaf",
+      "habit_id": "5f71d9f7-7be4-4498-86d3-f94039b4f1ec",
+      "date": "2026-10-27",
+      "value": 10,
+      "status": "done",
+      "updated_at": "2026-10-27T19:23:38.039071+00:00"
+    },
+    {
+      "id": "b4ce9a9a-91d0-490d-8c8e-f6f59b966886",
+      "habit_id": "9139a70e-189f-4c78-ae40-97bfd9a1a038",
+      "date": "2026-10-27",
+      "value": 3,
+      "status": "done",
+      "updated_at": "2026-10-27T19:23:38.039071+00:00"
+    },
+    {
+      "id": "dc0ab718-499c-456a-8daf-7ff9916545fb",
+      "habit_id": "a57a11c2-cdb9-48a6-9496-d1ac18345c60",
+      "date": "2026-10-27",
+      "value": 1,
+      "status": "done",
+      "updated_at": "2026-10-27T19:23:38.039071+00:00"
+    },
+    {
+      "id": "638a6dad-fd6d-46da-9370-5ed4734b2996",
+      "habit_id": "d16f7825-d235-4591-8947-40e90d646693",
+      "date": "2026-10-27",
+      "value": 30,
+      "status": "done",
+      "updated_at": "2026-10-27T19:23:38.039071+00:00"
+    },
+    {
+      "id": "27b99658-b60c-4695-bdf9-2915e0c3dc77",
+      "habit_id": "3800ebe6-02de-4982-b986-6117dc79d65b",
+      "date": "2026-10-28",
+      "value": 1,
+      "status": "done",
+      "updated_at": "2026-10-29T18:03:59.900229+00:00"
+    },
+    {
+      "id": "44e60b8e-04c6-4751-adaa-910b5c431fbf",
+      "habit_id": "5f71d9f7-7be4-4498-86d3-f94039b4f1ec",
+      "date": "2026-10-28",
+      "value": 10,
+      "status": "done",
+      "updated_at": "2026-10-28T06:15:29.858807+00:00"
+    },
+    {
+      "id": "40a512dd-d407-400e-88fd-5e6726ca5127",
+      "habit_id": "9139a70e-189f-4c78-ae40-97bfd9a1a038",
+      "date": "2026-10-28",
+      "value": 3,
+      "status": "done",
+      "updated_at": "2026-10-28T08:11:23.740185+00:00"
+    },
+    {
+      "id": "4bbc32c8-14f1-42c5-8ce5-850afa18d71f",
+      "habit_id": "d16f7825-d235-4591-8947-40e90d646693",
+      "date": "2026-10-28",
+      "value": 30,
+      "status": "done",
+      "updated_at": "2026-10-28T06:15:25.70482+00:00"
+    },
+    {
+      "id": "7af2d71b-fa71-491b-bc91-45b261ba8dbf",
+      "habit_id": "59aac8b7-06b5-4ddc-adf4-4570b2965a66",
+      "date": "2026-10-29",
+      "value": 3,
+      "status": "done",
+      "updated_at": "2026-10-29T18:17:56.716616+00:00"
+    },
+    {
+      "id": "3bb45f8e-3e7d-42e0-9160-cbee687db9cb",
+      "habit_id": "d16f7825-d235-4591-8947-40e90d646693",
+      "date": "2026-10-29",
+      "value": 30,
+      "status": "done",
+      "updated_at": "2026-10-29T18:17:37.582843+00:00"
+    },
+    {
+      "id": "581ab9e5-d057-4df1-a701-ccd2312ac833",
+      "habit_id": "1481ec34-4f72-4256-a520-a4716c29200a",
+      "date": "2026-10-30",
+      "value": 1,
+      "status": "done",
+      "updated_at": "2026-10-30T13:53:12.338311+00:00"
+    },
+    {
+      "id": "2f4e9232-d736-459d-8df8-ba8118e64e11",
+      "habit_id": "59aac8b7-06b5-4ddc-adf4-4570b2965a66",
+      "date": "2026-10-30",
+      "value": 3,
+      "status": "done",
+      "updated_at": "2026-10-30T13:53:07.221246+00:00"
+    },
+    {
+      "id": "8f01ee09-1644-42cd-8b11-20bcec73e558",
+      "habit_id": "9139a70e-189f-4c78-ae40-97bfd9a1a038",
+      "date": "2026-10-30",
+      "value": 3,
+      "status": "done",
+      "updated_at": "2026-10-30T13:53:16.23732+00:00"
+    },
+    {
+      "id": "f77e6ce0-62aa-408c-a2d0-8576f90e0b3c",
+      "habit_id": "d16f7825-d235-4591-8947-40e90d646693",
+      "date": "2026-10-30",
+      "value": 30,
+      "status": "done",
+      "updated_at": "2026-10-30T13:53:02.633516+00:00"
+    },
+    {
+      "id": "deb73dd6-ae60-4550-b0a7-4c132f271a32",
+      "habit_id": "59aac8b7-06b5-4ddc-adf4-4570b2965a66",
+      "date": "2026-10-31",
+      "value": 3,
+      "status": "done",
+      "updated_at": "2026-10-31T14:16:53.108314+00:00"
+    },
+    {
+      "id": "e5690edf-d07f-467a-a13d-82acf4227f8a",
+      "habit_id": "65413779-f985-4bb0-ba6a-6b629dc0fd9c",
+      "date": "2026-10-31",
+      "value": 1,
+      "status": "done",
+      "updated_at": "2026-10-31T14:16:43.764067+00:00"
+    },
+    {
+      "id": "99ef1bb4-63ab-4bf4-b46d-f16809caa65e",
+      "habit_id": "a57a11c2-cdb9-48a6-9496-d1ac18345c60",
+      "date": "2026-10-31",
+      "value": 1,
+      "status": "done",
+      "updated_at": "2026-10-31T14:16:49.687064+00:00"
+    },
+    {
+      "id": "5ad6cab3-63c9-4f10-aa6f-0da9eaa2a3f3",
+      "habit_id": "d16f7825-d235-4591-8947-40e90d646693",
+      "date": "2026-10-31",
+      "value": 30,
+      "status": "done",
+      "updated_at": "2026-10-31T14:16:46.26184+00:00"
+    }
+  ],
+  "settings": {
+    "day_start_hour": 0,
+    "updated_at": "2026-10-29T18:42:23.306908+00:00"
+  }
+}

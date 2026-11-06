@@ -21,10 +21,20 @@ const habit: Habit = {
 const numHabit: Habit = { ...habit, type: 'numeric', target: 10 }
 
 describe('dayStatus', () => {
-  it('marks days before the habit start first (highest precedence)', () => {
+  it('marks days before the habit start as before-start when there is no entry', () => {
     expect(
       dayStatus({ habit, date: '2026-10-04', entry: undefined, today: '2026-10-10' }),
     ).toBe('before-start')
+  })
+
+  it('allows backfilling done entries on days before habit start (done wins)', () => {
+    const entry: Entry = { date: '2026-10-04', value: 1 }
+    expect(dayStatus({ habit, date: '2026-10-04', entry, today: '2026-10-10' })).toBe('done')
+  })
+
+  it('allows backfilling skipped entries on days before habit start', () => {
+    const entry: Entry = { date: '2026-10-04', value: 0, status: 'skipped' }
+    expect(dayStatus({ habit, date: '2026-10-04', entry, today: '2026-10-10' })).toBe('skipped')
   })
 
   it('marks future days before done/skipped', () => {
