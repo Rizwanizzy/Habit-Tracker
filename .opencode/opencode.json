@@ -12,7 +12,9 @@
       "auto:client-code":  { "name": "Client code" },
       "auto:client-code1": { "name": "Client code1" },
       "auto:personal":  { "name": "Personal" },
-      "auto:fastest": { "name": "Fastest" }
+      "auto:fastest": { "name": "Fastest" },
+      "auto:my-model": { "name": "My Model" },
+      "auto:goat": { "name": "Goat" }
     }
     }
   }
