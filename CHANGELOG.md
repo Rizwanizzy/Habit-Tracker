@@ -588,4 +588,11 @@
     Import backup side by side in one row beneath it — natural-width 44px pills exactly
     the original desktop size (px-5, no icons, nothing stretched).
     Phone Data layout untouched.
+    Follow-up 5 (deploy fix): first CF Pages build after restoring package-lock.json failed
+    with "Cannot find native binding" — npm bug 4828 prunes other platforms' native binaries
+    from the lock when installing on Windows (@rolldown/binding-linux-x64-gnu missing, only
+    win32 survived). Regenerating locally can't restore them; every successful rolldown deploys
+    ran while the lockfile was untracked (CF resolves fresh on Linux). package-lock.json is
+    therefore untracked again (git rm --cached) and gitignored, matching the proven-working
+    state; file remains on disk for local reproducibility.
     Docs re-synced (DESIGN.md, AGENTS.md, PROJECT_CONTEXT.md); tests/build re-verified 247/247 + build green.
