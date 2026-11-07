@@ -432,6 +432,7 @@
     - `src/components/ProfileDetailsEdit.tsx`: Refactored to export `ProfileEditFields` shared between phone inline edit mode (`inline`) and desktop modal mode (`modal`).
     - `src/components/ProfileDetails.tsx`: Uses `useMediaQuery('(min-width: 1024px)')` to select between desktop modal editing and phone inline editing.
   - Tests 212/212 green, build clean.
+
 - 105. **Habit tile header simplification — single "more" menu button for Edit and Skip (user request):**
   - **Goal:** Replace the standalone pencil icon button on Today habit tiles with a single top-right "more" menu button (three dots) across all viewports and density levels (1-6 per row).
   - **Implementation:**
@@ -460,3 +461,14 @@
   - **Cloudflare Workers & VAPID Investigation:**
     - Confirmed Cloudflare Workers runtime (`workerd`) supports native Web Crypto (`crypto.subtle`). VAPID authentication (ES256 ECDSA P-256 JWT) and RFC 8291 Web Push payload encryption (`aes128gcm` with ECDH) can be implemented with zero npm dependencies and zero external subscription costs.
   - Tests 228/228 green across 17 test files, build clean, 0 lint errors.
+
+- 107. **Daily Reminders debug — "Send test notification" hung silently with permission granted (user report, Brave/Windows 11, dev `localhost:3000/settings`):**
+  - **Root cause:** `sendLocalTestNotification` awaited `navigator.serviceWorker.ready`, which NEVER settles when no service worker is registered — and dev had no SW: `vite.config.ts` lacked `devOptions: { enabled: true }` (vite-plugin-pwa serves/registers nothing in dev by default) and no module imported `virtual:pwa-register`, so the generated SW was never registered (`registerType: 'autoUpdate'` is inert on its own). The promise hung forever → no notification, no error, no UI feedback; the `new Notification()` fallback sat *after* the `await` so it was unreachable.
+  - **Fix (`src/lib/notifications.ts`):** replaced `.ready` with `navigator.serviceWorker.getRegistration()` (resolves immediately, never hangs); Path A = active registration → `reg.showNotification()` (preferred, req. mobile/iOS); Path B = no/failed SW → legacy `new Notification()` constructor; errors return a structured `{ ok, via: 'service-worker' | 'notification-api' | null, error }` instead of a bare `boolean`, with actionable messages (`NotAllowedError`/`SecurityError` mapped, `describeNotificationError`); `console.warn/info` diagnostics at every decision point.
+  - **Fix (`vite.config.ts`):** `devOptions: { enabled: true }` so a dev service worker exists at `localhost:3000`.
+  - **Fix (`src/main.tsx` + `tsconfig.app.json`):** `registerSW({ immediate: true })` via `virtual:pwa-register` (types added to `tsconfig.app.json`) — the SW is now actually registered in dev AND prod (previously generated but never registered anywhere; `push-sw.js` handlers were dead code).
+  - **Fix (`src/hooks/useNotificationPermission.ts`):** `sendTest` returns the structured result and wraps unexpected throws (`Test notification crashed: …`).
+  - **Fix (`src/components/NotificationCard.tsx`):** renders the specific error from the lib via `role="alert"` (generic "ensure notifications are enabled" replaced) and logs the success path (`via`).
+  - **Tests (`src/lib/notifications.test.ts`):** rewritten contract — ok:false with named permission when not granted, SW-preference, constructor fallback when unregistered (no-hang regression), SW-path rejection → constructor fallback, loud structured failure when both paths fail. 231/231 green across 17 files, lint clean (warnings pre-existing), build green (`importScripts("push-sw.js")` verified in `dist/sw.js`).
+  - **Follow-up — "only works once" in Chromium (user report: first click worked, then nothing in Brave AND Chrome):** Chromium silently suppresses a notification whose `tag` was used before and dismissed/clicked — the re-show counts as a quiet replacement and raises no new alert unless `renotify: true`. Added `renotify: true` to the test-notification defaults in `sendLocalTestNotification` (`tag: 'test-notification'` kept); every test click now forces a fresh alert. Verified via pinned test assertions in both the SW and constructor paths.
+  - Scope respected: no scheduled reminders, no `push_subscriptions`/DB/backend changes.

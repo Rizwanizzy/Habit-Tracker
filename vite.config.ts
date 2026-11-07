@@ -24,6 +24,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Serve + register the service worker in dev too (registers /sw.js in the
+      // dev middleware). Without this, dev has NO SW and code that awaited
+      // navigator.serviceWorker.ready would hang forever.
+      devOptions: { enabled: true },
       includeAssets: ['favicon.ico', 'icons.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'push-sw.js'],
       manifest: {
         name: 'Habit Tracker',

@@ -5,13 +5,14 @@ import {
   sendLocalTestNotification,
   type PushNotificationCapabilities,
   type NotificationPermissionState,
+  type LocalTestNotificationResult,
 } from '../lib/notifications'
 
 export interface UseNotificationPermissionResult {
   capabilities: PushNotificationCapabilities
   isRequesting: boolean
   requestPermission: () => Promise<NotificationPermissionState>
-  sendTest: () => Promise<boolean>
+  sendTest: () => Promise<LocalTestNotificationResult>
   refresh: () => void
 }
 
@@ -54,10 +55,22 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
     }
   }, [])
 
-  const sendTest = useCallback(async (): Promise<boolean> => {
-    return sendLocalTestNotification('Habit Tracker Reminder', {
-      body: 'Time to check in on your habits today! (Test Notification)',
-    })
+  const sendTest = useCallback(async (): Promise<LocalTestNotificationResult> => {
+    try {
+      return await sendLocalTestNotification('Habit Tracker Reminder', {
+        body: 'Time to check in on your habits today! (Test Notification)',
+      })
+    } catch (err) {
+      // sendLocalTestNotification resolves with structured errors instead of
+      // throwing, so reaching here means something truly unexpected happened —
+      // surface it, never swallow it.
+      console.error('[notifications] sendTest crashed unexpectedly:', err)
+      return {
+        ok: false,
+        via: null,
+        error: `Test notification crashed: ${err instanceof Error ? err.message : String(err)}`,
+      }
+    }
   }, [])
 
   return {

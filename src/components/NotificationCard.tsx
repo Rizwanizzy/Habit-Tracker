@@ -21,12 +21,14 @@ export function NotificationCard() {
   async function handleSendTest() {
     setTestError(null)
     setTestSent(false)
-    const ok = await sendTest()
-    if (ok) {
+    const result = await sendTest()
+    if (result.ok) {
       setTestSent(true)
       setTimeout(() => setTestSent(false), 3500)
+      console.info('[notifications] test dispatched via', result.via)
     } else {
-      setTestError('Failed to send test notification. Ensure notifications are enabled.')
+      // Structured error from the lib (never silently swallowed).
+      setTestError(result.error ?? 'Failed to send test notification.')
     }
   }
 
