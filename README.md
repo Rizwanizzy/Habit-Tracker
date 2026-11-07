@@ -42,7 +42,7 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
    VITE_SUPABASE_URL=<your-project-url>
    VITE_SUPABASE_ANON_KEY=<your-anon-key>
    ```
-3. **Create the database tables** — run `supabase/schema.sql` in the Supabase SQL editor (creates `habits`, `entries`, `profiles`, `user_settings` and the private `avatars` bucket with row-level security enabled). Skip this if your project already has them.
+3. **Create the database tables** — run `supabase/schema.sql` in the Supabase SQL editor (creates `habits`, `entries` (+ status), `vacation_periods`, `profiles` (+ bio), `user_settings`, `notification_settings`, `push_subscriptions` and the private `avatars` bucket with row-level security enabled). Safe to re-run on projects that have some of them already.
 4. **Google sign-in (optional)** — create an OAuth client in Google Cloud (Web application; authorized redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`), enable Auth → Providers → Google in Supabase with that Client ID/Secret, add `<origin>/login` to Supabase's Redirect URLs, and fill the OAuth consent screen (app name + logo; note the account chooser always shows the supabase.co domain of the redirect URI).
 5. **Run the app**
    ```bash

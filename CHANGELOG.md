@@ -472,3 +472,24 @@
   - **Tests (`src/lib/notifications.test.ts`):** rewritten contract — ok:false with named permission when not granted, SW-preference, constructor fallback when unregistered (no-hang regression), SW-path rejection → constructor fallback, loud structured failure when both paths fail. 231/231 green across 17 files, lint clean (warnings pre-existing), build green (`importScripts("push-sw.js")` verified in `dist/sw.js`).
   - **Follow-up — "only works once" in Chromium (user report: first click worked, then nothing in Brave AND Chrome):** Chromium silently suppresses a notification whose `tag` was used before and dismissed/clicked — the re-show counts as a quiet replacement and raises no new alert unless `renotify: true`. Added `renotify: true` to the test-notification defaults in `sendLocalTestNotification` (`tag: 'test-notification'` kept); every test click now forces a fresh alert. Verified via pinned test assertions in both the SW and constructor paths.
   - Scope respected: no scheduled reminders, no `push_subscriptions`/DB/backend changes.
+
+- 108. **Daily Reminders Pass 2 Task 1 — database foundation complete:**
+  - **Tables (reviewed and run by the user in the Supabase SQL editor live):**
+    `notification_settings` (user_id PK matching profiles/user_settings, reminder_enabled,
+    reminder_time default '20:00:00', timezone default 'Asia/Kolkata', created/updated_at)
+    and `push_subscriptions` (endpoint UNIQUE for idempotent device upsert, p256dh/auth
+    RFC 8291 public key material only, device_label, user_agent, last_seen_at). Both RLS-on
+    with own-row `TO authenticated` policies, `REVOKE ALL` from anon, guarded and safe to re-run.
+  - **`supabase/schema.sql` re-synced with the live DB (user-approved drift fix):** the file
+    now includes the post-release `entries.status` (inline + guarded alter), `profiles.bio`
+    (inline + guarded alter, ≤140 code points matching `src/lib/profile.ts`), the
+    `vacation_periods` table (guarded create + drop-if-exists policies), and the Pass 2
+    reminder tables; standalone-script `idx_*` index names renamed via guarded
+    `ALTER INDEX` statements to the repo's `*_idx` suffix convention. Header comment updated.
+  - **Docs sync:** `PROJECT_CONTEXT.md` §2/§7/§10/§11 updated (drift resolved, Pass 2 DB
+    foundation marked done, remaining Pass 2 app-side work + VAPID key note); AGENTS.md data
+    model gains `notification_settings` + `push_subscriptions`; README setup step lists the
+    full table set. No app code changes, no new dependencies; deploy side moved to Cloudflare
+    Pages (`https://habbits-tracker.pages.dev`).
+  - Next: `VITE_VAPID_PUBLIC_KEY` (generate with `npx web-push generate-vapid-keys`; private
+    key stays secret for Pass 3) → Pass 2 app integration (`useNotificationSettings`, subscribe flow).

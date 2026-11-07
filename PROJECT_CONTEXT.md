@@ -24,7 +24,7 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 |------|------|
 | `AGENTS.md` | Rules for any AI/dev working on the repo. Read before every task. |
 | `DESIGN.md` | The design spec ("Aurora Glass": tokens, typography, components, motion). Read before any UI change. |
-| `supabase/schema.sql` | Database schema `README` for human setup (⚠️ drifted from the live DB — see §Data model). |
+| `supabase/schema.sql` | Database schema `README` for human setup (re-synced with the live DB — see §Data model). |
 | `CHANGELOG.md` | Numbered log of every completed pass (1–106). Append, never rewrite. |
 | `README.md` | GitHub-facing overview (features, hosting, scripts, layout). Keep in sync. |
 
@@ -212,16 +212,19 @@ Other repo files: `server.js` (static SPA server for `npm start`), `metadata.jso
 - **profiles**: `user_id pk (= auth.users.id)`, `full_name`, `bio` (≤140 code points,
   motivation line), `date_of_birth`, `gender`, `nationality`, `country`, `address`, `phone`,
   `avatar_path`, `updated_at`. Email is read from the auth session, never stored here.
+- **notification_settings** (Pass 2): `user_id pk`, `reminder_enabled bool false`,
+  `reminder_time time '20:00:00'`, `timezone text 'Asia/Kolkata'`, created/updated_at.
+- **push_subscriptions** (Pass 2): `id uuid pk`, `user_id`, `endpoint unique` (device
+  re-subscription upserts), `p256dh`, `auth` (RFC 8291 public key material only — never VAPID
+  private keys), `device_label`, `user_agent`, created/updated_at/`last_seen_at`.
 - **storage bucket `avatars`**: private, 2 MB, jpeg/png/webp, files at `<user_id>/avatar.webp`;
   displayed via `createSignedUrl` (1 h, refreshed 5 min before expiry).
 - RLS enabled on all tables (own-row policies). **Never disable RLS, never ship the service
   role key, never change the schema without telling the user and showing the SQL.**
 
-⚠️ **`supabase/schema.sql` drift (docs-checked 2026-11-06):** the file still contains the
-original habits+entries release and does **not** include `entries.status`, `profiles.bio`,
-or the `vacation_periods` table, though all three exist in the live DB and the app relies on
-them. Anyone re-running the file on a fresh project would miss those. Fixing the file needs
-new ALTER/CREATE SQL → ask the user first; do not edit silently.
+`supabase/schema.sql` was re-synced with the live DB (2026-11-07, user-approved): it now
+creates every table above including the post-release `entries.status`, `profiles.bio`,
+`vacation_periods`, and the Pass 2 reminder tables, all guarded and safe to re-run.
 
 ## 8. Key rules (full list in AGENTS.md)
 
@@ -296,34 +299,35 @@ new ALTER/CREATE SQL → ask the user first; do not edit silently.
 
 ## 10. Known gaps
 
-1. **`supabase/schema.sql` drift** — missing `entries.status`, `profiles.bio`,
-   `vacation_periods` (live DB has all three; see §7). Needs a user-approved SQL resync.
-2. **Google branding verification pending** — meta-tag + HTML-file methods registered;
-   awaiting the ~24 h window then one "Verify again"; until it clears, the consent screen
-   may still show no app name/logo (Data-access verification is not needed — openid/email/
-   profile scopes only).
-3. **No account linking** — signing in with Google on the same Gmail as the password account
+1. **Google branding verification pending on the new Pages domain** — meta-tag + HTML-file
+   methods registered (a new Search Console property is needed for
+   `habbits-tracker.pages.dev` after the Vercel→Cloudflare move); awaiting the ~24 h window
+   then one "Verify again"; until it clears, the consent screen may still show no app
+   name/logo (Data-access verification is not needed — openid/email/profile scopes only).
+2. **No account linking** — signing in with Google on the same Gmail as the password account
    creates a separate identity/account; habits stay behind the original sign-in.
-4. **Count-up numerals** — the only remaining DESIGN.md motion detail (big numerals don't
+3. **Count-up numerals** — the only remaining DESIGN.md motion detail (big numerals don't
    count up yet).
-5. **Haptics no-op on iOS** — `navigator.vibrate` is unavailable on iOS Safari; ticks only
+4. **Haptics no-op on iOS** — `navigator.vibrate` is unavailable on iOS Safari; ticks only
    fire on Android.
-6. **iOS Safari Push requirement** — on iOS 16.4+, Web Push API is disabled in regular Safari tabs
+5. **iOS Safari Push requirement** — on iOS 16.4+, Web Push API is disabled in regular Safari tabs
    and requires installing the app to the Home Screen (`display-mode: standalone`). The Settings
    Notification card provides clear instructions when iOS non-standalone is detected.
-7. (Log hygiene: progress-log numbering skips 46 — nothing was lost, the number was simply
+6. (Log hygiene: progress-log numbering skips 46 — nothing was lost, the number was simply
    never used.)
 
 ## 11. Roadmap
 
-1. Finish Google branding verification (resubmit once after the 24 h window; test the
-   consent screen in an incognito session).
-2. Resync `supabase/schema.sql` with the live DB (show SQL first, get user approval).
-3. **Web Push Daily Habit Reminders:**
+1. Finish Google branding verification on the new Pages domain (resubmit once after the
+   24 h window; test the consent screen in an incognito session).
+2. **Web Push Daily Habit Reminders:**
    - **Pass 1 (Complete):** Web Push Foundation — capability detection, permission flow,
      `push-sw.js` extension, settings diagnostic UI, and VAPID/Cloudflare Workers investigation.
-   - **Pass 2 (Next):** Database schema design & Supabase integration (`push_subscriptions` table
-     with RLS, reminder preferences in `user_settings`) + VAPID key generation.
+   - **Pass 2 (DB foundation done):** `notification_settings` + `push_subscriptions` tables
+     are live (user ran the reviewed SQL) and folded into `supabase/schema.sql` (2026-11-07).
+     Remaining: `useNotificationSettings` hook + subscribe/unsubscribe flow in the app, and
+     `VITE_VAPID_PUBLIC_KEY` (generate with `npx web-push generate-vapid-keys`; the private
+     key stays secret for the Pass 3 Worker, never committed).
    - **Pass 3:** Cloudflare Worker cron dispatcher (zero external cost, native Web Crypto ES256/RFC 8291).
 4. Optional polish: count-up numerals on stat tiles; periodic backup reminders.
 5. Optional (paid): Supabase Pro custom auth domain to brand the OAuth account chooser.

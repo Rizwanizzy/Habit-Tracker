@@ -41,6 +41,8 @@ Read DESIGN.md before building or changing any UI.
 - `vacation_periods`: id (uuid pk, default), user_id (default auth.uid()), start_date (date), end_date (date null — null means ongoing), created_at. RLS on, own-row policies. Never change this schema without asking.
 - `profiles`: user_id (pk, = auth.users id), full_name, bio (max 140 code points), date_of_birth, gender ('female'|'male'|'other'|'prefer_not_to_say'), nationality, country, address, phone, avatar_path, updated_at. One row per user, created on first save (upsert). RLS on.
 - `user_settings`: user_id (pk), day_start_hour (smallint 0..6, default 0), updated_at. One row per user, created on first save (upsert). RLS on.
+- `notification_settings` (Pass 2 daily reminders): user_id (pk = auth.users id), reminder_enabled (bool, default false), reminder_time (time, default '20:00:00'), timezone (text, default 'Asia/Kolkata'), created_at, updated_at. One row per user, upsert on user_id. RLS on, own-row policies, anon revoked.
+- `push_subscriptions` (Pass 2 daily reminders): id (uuid pk), user_id, endpoint (text UNIQUE — device re-subscribe upserts), p256dh, auth (RFC 8291 public key material only — never VAPID private keys), device_label, user_agent, created_at, updated_at, last_seen_at. Multiple devices per user. RLS on, own-row policies, anon revoked. Schema file: `supabase/schema.sql` (re-synced 2026-11-07).
 - Storage bucket `avatars` (private, 2 MB, jpeg/png/webp). Files live at `<user_id>/avatar.webp`. Store only the path in `profiles.avatar_path`; display with `createSignedUrl` (1 hour) and refresh when expired. Email is read from the auth session, is shown read-only, and is never stored in `profiles`.
 
 ## Rules that matter
