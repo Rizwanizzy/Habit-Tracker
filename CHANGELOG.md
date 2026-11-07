@@ -525,3 +525,20 @@
   - **Tests 242/242 green across 18 files, build green.** No schema changes, no new
     dependencies. Reminders are stored but NOT delivered — the Pass 3 Cloudflare Worker cron
     dispatcher (PRIVATE VAPID key as secret) is the sender.
+
+- 110. **Pass 2 follow-up fixes — local login broken by a UTF-8 BOM, live subscribe hardened:**
+  - **Local:** `.env.local` was rewritten with `Set-Content -Encoding utf8` (PowerShell 5),
+    which prepended a UTF-8 BOM (EF BB BF); Vite's dotenv read the first key as
+    `\uFEFFVITE_SUPABASE_URL`, producing "Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY"
+    at sign-in despite the values being visible in the file. Rewritten via
+    `[System.IO.File]::WriteAllText(..., Encoding.ASCII)` — first bytes now `VIT`. (Lesson:
+    never shell-append to `.env.local`; BOM corrupts the first variable.)
+  - **Live (`AbortError` on subscribe in production Brave, permission granted):** the hook used
+    `getRegistration()` blindly — a registration whose worker is still installing/waiting makes
+    `pushManager.subscribe` abort. Subscribe/unsubscribe/device-check now go through
+    `getActiveRegistration()`: `getRegistration()` first (must EXIST before touching `ready` —
+    `ready` pends forever with no registration, the old test-notification hang), then
+    `serviceWorker.ready` to guarantee an ACTIVE worker. `describePushError` (AbortError) now
+    names the real causes: dismissed prompt / worker still activating (retry) / Brave's
+    "Use Google services for push messaging" off (brave://settings/privacy).
+  - Tests 242/242, build green; no schema/dependency changes.

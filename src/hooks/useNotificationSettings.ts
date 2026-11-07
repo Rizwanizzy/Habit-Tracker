@@ -116,7 +116,7 @@ export function useNotificationSettings() {
       return false
     }
     try {
-      const reg = await navigator.serviceWorker.getRegistration()
+      const reg = await getActiveRegistration()
       if (!reg) {
         setError('No active service worker yet — reload the page and try again.')
         return false
@@ -169,9 +169,9 @@ export function useNotificationSettings() {
       return false
     }
     try {
-      const reg = await navigator.serviceWorker.getRegistration()
+      const reg = await getActiveRegistration()
       const sub = await reg?.pushManager.getSubscription()
-      if (!sub) {
+      if (!reg || !sub) {
         setError('This device is not registered for reminders.')
         return false
       }
@@ -217,12 +217,27 @@ export type UseNotificationSettingsResult = ReturnType<typeof useNotificationSet
 async function currentDeviceEndpoint(): Promise<string | null> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null
   try {
-    const reg = await navigator.serviceWorker.getRegistration()
+    const reg = await getActiveRegistration()
     const sub = await reg?.pushManager.getSubscription()
     return sub?.endpoint ?? null
   } catch {
     return null
   }
+}
+
+/**
+ * An ACTIVE service worker registration. `getRegistration()` alone can return
+ * a registration whose worker is still installing/waiting — subscribing on
+ * that aborts (AbortError). A registration EXISTS here (checked first), so
+ * `ready` resolves promptly; we never call it blind (it pends forever when no
+ * service worker is registered — the original test-notification hang).
+ */
+async function getActiveRegistration(): Promise<ServiceWorkerRegistration | null> {
+  if (!('serviceWorker' in navigator)) return null
+  const exists = await navigator.serviceWorker.getRegistration()
+  if (!exists) return null
+  const reg = await navigator.serviceWorker.ready
+  return reg ?? exists
 }
 
 /** Turn a thrown subscription error into an actionable message. */
@@ -233,7 +248,7 @@ function describePushError(err: unknown): string {
     case 'NotAllowedError':
       return 'The browser blocked the subscription (NotAllowedError) — check the site notification permission.'
     case 'AbortError':
-      return 'The browser cancelled the subscription (AbortError) — try again.'
+      return 'The browser cancelled the subscription (AbortError) — common causes: the permission prompt was dismissed just now, the service worker was still activating (retry in a moment), or in Brave the "Use Google services for push messaging" toggle (brave://settings/privacy) is off.'
     case 'SecurityError':
       return 'The browser refused the subscription outside a secure/user-action context (SecurityError).'
     default:
