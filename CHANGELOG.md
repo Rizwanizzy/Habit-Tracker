@@ -591,8 +591,9 @@
     Follow-up 5 (deploy fix): first CF Pages build after restoring package-lock.json failed
     with "Cannot find native binding" — npm bug 4828 prunes other platforms' native binaries
     from the lock when installing on Windows (@rolldown/binding-linux-x64-gnu missing, only
-    win32 survived). Regenerating locally can't restore them; every successful rolldown deploys
-    ran while the lockfile was untracked (CF resolves fresh on Linux). package-lock.json is
-    therefore untracked again (git rm --cached) and gitignored, matching the proven-working
-    state; file remains on disk for local reproducibility.
+    win32 survived); a fresh CF install without a lockfile still hit it. Regenerated the
+    lockfile cross-platform via `npm install --os=linux --cpu=x64 --libc=glibc
+    --package-lock-only`, which records ALL platform bindings (linux-x64-gnu for Cloudflare
+    AND win32-x64-msvc for local dev); lockfile stays tracked. Validated locally: npm ci
+    installs both correctly, tests 247/247 + build green.
     Docs re-synced (DESIGN.md, AGENTS.md, PROJECT_CONTEXT.md); tests/build re-verified 247/247 + build green.
