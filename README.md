@@ -51,19 +51,18 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 
 ## Hosting
 
-The app is a static Vite SPA (all backend work happens in Supabase), so any static host works. Current live deployment: **Vercel** — `https://habbt-tracker.vercel.app`.
+The app is a static Vite SPA (all backend work happens in Supabase). Current live deployment: **Cloudflare Pages** — `https://habbits-tracker.pages.dev` (migrated from Vercel in November 2026).
 
 - **Build command** `npm run build`, output `dist`; settings `NODE_VERSION` = 22.
 - **Environment variables** (must exist *before* the build — Vite inlines them at build time): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. Change them → redeploy.
-- `vercel.json` ships the SPA rewrite (`/(.*) → /index.html`) so deep links (`/settings`, `/habits/:id`…) survive a refresh.
+- SPA routing: Cloudflare Pages auto-enables Single-page-App mode (no `404.html` in the output), so deep links (`/settings`, `/habits/:id`…) survive a refresh. (The `vercel.json` rewrite from the earlier Vercel deployment is no longer used.)
 - **Auth wiring for the deployed domain:**
   - Supabase → Auth → URL Configuration → Site URL = the deployed origin; Redirect URLs += `<origin>/login` (keep localhost for dev).
   - Google Cloud → Clients → OAuth client → Authorized JavaScript origins += the deployed origin; the redirect URI stays the Supabase callback.
-  - Google Auth Platform → Branding → Authorised domains += the deployed host.
-- **Never use a Vercel per-deployment URL** (`<project>…-<scope-suffix>.vercel.app` — it changes every deploy) as the Site URL or as an auth redirect target: Vercel SSO-protects deployment URLs, so Google sign-in ends on Vercel's own "Log in to Vercel" page. Always open/auth against the stable production domain; if Supabase's Redirect URLs don't include the origin the sign-in was started from, Supabase silently falls back to the Site URL.
+  - Google Auth Platform → Branding → Authorised domains += the deployed host, with homepage/privacy URLs updated to match (brand verification re-runs against the new domain).
+- **Never auth against per-deployment/preview URLs** (`<hash>.<project>.pages.dev` — they change every deploy) as the Site URL or as an auth redirect target. Always open/auth against the stable production domain; if Supabase's Redirect URLs don't include the origin the sign-in was started from, Supabase silently falls back to the Site URL.
 - **Dev access over the LAN IP** (phone testing via `http://192.168.x.x:3000`) **cannot use Google sign-in**: Supabase Auth accepts plain-`http://` redirect origins for `localhost` only — any other `http://` origin silently falls back to the Site URL even when it is on the Redirect URLs list. Google sign-in testing over the LAN uses one of: **Chrome port forwarding** (desktop Chrome → `chrome://inspect` → Port forwarding `localhost:3000` over USB, so the phone's browser uses an already-whitelisted `localhost` origin), or email/password sign-in (its return never leaves the dev origin).
 - The Google account chooser always shows the Supabase callback domain (`<project-ref>.supabase.co`) because that is the OAuth redirect domain; the consent page itself shows the branding's App name/logo once the app is published to production with a public Application home page (localhost is rejected there).
-- An older Cloudflare Pages deployment (`habit-tracker-7kq.pages.dev`) can be retired from the Cloudflare dashboard whenever convenient — keep whichever host you prefer.
 
 ## Scripts
 

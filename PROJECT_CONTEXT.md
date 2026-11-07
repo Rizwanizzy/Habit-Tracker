@@ -37,6 +37,8 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 - React Router **7.18** (`BrowserRouter`)
 - Recharts **3.10** (line/area/bar charts on Overview + Habit detail)
 - `vite-plugin-pwa` **2.0.0** — installable PWA, `generateSW`, autoUpdate (precache 44 entries),
+  registered explicitly in `main.tsx` via `virtual:pwa-register`, and enabled in dev via
+  `devOptions: { enabled: true }`,
   extended with `workbox.importScripts: ['push-sw.js']` for Web Push event handling
 - Vitest **5** for unit tests; **oxlint** for linting
 - `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` — drag-and-drop reordering
@@ -52,7 +54,7 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 npm run dev     # dev server — vite --host 0.0.0.0 --port 3000 (NOT 5173)
 npm run build   # tsc -b && vite build
 npm start       # node server.js — plain static SPA server (Cloud Run deploy route, not used day-to-day)
-npm test        # vitest run — currently 228/228 tests in 17 files, all green
+npm test        # vitest run — currently 231/231 tests in 17 files, all green
 npm run lint    # oxlint
 npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets.config.js)
 ```
@@ -65,16 +67,18 @@ npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets
 
 ## 5. Deployment
 
-- Production: **Vercel — https://habbt-tracker.vercel.app** (stable domain; `vercel.json`
-  ships the SPA rewrite `/(.*) → /index.html`). Never auth against per-deployment
-  `*.vercel.app` URLs (Vercel SSO-protects them; Google sign-in lands on their login page).
-- Supabase Auth URL config: Site URL = the Vercel origin; Redirect URLs include
-  `<origin>/login` (+ localhost for dev). Google OAuth client JS origins and Auth Platform
-  authorized domains include the same origin.
+- Production: **Cloudflare Pages — https://habbits-tracker.pages.dev** (migrated from Vercel
+  in Nov 2026; Pages auto-enables SPA mode, so deep links survive refresh — no `vercel.json`).
+  Never auth against per-deployment/preview `*.pages.dev` URLs (they change every deploy).
+- Supabase Auth URL config: Site URL = the production origin; Redirect URLs include
+  `<origin>/login` (+ `http://localhost:3000` for dev). Google OAuth client JS origins and
+  Auth Platform authorized domains include the same origin.
 - Google Auth Platform branding verification (app name/logo on the consent screen) is
-  **in progress**: Search Console ownership verified via HTML file
-  (`public/google84cf7158b3219c46.html`) AND the HTML-tag meta in `index.html`; waiting out
-  Google's ~24 h mirroring delay, then one clean "Verify again" resubmission.
+  **pending again on the new domain**: with the move to `habbits-tracker.pages.dev`, the
+  Branding homepage/privacy URLs and authorized domains must be updated and a **new Search
+  Console property** registered for the Pages domain (same HTML file `google84cf7158b3219c46.html`
+  in `public/` and the HTML-tag meta in `index.html`), then the usual loop: wait ~24 h and
+  one clean "Verify again" resubmission.
 - Known permanent quirk: the Google **account chooser** always shows the OAuth redirect
   domain (`…supabase.co`); only a Supabase Pro custom auth domain could change that.
 
@@ -82,7 +86,8 @@ npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets
 
 ```
 src/
-  main.tsx              entry — applies stored/system theme (<html class="dark">), renders <App/>
+  main.tsx              entry — applies stored/system theme (<html class="dark">), registers the PWA SW
+                        (registerSW from virtual:pwa-register — see vite-plugin-pwa), renders <App/>
   App.tsx               routes: public /login, /welcome (Landing), /privacy (Privacy);
                         inside RequireAuth+AppShell: / (Today), /overview, /profile, /settings,
                         /habits/new, /habits/:id/edit, /habits/:id
@@ -110,7 +115,7 @@ src/
     useLifetimeStats.ts all-time stats via fetchAllEntries (paged)
     useMediaQuery.ts    SSR-safe matchMedia hook (desktop modal vs phone inline)
     useNotificationPermission.ts Web Push capabilities + permission + local test notification trigger
-  lib/                  pure logic + their *.test.ts (17 test files, 228 tests)
+  lib/                  pure logic + their *.test.ts (17 test files, 231 tests)
     score.ts            EMA score (SMOOTHING_CONSTANT), scoreSeries, streaks, completionRate;
                         every public fn takes a trailing optional `vacations = []`
     dayStatus.ts        the one source of truth for "is this day counted":
@@ -188,7 +193,7 @@ public/
   google84cf7158b3219c46.html (Search Console), assets/ (generated chunks)
 ```
 
-Other repo files: `server.js` (static SPA server for `npm start`), `vercel.json`, `metadata.json`,
+Other repo files: `server.js` (static SPA server for `npm start`), `metadata.json`,
 `pwa-assets.config.js`, `index.html` (fonts, meta, google-site-verification tag),
 `supabase/schema.sql`, `DESIGN.md`, `AGENTS.md`, `CHANGELOG.md`, `PROJECT_CONTEXT.md`, `README.md`.
 
