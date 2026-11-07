@@ -170,9 +170,11 @@ src/
     WheelPicker.tsx     alarm-clock style wheel pickers (phone habit form)
     HabitPreview.tsx    live tile preview on HabitForm
     DayStartCard.tsx    Settings day-start listbox (anchored popover)
-    NotificationCard.tsx Settings Web Push capability inspector + permission & test triggers;
-                         granted state renders ReminderSettings (Pass 2)
-    ReminderSettings.tsx daily-reminder on/off + time (post-grant), this-device subscribe/remove
+    NotificationCard.tsx Settings Reminders card (compact): header chip On/Off/Blocked/
+                         Unavailable, one-line permission states, granted renders ReminderSettings
+    ReminderSettings.tsx Vacation-style switch row + dimmed/disabled time visual layer
+                         (native time input at opacity-0, DateField overlay — no .date-field)
+                         + send-test/device pill footer (danger-tinted Remove device)
     VacationCard.tsx    vacation periods list + start/end form (.date-field inputs)
     BackupCard.tsx + ImportPreviewDialog.tsx  data export/import + additive preview
     ManageTileMobile.tsx phone Settings habit tiles (lg:hidden)
@@ -282,15 +284,25 @@ creates every table above including the post-release `entries.status`, `profiles
   frequency, ColorPicker + live tile preview) and a phone layout below 1024px (52px name
   input with 52px emoji trigger, emoji picker, Type row, color circle popover, numeric wheel
   picker + unit, repeat alarm-clock wheel pickers, 12px dock gap on iPhone Safari).
-- **Settings** — Day card (`DayStartCard` glass listbox), Notifications card (`NotificationCard`
-  Web Push capability inspector, permission manager, iOS Safari standalone guidance, and
-  local test notification trigger; once granted, `ReminderSettings` — daily reminder switch
-  + time input saved to `notification_settings`, this-device push registration into
-  `push_subscriptions` with device count), Habits card (two-column tile grid on phones with emoji ring
+- **Settings** — Day card (`DayStartCard` glass listbox), Reminders card (`NotificationCard`
+  compact spec: 36px bell + title, ONE `aria-live` chip — "On" success tint / "Off" neutral /
+  "Blocked" danger / "Unavailable" neutral —, iOS Safari standalone guidance, and each state
+  capped to one short line + one pill: "Enable notifications" (default, 44px accent), one
+  13px notice for denied/unsupported; once granted, `ReminderSettings` — "Daily reminder"
+  Vacation-style switch row, "Time" row whose field (visual layer with IconClock + short
+  12-hour label over a native time input at opacity-0 — DateField overlay pattern, not
+  `.date-field`, since its appearance:none breaks Chromium's picker) dims and locks
+  (pointer-events-none + disabled) while off, and a pill footer — "Send test" ghost (bell icon) + "Remove device" (danger-tinted pocket pill, visible border for touch) when registered, else one
+  "Enable on this device" accent pill; settings/dev rows save to `notification_settings`,
+  device registration into `push_subscriptions`), desktop grid: left column Day → Vacation →
+  Reminders, right column Data → Habits (Data moved right, user request; wrappers are
+  `display: contents` on phones so the 2-col outer grid keeps Day | Data in row 1), Habits card (two-column tile grid on phones with emoji ring
   + one-tap archive; archived section), Vacation card (period list, start/end with native date
   inputs, deletes behind ConfirmDialog), Data card (JSON export incl. profile/settings options;
   additive+idempotent import with preview dialog and explicit "Overwrite" opt-in; phone 166px
-  stacked fallback), Account card (email read-only, View profile link).
+  stacked fallback; desktop = one-line caption "Back up or restore habits and check-ins
+  (no photos).", Include-profile checkbox row, then Export & Import pills side by side in one
+  row at their original natural width), Account card (email read-only, View profile link).
 - **Profile** — grid banner + 96/120px avatar (camera popover: change/remove via
   ConfirmDialog; 512px WebP compression), name + VerifiedBadge when email confirmed,
   bio (≤140) with inline editor, personal details card (display + phone inline edit with

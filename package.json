@@ -10,7 +10,10 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "icons": "pwa-assets-generator"
+    "icons": "pwa-assets-generator",
+    "worker:check": "tsc -p worker/tsconfig.json",
+    "worker:dev": "wrangler dev -c worker/wrangler.toml",
+    "worker:deploy": "wrangler deploy -c worker/wrangler.toml"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -25,6 +28,7 @@
     "vite-plugin-pwa": "^2.0.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261107.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
@@ -35,6 +39,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
     "vite": "^8.3.4",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "wrangler": "^4.158.0"
   }
 }

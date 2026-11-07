@@ -312,3 +312,12 @@ export function IconBell({ className }: { className?: string }) {
     </svg>
   )
 }
+
+export function IconClock({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
+  )
+}

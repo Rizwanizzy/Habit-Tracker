@@ -1,0 +1,20 @@
+name = "habit-tracker-reminders"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+# Daily-reminder dispatch. At each 15-minute tick we look up every user with
+# `reminder_enabled = true` whose reminder time falls inside that 15-minute
+# window IN THEIR OWN timezone and push to their registered devices.
+[triggers]
+crons = ["*/15 * * * *"]
+
+[observability]
+enabled = true
+
+# Secrets are NOT in this file. Set with:
+#   npx wrangler secret put VAPID_PRIVATE_KEY -c worker/wrangler.toml
+#   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY -c worker/wrangler.toml
+#   npx wrangler secret put TEST_TOKEN -c worker/wrangler.toml
+# For LOCAL testing only: worker/.dev.vars (gitignored, placeholders provided).
+# [vars]
+# VAPID_SUBJECT = "mailto:your-email@example.com"

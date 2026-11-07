@@ -1,22 +1,62 @@
 import { useState } from 'react'
 import type { UseNotificationSettingsResult } from '../hooks/useNotificationSettings'
 import { reminderTimeOr } from '../lib/reminders'
-import { IconCheck } from './icons'
+import { IconBell, IconClock } from './icons'
+
+/** ISO-ish 'HH:MM[:ss]' → short 12-hour label, no leading zero ("5:03 PM"). */
+function twelveHour(hhmm: string): string {
+  const m = /^(\d{1,2}):(\d{1,2})/.exec(hhmm)
+  const h = m ? Number(m[1]) : 0
+  const min = m ? Number(m[2]) : 0
+  return new Intl.DateTimeFormat('en', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date(2000, 0, 1, h, min))
+}
+
+/** The overlay input deliberately does NOT use `.date-field`: its unlayered
+ *  appearance:none/height rules interfere with Chromium's native picker.
+ *  Native time inputs otherwise open their picker from the small right-side
+ *  indicator only; a click anywhere in the field should open it.
+ *  showPicker() does that on desktop Chromium/Firefox and Android; iOS
+ *  Safari does not implement it (throws — swallowed) and instead opens the
+ *  picker on the direct tap of the invisible input itself, so both
+ *  platforms get the "click anywhere" behaviour without double-opening. */
+function openTimePicker(e: React.MouseEvent<HTMLInputElement>) {
+  try {
+    e.currentTarget.showPicker()
+  } catch {
+    /* platform without showPicker uses its own direct-tap behaviour */
+  }
+}
+
+/** Shared pill chrome: 40px visual + vertical-only invisible pad to 44px
+ *  (BackupCard pattern; grids need min-w-0 pills with no horizontal pad,
+ *  so the pad only extends the tap area vertically). */
+const pillBase =
+  'relative inline-flex h-10 min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-pill px-3 text-caption font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60 after:absolute after:inset-x-0 after:-inset-y-1 after:content-[""] active:scale-95'
 
 /**
- * Daily-reminder preferences + this-device subscription controls inside the
- * Settings notification card (Pass 2 app integration). Rendered once browser
- * notification permission is granted — requires authentication automatically
- * (Settings lives inside RequireAuth).
- *
- * Data flows through `useNotificationSettings` (optimistic with rollback);
- * UI chrome follows VacationCard (role="switch" row) and `.date-field`
- * for the iOS-critical time input.
+ * Granted-state rows of the Settings "Reminders" card (Pass 2 logic,
+ * Pass 3 compact layout): a Vacation-style switch row, a time row whose
+ * field dims + goes `inert` while the reminder is off, and a footer of
+ * secondary pills (send test / device registration). All behaviour binds
+ * to the existing `useNotificationSettings` handlers unchanged.
  */
-export function ReminderSettings({ reminders }: { reminders: UseNotificationSettingsResult }) {
+export function ReminderSettings({
+  reminders,
+  onSendTest,
+  testSent,
+  testError,
+}: {
+  reminders: UseNotificationSettingsResult
+  onSendTest: () => Promise<void> | void
+  testSent: boolean
+  testError: string | null
+}) {
   const {
     settings,
-    devices,
     subscribedThisDevice,
     loading,
     error,
@@ -43,11 +83,9 @@ export function ReminderSettings({ reminders }: { reminders: UseNotificationSett
     )
   }
 
-  const deviceCount = devices.length
-
   return (
-    <div className="mt-4 space-y-3">
-      {/* Daily reminder switch (VacationCard chrome) + reminder time. */}
+    <div className="mt-4 space-y-2.5">
+      {/* Daily reminder switch (Vacation "Pause all habits" switch style). */}
       <button
         type="button"
         role="switch"
@@ -56,76 +94,93 @@ export function ReminderSettings({ reminders }: { reminders: UseNotificationSett
         onClick={() => void run('save', () => saveSettings(!enabled, time))}
         className="flex min-h-14 w-full items-center justify-between gap-3 rounded-input border border-border bg-surface-raised px-3 py-2 text-left transition-colors duration-150 hover:bg-surface focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60 lg:min-h-11"
       >
-        <span className="min-w-0">
-          <span className="text-body block text-fg">
-            {enabled ? 'Daily reminder is on' : 'Send daily reminders'}
-          </span>
-          <span className="text-caption mt-0.5 block text-fg-muted">
-            {enabled ? time : 'One nudge a day at your chosen time (20:00 default)'}
-          </span>
-        </span>
+        <span className="text-body text-fg">Daily reminder</span>
         <span
-          className={`ml-auto inline-flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors duration-150 ${
-            enabled
-              ? 'border-success/40 bg-success text-white'
-              : 'border-border bg-surface text-transparent'
-          }`}
           aria-hidden="true"
+          className={`relative h-6 w-11 shrink-0 rounded-pill transition-colors duration-200 ${
+            enabled ? 'bg-accent' : 'bg-fg/20'
+          }`}
         >
-          <IconCheck className="size-3.5" />
+          <span
+            className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-all duration-200 ${
+              enabled ? 'left-[1.4rem]' : 'left-0.5'
+            }`}
+          />
         </span>
       </button>
 
-      {/* Reminder time (native time input; .date-field handles iOS quirks). */}
-      <label htmlFor="reminder-time" className="flex min-h-11 items-center justify-between gap-3">
-        <span className="text-body text-fg">Reminder time</span>
-        <input
-          id="reminder-time"
-          type="time"
-          value={time}
-          disabled={busy !== null}
-          onChange={(e) => void run('save', () => saveSettings(enabled, e.target.value))}
-          className="date-field w-32 max-w-full min-w-0 box-border rounded-input border border-border bg-surface-raised px-3 text-fg transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60"
-        />
-      </label>
-
-      {/* This device subscription row. */}
-      <div className="rounded-input border border-border bg-surface-raised px-3 py-2">
-        <div className="flex min-h-11 items-center justify-between gap-3">
-          <span className="min-w-0">
-            <span className="text-body block text-fg">
-              {subscribedThisDevice ? 'This device is registered' : 'Register this device'}
-            </span>
-            <span className="text-caption mt-0.5 block text-fg-muted">
-              {subscribedThisDevice
-                ? deviceCount > 1
-                  ? `Push is set up — ${deviceCount} devices registered`
-                  : 'Push is set up for this device'
-                : 'Needed to receive push reminders on this browser'}
-            </span>
-          </span>
-          {subscribedThisDevice ? (
-            <button
-              type="button"
-              disabled={busy !== null}
-              onClick={() => void run('unsubscribe', unsubscribeThisDevice)}
-              className="glass-pill inline-flex h-9 shrink-0 items-center justify-center rounded-pill border border-border px-3.5 text-caption font-medium text-fg transition-colors duration-150 hover:bg-surface active:scale-95 disabled:opacity-60"
-            >
-              {busy === 'unsubscribe' ? 'Removing…' : 'Remove'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={busy !== null}
-              onClick={() => void run('subscribe', subscribeThisDevice)}
-              className="inline-flex h-9 shrink-0 items-center justify-center rounded-pill bg-accent-gradient px-3.5 text-caption font-semibold text-white shadow-sm transition-all duration-150 hover:brightness-110 active:scale-95 disabled:opacity-60"
-            >
-              {busy === 'subscribe' ? 'Subscribing…' : 'Enable'}
-            </button>
-          )}
+      {/* Time row: visible but dimmed + non-interactive while off. The
+          field is Vacation's DateField pattern — a visual layer with the
+          clock icon and 12-hour no-leading-zero text, with the real
+          native <input type="time"> stretched over it at opacity-0.
+          showPicker() (openTimePicker) makes any click in the field open
+          the picker on desktop/Android; iOS Safari ignores it and opens
+          on the direct tap of the invisible input instead. */}
+      <div
+        className={`flex min-h-14 items-center justify-between gap-3 pt-1 transition-opacity duration-150 lg:min-h-11 ${
+          enabled ? '' : 'pointer-events-none opacity-50'
+        }`}
+      >
+        <span className="text-body shrink-0 text-fg">Time</span>
+        <div className="group relative w-[130px] min-w-[120px] shrink-0">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none flex h-12 w-full items-center gap-2 rounded-input border border-border bg-surface-raised px-3 text-left transition-colors duration-150 group-hover:bg-surface"
+          >
+            <IconClock className="size-4 shrink-0 text-fg-muted" />
+            <span className="min-w-0 truncate text-base text-fg">{twelveHour(time)}</span>
+          </div>
+          <input
+            type="time"
+            value={time}
+            disabled={busy !== null || !enabled}
+            aria-label="Reminder time"
+            onChange={(e) => void run('save', () => saveSettings(enabled, e.target.value))}
+            onClick={openTimePicker}
+            className="absolute inset-0 z-10 h-full w-full cursor-pointer rounded-input text-base opacity-0"
+          />
         </div>
       </div>
 
+      {/* Footer actions. Registered: two ghost pills (phones = 2-up grid,
+          desktop = left-aligned pair). Not registered: one accent pill. */}
+      {subscribedThisDevice ? (
+        <div className="grid grid-cols-2 gap-2 lg:inline-flex lg:gap-2">
+          <button
+            type="button"
+            onClick={() => void onSendTest()}
+            className={`${pillBase} border border-border bg-transparent text-fg hover:bg-surface`}
+          >
+            <IconBell className="size-4 shrink-0 text-fg-muted" />
+            Send test
+          </button>
+          <button
+            type="button"
+            disabled={busy !== null}
+            onClick={() => void run('unsubscribe', unsubscribeThisDevice)}
+            className={`${pillBase} border border-danger/35 bg-danger/15 text-danger hover:bg-danger/25`}
+          >
+            {busy === 'unsubscribe' ? 'Removing…' : 'Remove device'}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={busy !== null}
+          onClick={() => void run('subscribe', subscribeThisDevice)}
+          className={`${pillBase} bg-accent-gradient font-semibold text-white shadow-sm hover:brightness-110`}
+        >
+          {busy === 'subscribe' ? 'Subscribing…' : 'Enable on this device'}
+        </button>
+      )}
+
+      {/* Compact feedback lines (success is brief, failures visible). */}
+      {testSent && <p className="text-caption text-success">Test notification sent!</p>}
+      {testError && (
+        <p role="alert" className="text-caption text-danger">
+          {testError}
+        </p>
+      )}
       {error && (
         <p role="alert" className="text-caption text-danger">
           {error}

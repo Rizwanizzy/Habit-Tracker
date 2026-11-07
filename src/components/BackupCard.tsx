@@ -86,44 +86,48 @@ export function BackupCard() {
       style={{ animationDelay: '80ms' }}
     >
       <h2 className="text-section-title">Data</h2>
-      <p className="mt-1 text-body text-fg-secondary max-lg:hidden">
-        Export or import a JSON backup of your habits and check-ins. Profile photos aren&apos;t included.
+      <p className="mt-1 truncate text-body text-fg-secondary max-lg:hidden">
+        Back up or restore habits and check-ins (no photos).
       </p>
-      <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 max-lg:hidden lg:mt-4">
-        <input
-          type="checkbox"
-          checked={includeProfile}
-          onChange={(e) => setIncludeProfile(e.target.checked)}
-          className="size-5 shrink-0 accent-accent"
-        />
-        <span className="text-[13px] text-fg lg:text-body">
-          Include profile<span className="max-lg:hidden"> details</span>
-        </span>
-      </label>
-      <button
-        type="button"
-        onClick={() => void handleExport()}
-        disabled={exporting}
-        className="mt-3 inline-flex items-center justify-center gap-2.5 rounded-pill bg-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 active:scale-95 disabled:opacity-60 max-lg:hidden"
-        style={{ height: 44 }}
-      >
-        {exporting && (
-          <span
-            aria-hidden="true"
-            className="progress-spin size-4 rounded-full border-2 border-white/40 border-t-white"
+
+      {/* Desktop (lg+): the profile checkbox on its own row, then Export
+          and Import side by side in ONE equal-halves row beneath it
+          (icon beside the label, like the phone pills but desktop-sized).
+          Phones keep their own compact layout below. */}
+      <div className="mt-4 max-lg:hidden">
+        <label className="flex min-h-11 cursor-pointer items-center gap-3">
+          <input
+            type="checkbox"
+            checked={includeProfile}
+            onChange={(e) => setIncludeProfile(e.target.checked)}
+            className="size-5 shrink-0 accent-accent"
           />
-        )}
-        {exporting ? 'Exporting…' : 'Export backup'}
-      </button>
-      <div className="mt-3 max-lg:hidden">
-        <label
-          htmlFor="import-backup-file"
-          className={`mt-1 inline-flex h-11 cursor-pointer items-center justify-center rounded-pill border border-success/35 bg-success/15 px-5 text-body font-semibold text-success transition-all duration-150 hover:bg-success/25 active:scale-95 ${
-            importing ? 'pointer-events-none opacity-60' : ''
-          }`}
-        >
-          Import backup
+          <span className="text-body text-fg">Include profile details</span>
         </label>
+        <div className="mt-3 flex gap-3">
+          <button
+            type="button"
+            onClick={() => void handleExport()}
+            disabled={exporting}
+            className="inline-flex h-11 items-center justify-center gap-2.5 rounded-pill bg-accent px-5 text-body font-semibold text-white transition-all duration-150 hover:brightness-110 active:scale-95 disabled:opacity-60"
+          >
+            {exporting && (
+              <span
+                aria-hidden="true"
+                className="progress-spin size-4 rounded-full border-2 border-white/40 border-t-white"
+              />
+            )}
+            {exporting ? 'Exporting…' : 'Export backup'}
+          </button>
+          <label
+            htmlFor="import-backup-file"
+            className={`inline-flex h-11 cursor-pointer items-center justify-center rounded-pill border border-success/35 bg-success/15 px-5 text-body font-semibold text-success transition-all duration-150 hover:bg-success/25 active:scale-95 ${
+              importing ? 'pointer-events-none opacity-60' : ''
+            }`}
+          >
+            Import backup
+          </label>
+        </div>
       </div>
 
       {/* Phone (below lg): compact — the checkbox row first (36px visual,

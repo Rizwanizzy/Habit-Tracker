@@ -542,3 +542,50 @@
     names the real causes: dismissed prompt / worker still activating (retry) / Brave's
     "Use Google services for push messaging" off (brave://settings/privacy).
   - Tests 242/242, build green; no schema/dependency changes.
+
+- 111. **Settings UI — compact Reminders card + desktop grid stretch fix (UI-only):**
+  - Verified the RFC 8291 Appendix B vector end-to-end first: `/send-test` now shows a
+    real banner; the cron tick URL for wrangler 4 is `/cdn-cgi/handler/scheduled?cron=…`
+    (old `/__scheduled` documented for wrangler 3 — worker doc comment + info text fixed).
+  - **Reminders card (`NotificationCard` + `ReminderSettings`) rebuilt to the compact
+    spec:** removed the "Notification permission is active…", "Reminders & devices",
+    "Push is set up for this device" and under-switch time captions (time shows once in
+    its own row); title renamed "Daily Reminders" → "Reminders"; header now carries ONE
+    `aria-live` status chip — "On" (success tint) / "Off" (neutral) / "Blocked" (danger) /
+    "Unavailable" —; the switch row becomes the Vacation "Pause all habits" style; the
+    time field becomes Vacation's DateField pattern (visual layer with IconClock + short
+    12-hour "5:03 PM" text over the real native `<input type="time">` at opacity-0 via
+    `.date-field` — iOS-safe, no leading zero, min-w 120px, never clips at 360px) and
+    dims + goes `inert` while the reminder is off (no layout jump); the device box is
+    replaced by a pill footer — "Send test" (ghost, bell icon) + "Remove device"
+    (danger hover) as a 2-up grid on phones / inline pair on desktop, each 40px visual
+    with a vertical-only after hit pad to 44px; unregistered shows one accent "Enable on
+    this device"; every state (default/denied/unsupported) is one short line; ALL
+    permission/subscription logic, hooks, service worker, lib and payloads unchanged.
+  - **Desktop grid:** Settings outer grid gains `lg:items-start` so the Habits card
+    hugs its rows instead of stretching to the left column's height.
+  - New `IconClock` (house inline-SVG style). Docs synced: DESIGN.md §8 (Reminders card
+    spec + `lg:items-start` note + phone-row enumeration), PROJECT_CONTEXT (§component
+    tree + §features), AGENTS folder list, README feature line. Tests 247/247, build
+    green; no schema/dependency changes; uncommitted pending localhost review.
+  - *Follow-up (localhost fix):* the time overlay input lost its native picker in Chromium —
+    the unlayered `.date-field` class (appearance:none + height/padding rules) was the
+    culprit, so the overlay now uses plain DateField-style overlay classes (z-10, 16px,
+    no `.date-field`), and the off state locks via `pointer-events-none` + `disabled`
+    instead of `inert` (spec wording updated in DESIGN.md §8). "Remove device" gained a
+    touch where no hover exists. Follow-up 2: the time field
+    only opened its picker from the right-side native indicator — clicking anywhere in
+    the field now calls `showPicker()` (desktop Chromium/Firefox + Android, iOS throws
+    and is ignored; iOS keeps its direct-tap behaviour) — `openTimePicker` helper.
+    Follow-up 3 (user request): Settings desktop columns rebalanced — LEFT Day →
+    Vacation → Reminders, RIGHT Data → Habits; below lg both wrappers are
+    `display: contents` and the outer grid is 2 columns on phones too, so Day | Data
+    stay side by side in row 1 with Vacation/Reminders/Habits full-width after
+    (orders unchanged: 1/2/3/4/5, phone Habits card gained `order-5 col-span-2`).
+    Follow-up 4 (user request): desktop Data card compacts — caption shortened to the
+    single line "Back up or restore habits and check-ins (no photos)." and the rows
+    restructured: "Include profile details" checkbox on its own row, then Export backup +
+    Import backup side by side in one row beneath it — natural-width 44px pills exactly
+    the original desktop size (px-5, no icons, nothing stretched).
+    Phone Data layout untouched.
+    Docs re-synced (DESIGN.md, AGENTS.md, PROJECT_CONTEXT.md); tests/build re-verified 247/247 + build green.

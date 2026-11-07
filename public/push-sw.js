@@ -11,6 +11,18 @@
 
 self.addEventListener('push', (event) => {
   if (!event.data) {
+    // Our sender always sends JSON, so a dataless push means the payload
+    // FAILED TO DECRYPT (or the sender is broken) — surface it instead of
+    // silently disappearing, which made sender-side crypto bugs invisible.
+    console.warn('[push-sw] push arrived with no decryptable data — decryption failed or empty payload')
+    const options = {
+      body: 'A reminder arrived but this device could not decrypt its payload. Check Settings → Daily Reminders.',
+      icon: '/icon-192.png',
+      badge: '/pwa-64x64.png',
+      tag: 'habit-reminder-undecryptable',
+      data: { url: '/' },
+    }
+    event.waitUntil(self.registration.showNotification('Habit Tracker', options))
     return
   }
 

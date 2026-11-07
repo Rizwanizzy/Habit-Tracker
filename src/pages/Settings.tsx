@@ -122,33 +122,43 @@ export function Settings() {
         <p className="text-caption mt-1 text-fg-muted">Habits and preferences</p>
       </header>
 
-      {/* Desktop (DESIGN.md §8): Day (day-start) + Vacation + Data (backup)
-          cards stacked left, Habits right. Profile is reached via the
+      {/* Desktop (DESIGN.md §8): LEFT column = Day (day-start) + Vacation +
+          Reminders; RIGHT column = Data (backup) above Habits (user request —
+          Data lives with Habits now). Profile is reached via the
           Today-header avatar and the dock; the Account card was removed
           (user request) — Profile shows the signed-in email.
-          Phones (below lg) reorder the SAME cards into rows: Day | Data
-          side by side, then Vacation, then Habits full width. The order
-          classes live on each card's root element (they are Settings-only
-          components); lg:order-none restores the desktop DOM order
-          (Day, Vacation, Data), which flex needs because order:0 ≠
-          "no order property" once a sibling has an order. */}
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-5">
-        <div className="grid grid-cols-2 content-start gap-3 lg:flex lg:flex-col lg:gap-5">
+          Phones (below lg): both column wrappers are `display: contents`
+          (their `contents lg:flex` classes) so every card becomes a direct
+          grid item of the ALSO-2-column outer grid, and the order classes
+          on each card's root arrange Day | Data side by side (row 1), then
+          Vacation, Reminders and Habits full width (col-span-2). The same
+          order classes are inert inside the desktop flex columns, where
+          DOM order rules after each card's lg:order-none reset. */}
+      {/* lg:items-start stops the grid's default stretch so each column and
+          card hugs its own content: without it the Habits card reached the
+          left column's height (large empty area at its bottom). */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-2 lg:items-start lg:gap-5">
+        <div className="contents lg:flex lg:flex-col lg:gap-5">
           <DayStartCard />
 
           {/* Vacation card (DESIGN.md §8): the global pause + scheduled breaks. */}
           <VacationCard />
 
-          {/* Data card (DESIGN.md §8): export + import, owned by BackupCard. */}
-          <BackupCard />
-
-          {/* Daily reminders Web Push capability & testing card (Pass 1). */}
+          {/* Reminders card (DESIGN.md §8): compact Web Push reminder
+              controls, owned by NotificationCard + ReminderSettings. */}
           <NotificationCard />
         </div>
 
-        {/* Habits card — desktop rows (hidden below lg; the phone tile card
-            below replaces it there). */}
-        <div className="glass-card fade-up rounded-card p-6 max-lg:hidden" style={{ animationDelay: '120ms' }}>
+        {/* Right column: Data card on top, Habits card below (desktop).
+            On phones the wrapper dissolves (display: contents) and Data
+            pairs with Day in row 1 via its order-2 class. */}
+        <div className="contents lg:flex lg:flex-col lg:gap-5">
+          {/* Data card (DESIGN.md §8): export + import, owned by BackupCard. */}
+          <BackupCard />
+
+          {/* Habits card — desktop rows (hidden below lg; the phone tile card
+              below replaces it there). */}
+          <div className="glass-card fade-up rounded-card p-6 max-lg:hidden" style={{ animationDelay: '120ms' }}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-section-title">Habits</h2>
             {habits.length > 0 && (
@@ -191,11 +201,15 @@ export function Settings() {
               )}
             </>
           )}
+          </div>
         </div>
 
         {/* Habits card — phone tiles (below lg only): 2-column grid of
-            ManageTileMobile, same handlers/state as the desktop rows. */}
-        <div className="glass-card fade-up rounded-card p-4 lg:hidden" style={{ animationDelay: '120ms' }}>
+            ManageTileMobile, same handlers/state as the desktop rows.
+            order-5 + col-span-2 slot it as the last full-width row in the
+            flattened phone grid (a direct item while the column wrappers
+            are display: contents). */}
+        <div className="glass-card fade-up order-5 col-span-2 rounded-card p-4 lg:hidden" style={{ animationDelay: '120ms' }}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-section-title">Habits</h2>
             {habits.length > 0 && <p className="text-caption text-fg-muted">{active.length} active</p>}

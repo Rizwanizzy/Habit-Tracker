@@ -2,11 +2,16 @@ import { useState } from 'react'
 import { useNotificationPermission } from '../hooks/useNotificationPermission'
 import { useNotificationSettings } from '../hooks/useNotificationSettings'
 import { ReminderSettings } from './ReminderSettings'
-import { IconBell, IconCheck } from './icons'
+import { IconBell } from './icons'
 
 /**
- * Minimal Web Push capability detection & permission testing card (Pass 1).
- * Allows inspecting browser support and requesting notification permission on user action.
+ * Settings "Reminders" card — capability detection, permission request and
+ * local test (Pass 1) plus the compact per-account reminder rows (Pass 2,
+ * rendered by `ReminderSettings` once permission is granted).
+ *
+ * Compact spec: header shows ONE status chip ("On" / "Off" / "Blocked" /
+ * "Unavailable"); each non-granted state shows at most one short line and
+ * one pill. Helper paragraphs are intentionally removed.
  */
 export function NotificationCard() {
   const { capabilities, isRequesting, requestPermission, sendTest } = useNotificationPermission()
@@ -15,9 +20,9 @@ export function NotificationCard() {
   const [testError, setTestError] = useState<string | null>(null)
 
   const { isSupported, permission, requiresPWAInstall } = capabilities
+  const enabled = reminders.settings?.reminder_enabled ?? false
 
   async function handleEnable() {
-    setTestError(null)
     await requestPermission()
   }
 
@@ -35,125 +40,74 @@ export function NotificationCard() {
     }
   }
 
+  const chip = !isSupported
+    ? { text: 'Unavailable', cls: 'border-border bg-surface text-fg-muted', dot: 'bg-fg-muted' }
+    : permission === 'denied'
+      ? { text: 'Blocked', cls: 'border-danger/35 bg-danger/15 text-danger', dot: 'bg-danger' }
+      : enabled
+        ? { text: 'On', cls: 'border-success/35 bg-success/15 text-success', dot: 'bg-success' }
+        : { text: 'Off', cls: 'border-border bg-surface text-fg-muted', dot: 'bg-fg-muted' }
+
   return (
     <section
-      className="glass-card fade-up col-span-2 order-4 rounded-card p-4 sm:p-5 lg:order-none lg:p-6"
+      className="glass-card fade-up min-w-0 rounded-card p-4 lg:col-span-1 lg:order-none lg:p-6 order-4 col-span-2"
       style={{ animationDelay: '100ms' }}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <span className="grid size-8 place-items-center rounded-full bg-accent/15 text-accent" aria-hidden="true">
+      {/* Header: bell + title on the left, one status chip on the right. */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent/15 text-accent" aria-hidden="true">
             <IconBell className="size-4" />
           </span>
-          <div>
-            <h2 className="text-section-title">Daily Reminders</h2>
-            <p className="text-caption text-fg-muted">Reminders &amp; devices</p>
-          </div>
+          <h2 className="text-section-title truncate">Reminders</h2>
         </div>
-
-        {/* Status badge */}
-        <div>
-          {permission === 'granted' ? (
-            <span className="inline-flex items-center gap-1.5 rounded-pill border border-success/35 bg-success/15 px-3 py-1 text-caption font-medium text-success">
-              <span className="size-1.5 rounded-full bg-success" />
-              Permission granted
-            </span>
-          ) : permission === 'denied' ? (
-            <span className="inline-flex items-center gap-1.5 rounded-pill border border-danger/35 bg-danger/15 px-3 py-1 text-caption font-medium text-danger">
-              <span className="size-1.5 rounded-full bg-danger" />
-              Blocked in browser
-            </span>
-          ) : !isSupported ? (
-            <span className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-surface px-3 py-1 text-caption font-medium text-fg-muted">
-              Unsupported
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-pill border border-warning/35 bg-warning/15 px-3 py-1 text-caption font-medium text-warning">
-              <span className="size-1.5 rounded-full bg-warning" />
-              Not enabled
-            </span>
-          )}
+        <div aria-live="polite">
+          <span className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1 text-caption font-medium ${chip.cls}`}>
+            <span className={`size-1.5 rounded-full ${chip.dot}`} aria-hidden="true" />
+            {chip.text}
+          </span>
         </div>
       </div>
 
-      <div className="mt-4 space-y-3">
-        {/* iOS PWA Requirement notice */}
-        {requiresPWAInstall && (
-          <div className="rounded-input border border-accent/25 bg-accent/10 p-3 text-[13px] leading-relaxed text-fg-secondary">
-            <p className="font-medium text-fg">iPhone / iPad Home Screen PWA required</p>
-            <p className="mt-0.5 text-caption text-fg-muted">
-              iOS 16.4+ supports Web Push only when the app is added to the Home Screen. Tap the Share button in Safari, then tap <strong>Add to Home Screen</strong>.
-            </p>
-          </div>
-        )}
+      {/* iOS PWA requirement (the one case with unfakeable context). */}
+      {requiresPWAInstall && (
+        <div className="mt-4 rounded-input border border-accent/25 bg-accent/10 p-3 text-[13px] leading-relaxed text-fg-secondary">
+          <p className="font-medium text-fg">iPhone / iPad: add to Home Screen first</p>
+          <p className="mt-0.5 text-caption text-fg-muted">iOS 16.4+ supports Web Push only from the Home Screen app.</p>
+        </div>
+      )}
 
-        {/* Unsupported browser warning */}
-        {!isSupported && !requiresPWAInstall && (
-          <p className="text-[13px] text-fg-secondary">
-            Web Push is not supported in this browser. To receive daily habit reminders, use modern Chrome, Edge, Firefox, or Safari on an updated OS.
-          </p>
-        )}
+      {/* Permission states (compact — one line each, no paragraphs). */}
+      {!isSupported && !requiresPWAInstall && (
+        <p className="mt-4 text-[13px] text-fg-secondary">This browser doesn't support notifications.</p>
+      )}
 
-        {/* Default permission state */}
-        {permission === 'default' && isSupported && (
-          <div>
-            <p className="text-[13px] text-fg-secondary">
-              Allow notification permission so Habit Tracker can send you a reminder once a day to check in on your habits.
-            </p>
-            <button
-              type="button"
-              onClick={() => void handleEnable()}
-              disabled={isRequesting}
-              className="mt-3 inline-flex h-11 items-center justify-center rounded-pill bg-accent-gradient px-5 text-body font-semibold text-white shadow-sm transition-all duration-150 hover:brightness-110 active:scale-95 disabled:opacity-60"
-            >
-              {isRequesting ? 'Requesting…' : 'Enable notifications'}
-            </button>
-          </div>
-        )}
+      {permission === 'default' && isSupported && (
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => void handleEnable()}
+            disabled={isRequesting}
+            className="inline-flex h-11 items-center justify-center rounded-pill bg-accent-gradient px-5 text-body font-semibold text-white shadow-sm transition-all duration-150 hover:brightness-110 active:scale-95 disabled:opacity-60"
+          >
+            {isRequesting ? 'Requesting…' : 'Enable notifications'}
+          </button>
+        </div>
+      )}
 
-        {/* Granted permission state */}
-        {permission === 'granted' && (
-          <div>
-            <p className="text-[13px] text-fg-secondary">
-              Notification permission is active. Dispatch a local test to verify your device
-              displays notifications, and set up your daily reminder below.
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => void handleSendTest()}
-                className="glass-pill inline-flex h-11 items-center justify-center rounded-pill border border-border px-5 text-body font-medium text-fg transition-colors duration-150 hover:bg-surface-raised active:scale-95"
-              >
-                Send test notification
-              </button>
-              {testSent && (
-                <span className="inline-flex items-center gap-1.5 text-caption font-medium text-success">
-                  <IconCheck className="size-4" />
-                  Test notification sent!
-                </span>
-              )}
-            </div>
-            {testError && (
-              <p role="alert" className="mt-2 text-caption text-danger">
-                {testError}
-              </p>
-            )}
+      {permission === 'denied' && (
+        <p className="mt-4 text-[13px] text-fg-secondary">Notifications are blocked in your browser settings.</p>
+      )}
 
-            {/* Pass 2: daily-reminder preferences + device subscription. */}
-            <ReminderSettings reminders={reminders} />
-          </div>
-        )}
-
-        {/* Denied permission state */}
-        {permission === 'denied' && (
-          <div className="rounded-input border border-border bg-surface p-3 text-[13px] text-fg-secondary">
-            <p className="font-medium text-fg">Notifications blocked</p>
-            <p className="mt-1 text-caption text-fg-muted">
-              Permission was denied in your browser settings. To receive reminders, open your browser site permissions and change Notifications to &ldquo;Allow&rdquo;.
-            </p>
-          </div>
-        )}
-      </div>
+      {/* Granted: compact reminder rows (switch / time / device actions). */}
+      {permission === 'granted' && (
+        <ReminderSettings
+          reminders={reminders}
+          onSendTest={handleSendTest}
+          testSent={testSent}
+          testError={testError}
+        />
+      )}
     </section>
   )
 }
