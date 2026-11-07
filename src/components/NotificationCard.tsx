@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNotificationPermission } from '../hooks/useNotificationPermission'
+import { useNotificationSettings } from '../hooks/useNotificationSettings'
+import { ReminderSettings } from './ReminderSettings'
 import { IconBell, IconCheck } from './icons'
 
 /**
@@ -8,6 +10,7 @@ import { IconBell, IconCheck } from './icons'
  */
 export function NotificationCard() {
   const { capabilities, isRequesting, requestPermission, sendTest } = useNotificationPermission()
+  const reminders = useNotificationSettings()
   const [testSent, setTestSent] = useState(false)
   const [testError, setTestError] = useState<string | null>(null)
 
@@ -44,7 +47,7 @@ export function NotificationCard() {
           </span>
           <div>
             <h2 className="text-section-title">Daily Reminders</h2>
-            <p className="text-caption text-fg-muted">Web Push foundation</p>
+            <p className="text-caption text-fg-muted">Reminders &amp; devices</p>
           </div>
         </div>
 
@@ -112,7 +115,8 @@ export function NotificationCard() {
         {permission === 'granted' && (
           <div>
             <p className="text-[13px] text-fg-secondary">
-              Notification permission is active. You can dispatch a local test notification to verify your device displays notifications properly.
+              Notification permission is active. Dispatch a local test to verify your device
+              displays notifications, and set up your daily reminder below.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2.5">
               <button
@@ -134,6 +138,9 @@ export function NotificationCard() {
                 {testError}
               </p>
             )}
+
+            {/* Pass 2: daily-reminder preferences + device subscription. */}
+            <ReminderSettings reminders={reminders} />
           </div>
         )}
 

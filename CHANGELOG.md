@@ -493,3 +493,35 @@
     Pages (`https://habbits-tracker.pages.dev`).
   - Next: `VITE_VAPID_PUBLIC_KEY` (generate with `npx web-push generate-vapid-keys`; private
     key stays secret for Pass 3) → Pass 2 app integration (`useNotificationSettings`, subscribe flow).
+
+- 109. **Daily Reminders Pass 2 app integration complete:**
+  - **`VITE_VAPID_PUBLIC_KEY`** generated (`npx web-push generate-vapid-keys`) and wired into
+    `.env.local` (gitignored) + `.env.example`; the PRIVATE key stays out of the repo (Pass 3
+    Worker secret). `src/vite-env.d.ts` created documenting the three Vite env vars.
+  - **`src/lib/reminders.ts`** (pure, ✅ `reminders.test.ts` — 11 tests): `NotificationSettingsRow`
+    + `PushSubscriptionRow` DB row types, `getVapidPublicKey` (null-safe env reader, never throws,
+    private key must never be a frontend concern), `extractSubscriptionPayload` (PushManager
+    `toJSON()` → `{ endpoint, p256dh, auth }` for the upsert, null on malformed), `normalizeReminderTime`
+    ('H:MM'/'HH:MM:SS' → canonical 'HH:MM', out-of-range seconds rejected), `reminderTimeOr`
+    (default '20:00'), `describeDevice` ("Chrome on Windows" labels — ordered regexes handle
+    Chromium-based UAs containing "Safari" and the iOS-spoofed crios/fxios/edgios tokens).
+  - **`src/hooks/useNotificationSettings.ts`** (useVacations pattern: optimistic with snapshot
+    rollback, errors exposed not thrown): loads settings + all device rows + this browser's
+    live push endpoint in parallel; `saveSettings` upserts `notification_settings` (onConflict
+    `user_id`, row created on first save, time normalized); `subscribeThisDevice` — VAPID key →
+    `getRegistration()` → `pushManager.subscribe({ userVisibleOnly: true, applicationServerKey })`
+    → `push_subscriptions` upsert (onConflict `endpoint` = idempotent device re-registration,
+    RLS-safe `user_id = auth.uid()`); `unsubscribeThisDevice` — optimistic row delete by endpoint,
+    then `pushManager.unsubscribe()`; structured error messages (`NotAllowedError`/`AbortError`/
+    `SecurityError` mapped in `describePushError`).
+  - **UI:** new `src/components/ReminderSettings.tsx` (rendered inside NotificationCard's
+    permission-granted state): role="switch" daily-reminder toggle (VacationCard chrome), native
+    `<input type="time">` using the `.date-field` iOS-critical class, this-device subscribe/remove
+    row with device count, busy states, error line. `NotificationCard` caption now
+    "Reminders &amp; devices". Data state isolated from capability state (two hooks).
+  - **Type fix** (`src/lib/notifications.ts`): `urlBase64ToUint8Array` returns
+    `Uint8Array<ArrayBuffer>` (TS 6 typed-array generics — applicationServerKey requires
+    `ArrayBufferView<ArrayBuffer>`, plain `Uint8Array` widened to ArrayBufferLike fails).
+  - **Tests 242/242 green across 18 files, build green.** No schema changes, no new
+    dependencies. Reminders are stored but NOT delivered — the Pass 3 Cloudflare Worker cron
+    dispatcher (PRIVATE VAPID key as secret) is the sender.

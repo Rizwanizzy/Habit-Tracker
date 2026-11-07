@@ -115,6 +115,8 @@ src/
     useLifetimeStats.ts all-time stats via fetchAllEntries (paged)
     useMediaQuery.ts    SSR-safe matchMedia hook (desktop modal vs phone inline)
     useNotificationPermission.ts Web Push capabilities + permission + local test notification trigger
+    useNotificationSettings.ts reminder prefs + device subscriptions (useVacations pattern:
+                                 optimistic w/ rollback, errors exposed, endpoint upsert)
   lib/                  pure logic + their *.test.ts (17 test files, 231 tests)
     score.ts            EMA score (SMOOTHING_CONSTANT), scoreSeries, streaks, completionRate;
                         every public fn takes a trailing optional `vacations = []`
@@ -139,6 +141,8 @@ src/
     vacation.ts         isVacationDay, validatePeriod, sortPeriods, vacationDatesInRange
     notifications.ts    Web Push capability detection, permission requests, VAPID key conversion,
                         service worker local test notification dispatch
+    reminders.ts        Pass 2 pure helpers: VAPID env reader, subscribe payload extraction,
+                        reminder-time normalization, device labeling + DB row types
     stats.ts            lifetime stats (paged all-entries reads)
     milestones.ts       milestone badges (7/21/66/100-day, 25/100/500/1000 check-ins)
     supabase.ts         lazy getSupabase() singleton from VITE_ env vars
@@ -166,7 +170,9 @@ src/
     WheelPicker.tsx     alarm-clock style wheel pickers (phone habit form)
     HabitPreview.tsx    live tile preview on HabitForm
     DayStartCard.tsx    Settings day-start listbox (anchored popover)
-    NotificationCard.tsx Settings Web Push capability inspector + permission & test triggers
+    NotificationCard.tsx Settings Web Push capability inspector + permission & test triggers;
+                         granted state renders ReminderSettings (Pass 2)
+    ReminderSettings.tsx daily-reminder on/off + time (post-grant), this-device subscribe/remove
     VacationCard.tsx    vacation periods list + start/end form (.date-field inputs)
     BackupCard.tsx + ImportPreviewDialog.tsx  data export/import + additive preview
     ManageTileMobile.tsx phone Settings habit tiles (lg:hidden)
@@ -278,7 +284,9 @@ creates every table above including the post-release `entries.status`, `profiles
   picker + unit, repeat alarm-clock wheel pickers, 12px dock gap on iPhone Safari).
 - **Settings** — Day card (`DayStartCard` glass listbox), Notifications card (`NotificationCard`
   Web Push capability inspector, permission manager, iOS Safari standalone guidance, and
-  local test notification trigger), Habits card (two-column tile grid on phones with emoji ring
+  local test notification trigger; once granted, `ReminderSettings` — daily reminder switch
+  + time input saved to `notification_settings`, this-device push registration into
+  `push_subscriptions` with device count), Habits card (two-column tile grid on phones with emoji ring
   + one-tap archive; archived section), Vacation card (period list, start/end with native date
   inputs, deletes behind ConfirmDialog), Data card (JSON export incl. profile/settings options;
   additive+idempotent import with preview dialog and explicit "Overwrite" opt-in; phone 166px
@@ -323,11 +331,15 @@ creates every table above including the post-release `entries.status`, `profiles
 2. **Web Push Daily Habit Reminders:**
    - **Pass 1 (Complete):** Web Push Foundation — capability detection, permission flow,
      `push-sw.js` extension, settings diagnostic UI, and VAPID/Cloudflare Workers investigation.
-   - **Pass 2 (DB foundation done):** `notification_settings` + `push_subscriptions` tables
-     are live (user ran the reviewed SQL) and folded into `supabase/schema.sql` (2026-11-07).
-     Remaining: `useNotificationSettings` hook + subscribe/unsubscribe flow in the app, and
-     `VITE_VAPID_PUBLIC_KEY` (generate with `npx web-push generate-vapid-keys`; the private
-     key stays secret for the Pass 3 Worker, never committed).
-   - **Pass 3:** Cloudflare Worker cron dispatcher (zero external cost, native Web Crypto ES256/RFC 8291).
-4. Optional polish: count-up numerals on stat tiles; periodic backup reminders.
-5. Optional (paid): Supabase Pro custom auth domain to brand the OAuth account chooser.
+   - **Pass 2 (Complete, 2026-11-07):** `notification_settings` + `push_subscriptions` tables
+     live and folded into `supabase/schema.sql`; VAPID public key wired via
+     `VITE_VAPID_PUBLIC_KEY` (in `.env.local` — **also add it to Cloudflare Pages env**);
+     app-side done — `useNotificationSettings` hook (settings upsert on `user_id`, device
+     upsert on `endpoint`), `ReminderSettings` UI (reminder switch + time + device
+     registration), `src/lib/reminders.ts` pure helpers with tests. Reminders are stored but
+     NOT delivered yet — no sender exists until Pass 3.
+   - **Pass 3:** Cloudflare Worker cron dispatcher (zero external cost, native Web Crypto
+     ES256/RFC 8291) — needs the PRIVATE VAPID key as a secret; reads the tables designed
+     above and sends the daily push at each user's reminder_time.
+3. Optional polish: count-up numerals on stat tiles; periodic backup reminders.
+4. Optional (paid): Supabase Pro custom auth domain to brand the OAuth account chooser.

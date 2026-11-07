@@ -129,7 +129,7 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
  * Convert a base64 / URL-safe base64 string (such as a VAPID Public Key)
  * into a Uint8Array suitable for PushManager.subscribe({ applicationServerKey }).
  */
-export function urlBase64ToUint8Array(base64String: string): Uint8Array {
+export function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const rawData = atob(base64)
