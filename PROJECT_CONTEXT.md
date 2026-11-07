@@ -25,7 +25,7 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 | `AGENTS.md` | Rules for any AI/dev working on the repo. Read before every task. |
 | `DESIGN.md` | The design spec ("Aurora Glass": tokens, typography, components, motion). Read before any UI change. |
 | `supabase/schema.sql` | Database schema `README` for human setup (⚠️ drifted from the live DB — see §Data model). |
-| `CHANGELOG.md` | Numbered log of every completed pass (1–105). Append, never rewrite. |
+| `CHANGELOG.md` | Numbered log of every completed pass (1–106). Append, never rewrite. |
 | `README.md` | GitHub-facing overview (features, hosting, scripts, layout). Keep in sync. |
 
 ## 3. Stack (verified against `package.json`)
@@ -36,7 +36,8 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 - Supabase (Auth email/password + Google OAuth, Postgres, RLS) via `@supabase/supabase-js` ^2.118.0
 - React Router **7.18** (`BrowserRouter`)
 - Recharts **3.10** (line/area/bar charts on Overview + Habit detail)
-- `vite-plugin-pwa` **2.0.0** — installable PWA, `generateSW`, autoUpdate (precache 39 entries)
+- `vite-plugin-pwa` **2.0.0** — installable PWA, `generateSW`, autoUpdate (precache 44 entries),
+  extended with `workbox.importScripts: ['push-sw.js']` for Web Push event handling
 - Vitest **5** for unit tests; **oxlint** for linting
 - `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` — drag-and-drop reordering
 - `emoji-picker-react` — full emoji picker, **lazy-loaded inside `EmojiPickerField.tsx` only**
@@ -51,7 +52,7 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 npm run dev     # dev server — vite --host 0.0.0.0 --port 3000 (NOT 5173)
 npm run build   # tsc -b && vite build
 npm start       # node server.js — plain static SPA server (Cloud Run deploy route, not used day-to-day)
-npm test        # vitest run — currently 214/214 tests in 16 files, all green
+npm test        # vitest run — currently 228/228 tests in 17 files, all green
 npm run lint    # oxlint
 npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets.config.js)
 ```
@@ -108,7 +109,8 @@ src/
     useImportBackup.ts  runs the additive import plan, reports + exposes failures
     useLifetimeStats.ts all-time stats via fetchAllEntries (paged)
     useMediaQuery.ts    SSR-safe matchMedia hook (desktop modal vs phone inline)
-  lib/                  pure logic + their *.test.ts (16 test files, 214 tests)
+    useNotificationPermission.ts Web Push capabilities + permission + local test notification trigger
+  lib/                  pure logic + their *.test.ts (17 test files, 228 tests)
     score.ts            EMA score (SMOOTHING_CONSTANT), scoreSeries, streaks, completionRate;
                         every public fn takes a trailing optional `vacations = []`
     dayStatus.ts        the one source of truth for "is this day counted":
@@ -130,6 +132,8 @@ src/
                         whitelisted profile/settings fields)
     backupImport.ts     parseBackup/planImport — whitelisted, additive, idempotent
     vacation.ts         isVacationDay, validatePeriod, sortPeriods, vacationDatesInRange
+    notifications.ts    Web Push capability detection, permission requests, VAPID key conversion,
+                        service worker local test notification dispatch
     stats.ts            lifetime stats (paged all-entries reads)
     milestones.ts       milestone badges (7/21/66/100-day, 25/100/500/1000 check-ins)
     supabase.ts         lazy getSupabase() singleton from VITE_ env vars
@@ -157,6 +161,7 @@ src/
     WheelPicker.tsx     alarm-clock style wheel pickers (phone habit form)
     HabitPreview.tsx    live tile preview on HabitForm
     DayStartCard.tsx    Settings day-start listbox (anchored popover)
+    NotificationCard.tsx Settings Web Push capability inspector + permission & test triggers
     VacationCard.tsx    vacation periods list + start/end form (.date-field inputs)
     BackupCard.tsx + ImportPreviewDialog.tsx  data export/import + additive preview
     ManageTileMobile.tsx phone Settings habit tiles (lg:hidden)
@@ -171,7 +176,7 @@ src/
     Overview.tsx        stat tiles + score chart card
     HabitDetail.tsx     stats, score chart, completion bars, heatmap, skip cycling
     HabitForm.tsx       create/edit habit (desktop ≥1024px layout + shared state → HabitFormMobile)
-    Settings.tsx        Day/Habits/Vacation/Data/Account cards (phone reflow below 1024px)
+    Settings.tsx        Day/Habits/Vacation/Data/Account/Notification cards (phone reflow below 1024px)
     Profile.tsx         banner, details, journey, milestones
     Login.tsx           email/password + Google pill (public)
     Landing.tsx         public /welcome (brand-visible app name + feature cards)
@@ -179,6 +184,7 @@ src/
 public/
   logo.png (master), favicon.ico/.svg, apple-touch-icon.png (+180x180), icon-192/512.png,
   icon-maskable-512.png, maskable-icon-512x512.png, pwa-64/192/512x512.png, icons.svg,
+  push-sw.js (Web Push event listener script imported by service worker),
   google84cf7158b3219c46.html (Search Console), assets/ (generated chunks)
 ```
 
@@ -262,12 +268,13 @@ new ALTER/CREATE SQL → ask the user first; do not edit silently.
   frequency, ColorPicker + live tile preview) and a phone layout below 1024px (52px name
   input with 52px emoji trigger, emoji picker, Type row, color circle popover, numeric wheel
   picker + unit, repeat alarm-clock wheel pickers, 12px dock gap on iPhone Safari).
-- **Settings** — Day card (`DayStartCard` glass listbox), Habits card (two-column tile grid
-  on phones with emoji ring + one-tap archive; archived section), Vacation card (period list,
-  start/end with native date inputs, deletes behind ConfirmDialog), Data card (JSON export
-  incl. profile/settings options; additive+idempotent import with preview dialog and explicit
-  "Overwrite" opt-in; phone 166px stacked fallback), Account card (email read-only,
-  View profile link).
+- **Settings** — Day card (`DayStartCard` glass listbox), Notifications card (`NotificationCard`
+  Web Push capability inspector, permission manager, iOS Safari standalone guidance, and
+  local test notification trigger), Habits card (two-column tile grid on phones with emoji ring
+  + one-tap archive; archived section), Vacation card (period list, start/end with native date
+  inputs, deletes behind ConfirmDialog), Data card (JSON export incl. profile/settings options;
+  additive+idempotent import with preview dialog and explicit "Overwrite" opt-in; phone 166px
+  stacked fallback), Account card (email read-only, View profile link).
 - **Profile** — grid banner + 96/120px avatar (camera popover: change/remove via
   ConfirmDialog; 512px WebP compression), name + VerifiedBadge when email confirmed,
   bio (≤140) with inline editor, personal details card (display + phone inline edit with
@@ -278,8 +285,9 @@ new ALTER/CREATE SQL → ask the user first; do not edit silently.
   Google brand pill; `/welcome` landing (logo, "Habit Tracker" h1, feature cards, sign-in +
   privacy links — visible app name for Google verification); `/privacy` policy card.
 - **PWA** — manifest (name Habit Tracker, short_name Habits, theme #070A12), generated
-  service worker (precache 39 entries), auto-update; app icons and favicons via
-  `npm run icons`.
+  service worker (precache 44 entries), auto-update, extended with `push-sw.js` for
+  background push notifications, notification click deep linking, and focus reuse;
+  app icons and favicons via `npm run icons`.
 
 ## 10. Known gaps
 
@@ -295,7 +303,10 @@ new ALTER/CREATE SQL → ask the user first; do not edit silently.
    count up yet).
 5. **Haptics no-op on iOS** — `navigator.vibrate` is unavailable on iOS Safari; ticks only
    fire on Android.
-6. (Log hygiene: progress-log numbering skips 46 — nothing was lost, the number was simply
+6. **iOS Safari Push requirement** — on iOS 16.4+, Web Push API is disabled in regular Safari tabs
+   and requires installing the app to the Home Screen (`display-mode: standalone`). The Settings
+   Notification card provides clear instructions when iOS non-standalone is detected.
+7. (Log hygiene: progress-log numbering skips 46 — nothing was lost, the number was simply
    never used.)
 
 ## 11. Roadmap
@@ -303,5 +314,11 @@ new ALTER/CREATE SQL → ask the user first; do not edit silently.
 1. Finish Google branding verification (resubmit once after the 24 h window; test the
    consent screen in an incognito session).
 2. Resync `supabase/schema.sql` with the live DB (show SQL first, get user approval).
-3. Optional polish: count-up numerals on stat tiles; periodic backup reminders.
-4. Optional (paid): Supabase Pro custom auth domain to brand the OAuth account chooser.
+3. **Web Push Daily Habit Reminders:**
+   - **Pass 1 (Complete):** Web Push Foundation — capability detection, permission flow,
+     `push-sw.js` extension, settings diagnostic UI, and VAPID/Cloudflare Workers investigation.
+   - **Pass 2 (Next):** Database schema design & Supabase integration (`push_subscriptions` table
+     with RLS, reminder preferences in `user_settings`) + VAPID key generation.
+   - **Pass 3:** Cloudflare Worker cron dispatcher (zero external cost, native Web Crypto ES256/RFC 8291).
+4. Optional polish: count-up numerals on stat tiles; periodic backup reminders.
+5. Optional (paid): Supabase Pro custom auth domain to brand the OAuth account chooser.

@@ -5,6 +5,7 @@ import { useHabitsContext } from '../contexts/HabitsContext'
 import { DayStartCard } from '../components/DayStartCard'
 import { BackupCard } from '../components/BackupCard'
 import { VacationCard } from '../components/VacationCard'
+import { NotificationCard } from '../components/NotificationCard'
 import { ManageTileMobile } from '../components/ManageTileMobile'
 import type { Habit } from '../lib/score'
 import { normalizeEmoji } from '../lib/emoji'
@@ -140,6 +141,9 @@ export function Settings() {
 
           {/* Data card (DESIGN.md §8): export + import, owned by BackupCard. */}
           <BackupCard />
+
+          {/* Daily reminders Web Push capability & testing card (Pass 1). */}
+          <NotificationCard />
         </div>
 
         {/* Habits card — desktop rows (hidden below lg; the phone tile card

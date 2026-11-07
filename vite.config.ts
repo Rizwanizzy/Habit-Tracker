@@ -24,7 +24,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'icons.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'],
+      includeAssets: ['favicon.ico', 'icons.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'push-sw.js'],
       manifest: {
         name: 'Habit Tracker',
         short_name: 'Habits',
@@ -57,6 +57,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        importScripts: ['push-sw.js'],
       },
     }),
   ],

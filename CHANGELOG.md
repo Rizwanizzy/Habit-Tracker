@@ -432,7 +432,6 @@
     - `src/components/ProfileDetailsEdit.tsx`: Refactored to export `ProfileEditFields` shared between phone inline edit mode (`inline`) and desktop modal mode (`modal`).
     - `src/components/ProfileDetails.tsx`: Uses `useMediaQuery('(min-width: 1024px)')` to select between desktop modal editing and phone inline editing.
   - Tests 212/212 green, build clean.
-
 - 105. **Habit tile header simplification — single "more" menu button for Edit and Skip (user request):**
   - **Goal:** Replace the standalone pencil icon button on Today habit tiles with a single top-right "more" menu button (three dots) across all viewports and density levels (1-6 per row).
   - **Implementation:**
@@ -442,3 +441,22 @@
     - `src/index.css`: Cleaned up `.tile-edit` CSS selectors and preserved `.tile-more` container-query scaling and hit-pad rules.
   - Tests 212/212 green, build clean.
 
+- 106. **Daily Habit Reminders — Pass 1: Web Push Foundation (user request):**
+  - **Objective:** Establish the client-side capability detection, permission handling, service worker push event pipeline, and settings diagnostic UI for the Daily Habit Reminder system using Web Push, targeting ₹0 cost without third-party push dependencies.
+  - **PWA Service Worker Integration (`public/push-sw.js` & `vite.config.ts`):**
+    - Configured Workbox `generateSW` in `vite.config.ts` with `workbox.importScripts: ['push-sw.js']` and added `'push-sw.js'` to `includeAssets`. This retains 100% of existing PWA precaching (44 entries), navigation fallbacks, and autoUpdate while cleanly layering push event handling without maintaining duplicate service workers or switching to `injectManifest`.
+    - Created `public/push-sw.js` with resilient handlers for `'push'` (JSON and text payload parsing, fallback title/body, tag-based notification collapsing, badge and logo icon integration), `'notificationclick'` (window focus/navigation matching app origin, URL deep-linking to target pages, opening window if no client is open), and `'notificationclose'` logging.
+  - **Capability Detection & Utilities (`src/lib/notifications.ts`):**
+    - Pure TypeScript utility `getPushCapabilities()` detecting `Notification`, `serviceWorker`, `PushManager`, iOS platform (`/iPad|iPhone|iPod/`), and standalone display mode (`window.navigator.standalone` or `display-mode: standalone`).
+    - Explicitly surfaces iOS Safari limitations: on iOS 16.4+, Web Push is disabled in browser tabs and requires installing to Home Screen as a standalone PWA (`requiresPWAInstall`).
+    - Helper `requestNotificationPermission()` requiring explicit user gestures, handling Safari's legacy callback-based `requestPermission`, and suppressing unprompted requests.
+    - Helper `urlBase64ToUint8Array()` for VAPID public key conversion conforming to RFC 8292.
+    - Helper `sendLocalTestNotification()` triggering a service worker notification using `registration.showNotification` to verify visual rendering across devices.
+    - 14 Vitest tests in `src/lib/notifications.test.ts` with 100% branch and utility coverage.
+  - **Settings Diagnostic Card (`src/components/NotificationCard.tsx` & `src/hooks/useNotificationPermission.ts`):**
+    - Created `useNotificationPermission` hook exposing live capability state, reactive permission changes on `visibilitychange`, permission requesting, and test notification dispatch.
+    - Created `NotificationCard.tsx` within Aurora Glass design system (`glass-card`, `border-border/60`, status badges for supported/granted/denied/standalone states, clear step-by-step Home Screen guidance on iOS Safari, "Enable notifications" primary action, and "Send test notification" diagnostic button).
+    - Added `IconBell` to `src/components/icons.tsx` and mounted `NotificationCard` in `src/pages/Settings.tsx`.
+  - **Cloudflare Workers & VAPID Investigation:**
+    - Confirmed Cloudflare Workers runtime (`workerd`) supports native Web Crypto (`crypto.subtle`). VAPID authentication (ES256 ECDSA P-256 JWT) and RFC 8291 Web Push payload encryption (`aes128gcm` with ECDH) can be implemented with zero npm dependencies and zero external subscription costs.
+  - Tests 228/228 green across 17 test files, build clean, 0 lint errors.
