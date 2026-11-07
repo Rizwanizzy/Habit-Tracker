@@ -596,4 +596,11 @@
     --package-lock-only`, which records ALL platform bindings (linux-x64-gnu for Cloudflare
     AND win32-x64-msvc for local dev); lockfile stays tracked. Validated locally: npm ci
     installs both correctly, tests 247/247 + build green.
-    Docs re-synced (DESIGN.md, AGENTS.md, PROJECT_CONTEXT.md); tests/build re-verified 247/247 + build green.
+    Follow-up 6 (user request): Reminders card time field — iOS native wheel now uses
+    confirm-first saving instead of saving on every scroll stop. Scrolling hour → minute
+    → AM/PM updates a temporary value only; a ✓ Done pill appears while the iOS picker
+    is open and saves exactly once (tapping outside commits via onBlur the same way).
+    Android and desktop keep instant save onChange — their pickers commit cleanly on
+    click and need no extra step. `CSS.supports('-webkit-touch-callout', 'none')`
+    isolates iOS; no new files or libraries; ~40-line delta in ReminderSettings.tsx.
+    Docs re-synced; tests/build re-verified 247/247 + build green.

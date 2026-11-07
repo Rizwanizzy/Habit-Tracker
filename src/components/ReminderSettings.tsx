@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { UseNotificationSettingsResult } from '../hooks/useNotificationSettings'
 import { reminderTimeOr } from '../lib/reminders'
 import { IconBell, IconClock } from './icons'
@@ -69,6 +69,43 @@ export function ReminderSettings({
   const enabled = settings?.reminder_enabled ?? false
   const time = reminderTimeOr(settings)
 
+  // Confirm-first time saving on iOS only: the native iOS wheel commits on
+  // every scroll stop, so mid-adjustment half-set times ("11:00 PM") were
+  // being written to the DB. iOS writes into a temporary value instead; a ✓
+  // Done pill appears while the picker is open and saves exactly once when
+  // tapped (tapping outside commits via onBlur the same way). Android and
+  // desktop keep instant save onChange — their pickers commit cleanly on
+  // click and don't need the extra step.
+  const isIOS = CSS.supports('-webkit-touch-callout', 'none')
+  const [tempTime, setTempTime] = useState(time)
+  const [pendingChange, setPendingChange] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+
+  // Re-sync the temp value whenever the committed time changes (e.g. after a
+  // save re-renders from the parent hook).
+  useEffect(() => {
+    setTempTime(time)
+  }, [time])
+
+  async function confirmTime() {
+    if (tempTime !== time) {
+      void run('save', () => saveSettings(enabled, tempTime))
+    }
+    setPendingChange(false)
+    setTempTime(time)
+  }
+
+  function handleTimeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const next = e.target.value
+    setTempTime(next)
+    if (isIOS) {
+      setPendingChange(true)
+    } else {
+      // Android / desktop: instant save, unchanged behaviour.
+      void run('save', () => saveSettings(enabled, next))
+    }
+  }
+
   async function run(op: 'save' | 'subscribe' | 'unsubscribe', action: () => Promise<boolean>) {
     setBusy(op)
     await action()
@@ -115,7 +152,15 @@ export function ReminderSettings({
           native <input type="time"> stretched over it at opacity-0.
           showPicker() (openTimePicker) makes any click in the field open
           the picker on desktop/Android; iOS Safari ignores it and opens
-          on the direct tap of the invisible input instead. */}
+          on the direct tap of the invisible input instead.
+
+          Confirm-first saving on iOS: the native iOS wheel commits on every
+          scroll stop, so scrolling hour → minute → AM/PM saved half-set
+          values ("11:00 PM") and forced re-picking. iOS now writes into a
+          temporary value only; a ✓ Done pill appears while the picker is
+          open and saves exactly once when tapped (tapping outside commits
+          via onBlur the same way). Android and desktop keep instant save —
+          their pickers commit cleanly on click and don't need the step. */}
       <div
         className={`flex min-h-14 items-center justify-between gap-3 pt-1 transition-opacity duration-150 lg:min-h-11 ${
           enabled ? '' : 'pointer-events-none opacity-50'
@@ -132,13 +177,29 @@ export function ReminderSettings({
           </div>
           <input
             type="time"
-            value={time}
+            value={isIOS ? tempTime : time}
             disabled={busy !== null || !enabled}
             aria-label="Reminder time"
-            onChange={(e) => void run('save', () => saveSettings(enabled, e.target.value))}
+            onChange={handleTimeChange}
             onClick={openTimePicker}
+            onFocus={() => setPickerOpen(true)}
+            onBlur={() => {
+              setPickerOpen(false)
+              if (isIOS) void confirmTime()
+            }}
             className="absolute inset-0 z-10 h-full w-full cursor-pointer rounded-input text-base opacity-0"
           />
+          {isIOS && pickerOpen && pendingChange && (
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => void confirmTime()}
+              aria-label="Save reminder time"
+              className="absolute right-1 top-1/2 -translate-y-1/2 z-20 h-7 w-7 shrink-0 rounded-full bg-accent text-white text-base font-semibold shadow-sm transition-all active:scale-95 disabled:opacity-60"
+            >
+              ✓
+            </button>
+          )}
         </div>
       </div>
 

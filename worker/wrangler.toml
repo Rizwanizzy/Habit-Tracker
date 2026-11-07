@@ -16,5 +16,8 @@ enabled = true
 #   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY -c worker/wrangler.toml
 #   npx wrangler secret put TEST_TOKEN -c worker/wrangler.toml
 # For LOCAL testing only: worker/.dev.vars (gitignored, placeholders provided).
-# [vars]
-# VAPID_SUBJECT = "mailto:your-email@example.com"
+# Public, non-secret values — safe to commit; keeps dashboard vars in sync.
+[vars]
+SUPABASE_URL = "https://azjawvtkdmwwtqcqkwmg.supabase.co"
+VAPID_PUBLIC_KEY = "BDBZfXYkkHrFN4gb8TrZUupHzpSXgX5497a--GQBvthLkujcia0tIr_f18RQd9iWpiGULQl8ruZ9fFLo_vyeKhQ"
+VAPID_SUBJECT = "mailto:you@example.com" # ← replace with YOUR email, e.g. mailto:yourname@gmail.com

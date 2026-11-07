@@ -27,3 +27,9 @@ dev-dist
 .env.local
 worker/.dev.vars
 worker/.wrangler/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
