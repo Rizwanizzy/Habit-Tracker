@@ -27,7 +27,13 @@ interface TipProps {
   }>
 }
 
-function ScoreTip({ active, label, payload, names }: TipProps & { names: Map<string, string> }) {
+function ScoreTip({
+  active,
+  label,
+  payload,
+  names,
+  onIsolate,
+}: TipProps & { names: Map<string, string>; onIsolate?: (habitId: string) => void }) {
   const outerRef = useRef<HTMLDivElement>(null)
   const appliedRef = useRef<number | null>(null)
 
@@ -112,11 +118,26 @@ function ScoreTip({ active, label, payload, names }: TipProps & { names: Map<str
             const id = String(entry.dataKey ?? '')
             const color = String(entry.stroke ?? '#3B82F6')
             return (
-              <p key={i} className="text-body flex items-center gap-2">
+              <div
+                key={i}
+                role={onIsolate ? 'button' : undefined}
+                tabIndex={onIsolate ? 0 : undefined}
+                onClick={() => onIsolate?.(id)}
+                onKeyDown={(e) => {
+                  if (onIsolate && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault()
+                    onIsolate(id)
+                  }
+                }}
+                className={`text-body flex items-center gap-2 ${
+                  onIsolate ? 'cursor-pointer rounded-xs px-1 -mx-1 transition-colors hover:bg-white/10' : ''
+                }`}
+                title={onIsolate ? 'Click to isolate' : undefined}
+              >
                 <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
                 <span className="min-w-0 flex-1 truncate text-fg-secondary">{names.get(id) ?? id}</span>
                 <span className="pl-2 font-semibold tabular-nums text-fg">{String(entry.value)}%</span>
-              </p>
+              </div>
             )
           })}
         </div>
@@ -129,17 +150,26 @@ interface Props {
   data: ChartRow[]
   visible: Habit[]
   names: Map<string, string>
+  onIsolate?: (habitId: string) => void
 }
 
 /** Multi-line score chart (DESIGN.md §7): monotone 2.5px strokes in each
  *  habit's color over a wide translucent glow of the same color, horizontal
  *  dashed grid only, no axis lines, 12px axis labels, 8px active dot with a
  *  3px white ring, glass tooltip. */
-export function ScoreLineChart({ data, visible, names }: Props) {
+export function ScoreLineChart({ data, visible, names, onIsolate }: Props) {
   if (data.length === 0) {
     return (
       <div className="grid h-56 max-sm:absolute max-sm:inset-0 max-sm:h-auto place-items-center text-center">
         <p className="text-body text-fg-secondary">Check in a habit to see your score.</p>
+      </div>
+    )
+  }
+
+  if (visible.length === 0) {
+    return (
+      <div className="grid h-56 max-sm:absolute max-sm:inset-0 max-sm:h-auto place-items-center text-center px-4">
+        <p className="text-body text-fg-secondary">No habits selected. Choose a habit above to see its trend.</p>
       </div>
     )
   }
@@ -166,7 +196,7 @@ export function ScoreLineChart({ data, visible, names }: Props) {
             axisLine={false}
           />
           <Tooltip
-            content={(props: TipProps) => <ScoreTip {...props} names={names} />}
+            content={(props: TipProps) => <ScoreTip {...props} names={names} onIsolate={onIsolate} />}
             cursor={{ stroke: 'var(--chart-axis)', strokeDasharray: '3 3' }}
             isAnimationActive={false}
             wrapperStyle={{ zIndex: 50, maxWidth: 'min(260px, calc(100vw - 1.5rem))' }}
@@ -176,7 +206,21 @@ export function ScoreLineChart({ data, visible, names }: Props) {
           {visible.map((habit) => {
             const c = habit.color ?? '#3B82F6'
             return (
-              <Line key={`glow-${habit.id}`} type="monotone" dataKey={`g:${habit.id}`} stroke={c} strokeWidth={9} strokeOpacity={0.18} dot={false} activeDot={false} connectNulls isAnimationActive={false} legendType="none" />
+              <Line
+                key={`glow-${habit.id}`}
+                type="monotone"
+                dataKey={`g:${habit.id}`}
+                stroke={c}
+                strokeWidth={9}
+                strokeOpacity={0.18}
+                dot={false}
+                activeDot={false}
+                connectNulls
+                isAnimationActive={false}
+                legendType="none"
+                onClick={() => onIsolate?.(habit.id)}
+                style={{ cursor: onIsolate ? 'pointer' : undefined }}
+              />
             )
           })}
           {visible.map((habit) => {
@@ -195,6 +239,8 @@ export function ScoreLineChart({ data, visible, names }: Props) {
                 isAnimationActive={!REDUCED_MOTION}
                 animationDuration={900}
                 legendType="none"
+                onClick={() => onIsolate?.(habit.id)}
+                style={{ cursor: onIsolate ? 'pointer' : undefined }}
               />
             )
           })}

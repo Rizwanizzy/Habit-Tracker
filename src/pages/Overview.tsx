@@ -12,6 +12,7 @@ import { normalizeEmoji } from '../lib/emoji'
 import { StatTile, DeltaChip, HabitDotName } from '../components/StatTile'
 import { RangeSwitch } from '../components/RangeSwitch'
 import { ScoreLineChart, type ChartRow } from '../components/ScoreLineChart'
+import { completionSeries, getTop5HabitIds, resolveFilterMode } from '../lib/overview'
 
 type RangeKey = '30' | '90' | '365'
 
@@ -33,29 +34,33 @@ export function Overview() {
   const today = useLogicalToday()
   const { periods } = useVacationsContext()
   const [range, setRange] = useState<RangeKey>('90')
+  const [metric, setMetric] = useState<'score' | 'completion'>('score')
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set())
+  const [isolatedId, setIsolatedId] = useState<string | null>(null)
+  const [savedBeforeIsolate, setSavedBeforeIsolate] = useState<ReadonlySet<string>>(new Set())
 
   const names = useMemo(() => new Map(habits.map((h) => [h.id, h.name ?? h.id])), [habits])
 
-  /** Per-habit score series for the selected range, plus the equal-length
-   *  window just before it (for the average-score delta chip). Vacation
+  /** Per-habit score or completion series for the selected range, plus the
+   *  equal-length window just before it (for the average delta chip). Vacation
    *  dates cover both windows (max span = 2× the range, entries window 400). */
   const per = useMemo(() => {
     const days = Number(range)
     const start = addDays(today, -(days - 1))
     const vacations = vacationDatesInRange(periods, addDays(start, -days), today)
-    return habits.map((habit) => ({
-      habit,
-      series: scoreSeries(habit, entriesByHabit[habit.id] ?? [], start, today, vacations),
-      prev: scoreSeries(
-        habit,
-        entriesByHabit[habit.id] ?? [],
-        addDays(start, -days),
-        addDays(start, -1),
-        vacations,
-      ),
-    }))
-  }, [habits, entriesByHabit, range, today, periods])
+    return habits.map((habit) => {
+      const entries = entriesByHabit[habit.id] ?? []
+      const series =
+        metric === 'score'
+          ? scoreSeries(habit, entries, start, today, vacations)
+          : completionSeries(habit, entries, start, today, vacations)
+      const prev =
+        metric === 'score'
+          ? scoreSeries(habit, entries, addDays(start, -days), addDays(start, -1), vacations)
+          : completionSeries(habit, entries, addDays(start, -days), addDays(start, -1), vacations)
+      return { habit, series, prev }
+    })
+  }, [habits, entriesByHabit, range, today, periods, metric])
 
   const stats = useMemo(() => {
     const finals = per.map((p) => ({ habit: p.habit, score: p.series.at(-1)?.score ?? 0 }))
@@ -69,6 +74,67 @@ export function Overview() {
       : null
     return { avg, best, worst, prevAvg, per }
   }, [per])
+
+  const metricValues = useMemo(() => {
+    return new Map(per.map((p) => [p.habit.id, p.series.at(-1)?.score ?? 0]))
+  }, [per])
+
+  const top5Ids = useMemo(() => {
+    return getTop5HabitIds(habits, metricValues)
+  }, [habits, metricValues])
+
+  const visibleIds = useMemo(() => {
+    return new Set(habits.filter((h) => !hidden.has(h.id)).map((h) => h.id))
+  }, [habits, hidden])
+
+  const activeFilter = useMemo(() => {
+    return resolveFilterMode(habits, visibleIds, top5Ids)
+  }, [habits, visibleIds, top5Ids])
+
+  const handleFilterSelect = (mode: 'top5' | 'all' | 'none') => {
+    setIsolatedId(null)
+    if (mode === 'all') {
+      setHidden(new Set())
+    } else if (mode === 'none') {
+      setHidden(new Set(habits.map((h) => h.id)))
+    } else if (mode === 'top5') {
+      setHidden(new Set(habits.filter((h) => !top5Ids.has(h.id)).map((h) => h.id)))
+    }
+  }
+
+  const handleIsolate = (habitId: string) => {
+    if (isolatedId === habitId) {
+      setHidden(savedBeforeIsolate)
+      setIsolatedId(null)
+    } else {
+      if (isolatedId == null) {
+        setSavedBeforeIsolate(hidden)
+      }
+      setHidden(new Set(habits.filter((h) => h.id !== habitId).map((h) => h.id)))
+      setIsolatedId(habitId)
+    }
+  }
+
+  const handleClearIsolation = () => {
+    setHidden(savedBeforeIsolate)
+    setIsolatedId(null)
+  }
+
+  const handleChipClick = (habitId: string) => {
+    if (isolatedId === habitId) {
+      handleClearIsolation()
+      return
+    }
+    if (isolatedId != null) {
+      setIsolatedId(null)
+    }
+    setHidden((prev) => {
+      const next = new Set(prev)
+      if (next.has(habitId)) next.delete(habitId)
+      else next.add(habitId)
+      return next
+    })
+  }
 
   /** One row per date; `g:` keys duplicate each value for the wide glow line
    *  the tooltip filters out. */
@@ -249,30 +315,115 @@ export function Overview() {
         className="glass-card fade-up mt-4 rounded-card p-5 max-sm:flex max-sm:flex-1 max-sm:flex-col lg:mt-5 lg:p-6 overview-score-card"
         style={{ animationDelay: '120ms' }}
       >
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <h2 className="text-section-title text-fg">Score</h2>
-          <p className="text-caption text-fg-muted">Exponential average per habit</p>
+        {/* Header and Toolbar controls */}
+        <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-section-title text-fg">
+              {metric === 'score' ? 'Score' : 'Completion %'}
+            </h2>
+            <p className="text-caption text-fg-muted">
+              {metric === 'score'
+                ? 'Exponential average per habit'
+                : 'Cumulative completion rate per habit'}
+            </p>
+          </div>
+
+          {/* Unified toolbar row on desktop / responsive stack on mobile */}
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+            {/* 1. Metric Toggle (Score vs Completion %) */}
+            <RangeSwitch
+              options={[
+                { key: 'score', label: 'Score' },
+                { key: 'completion', label: 'Completion %' },
+              ]}
+              value={metric}
+              onChange={(k) => setMetric(k as 'score' | 'completion')}
+              ariaLabel="Chart metric"
+              compact
+            />
+
+            {/* 2. Top 5 / All / None filter */}
+            <div
+              className="inline-grid h-9 rounded-pill border border-border bg-surface p-0.5 select-none text-caption"
+              style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}
+              role="group"
+              aria-label="Filter habits"
+            >
+              <button
+                type="button"
+                onClick={() => handleFilterSelect('top5')}
+                aria-pressed={activeFilter === 'top5' && !isolatedId}
+                className={`h-full px-3.5 rounded-pill font-medium text-[13px] transition-colors duration-150 flex items-center justify-center whitespace-nowrap ${
+                  activeFilter === 'top5' && !isolatedId
+                    ? 'bg-accent-gradient text-white shadow-xs'
+                    : 'text-fg-secondary hover:text-fg'
+                }`}
+              >
+                Top 5
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFilterSelect('all')}
+                aria-pressed={activeFilter === 'all' && !isolatedId}
+                className={`h-full px-3.5 rounded-pill font-medium text-[13px] transition-colors duration-150 flex items-center justify-center whitespace-nowrap ${
+                  activeFilter === 'all' && !isolatedId
+                    ? 'bg-accent-gradient text-white shadow-xs'
+                    : 'text-fg-secondary hover:text-fg'
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFilterSelect('none')}
+                aria-pressed={activeFilter === 'none' && !isolatedId}
+                className={`h-full px-3.5 rounded-pill font-medium text-[13px] transition-colors duration-150 flex items-center justify-center whitespace-nowrap ${
+                  activeFilter === 'none' && !isolatedId
+                    ? 'bg-accent-gradient text-white shadow-xs'
+                    : 'text-fg-secondary hover:text-fg'
+                }`}
+              >
+                None
+              </button>
+            </div>
+
+            {/* 3. Isolation indicator pill */}
+            {isolatedId != null && (
+              <div className="inline-flex h-9 items-center gap-1.5 rounded-pill border border-accent/30 bg-accent/15 px-3 text-[13px] font-medium text-accent animate-fadeIn">
+                <span>
+                  Isolated: <strong className="font-semibold text-fg">{names.get(isolatedId) ?? 'Habit'}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleClearIsolation}
+                  className="ml-0.5 size-4 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors text-fg"
+                  title="Restore previous selection"
+                  aria-label="Restore previous selection"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+
         <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Show or hide habit lines">
           {habits.map((habit) => {
             const color = habit.color ?? '#3B82F6'
             const emoji = normalizeEmoji(habit.emoji)
             const isOff = hidden.has(habit.id)
+            const isIsolated = isolatedId === habit.id
             return (
               <button
                 key={habit.id}
                 type="button"
-                onClick={() =>
-                  setHidden((prev) => {
-                    const next = new Set(prev)
-                    if (next.has(habit.id)) next.delete(habit.id)
-                    else next.add(habit.id)
-                    return next
-                  })
-                }
+                onClick={() => handleChipClick(habit.id)}
+                onDoubleClick={() => handleIsolate(habit.id)}
                 aria-pressed={!isOff}
-                title={habit.name}
-                className="relative grid size-10 shrink-0 place-items-center rounded-full text-lg leading-none transition-all duration-150 after:absolute after:inset-[-4px] after:content-[''] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                title={`${habit.name}${isIsolated ? ' (Isolated — click to restore)' : ' (Double-click to isolate)'}`}
+                className={`relative grid size-10 shrink-0 place-items-center rounded-full text-lg leading-none transition-all duration-150 after:absolute after:inset-[-4px] after:content-[''] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                  isIsolated ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg shadow-sm scale-105' : ''
+                }`}
                 style={
                   isOff
                     ? { opacity: 0.35, border: `1px solid var(--border)`, backgroundColor: 'transparent' }
@@ -292,7 +443,12 @@ export function Overview() {
           })}
         </div>
         <div className="mt-4 max-sm:relative max-sm:flex-1 max-sm:min-h-56 overview-chart-wrapper">
-          <ScoreLineChart data={data} visible={visible} names={names} />
+          <ScoreLineChart
+            data={data}
+            visible={visible}
+            names={names}
+            onIsolate={handleIsolate}
+          />
         </div>
       </section>
     </section>

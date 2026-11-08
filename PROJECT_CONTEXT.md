@@ -117,9 +117,11 @@ src/
     useNotificationPermission.ts Web Push capabilities + permission + local test notification trigger
     useNotificationSettings.ts reminder prefs + device subscriptions (useVacations pattern:
                                  optimistic w/ rollback, errors exposed, endpoint upsert)
-  lib/                  pure logic + their *.test.ts (17 test files, 231 tests)
+  lib/                  pure logic + their *.test.ts (21 test files, 275 tests)
     score.ts            EMA score (SMOOTHING_CONSTANT), scoreSeries, streaks, completionRate;
                         every public fn takes a trailing optional `vacations = []`
+    overview.ts         completionSeries (daily cumulative completion % adhering to neutral days),
+                        getTop5HabitIds (Overview ranking + tie breaker), resolveFilterMode
     dayStatus.ts        the one source of truth for "is this day counted":
                         before-start/future → done → skipped → vacation → missed
     dates.ts            local YYYY-MM-DD (Asia/Kolkata): toLogicalDateString, logicalToday,
@@ -159,7 +161,7 @@ src/
     CompletionCard.tsx + CompletionMonth.tsx + CompletionYear.tsx + CompletionHistoryChart.tsx
                         week/month/year completion views + habit-detail bar chart
     Heatmap.tsx         custom calendar heatmap (tap-cycles empty → done → skipped)
-    ScoreLineChart.tsx  Overview multi-line score chart (chips + halo glow lines)
+    ScoreLineChart.tsx  Overview multi-line chart (Score / Completion %, halo glow lines, interactive click-to-isolate)
     StatTile.tsx        stat tiles (+ optionally stretched links on Overview)
     RangeSwitch.tsx     30/90/365 (optional `compact`), Week/Month/Year uses it too
     TodayGreeting.tsx   time-of-day greeting (+ `compact` phone variant)
@@ -186,7 +188,7 @@ src/
     icons.tsx           all inline SVG icons
   pages/
     Today.tsx           bento: header + date pill, hero rings, completion card, tiles
-    Overview.tsx        stat tiles + score chart card
+    Overview.tsx        stat tiles + Score / Completion % chart with Top 5 / All / None filters & click-to-isolate
     HabitDetail.tsx     stats, score chart, completion bars, heatmap, skip cycling
     HabitForm.tsx       create/edit habit (desktop ≥1024px layout + shared state → HabitFormMobile)
     Settings.tsx        Day/Habits/Vacation/Data/Account/Notification cards (phone reflow below 1024px)

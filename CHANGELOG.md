@@ -640,3 +640,51 @@
     - Tests & validation:
       Added `src/hooks/useTheme.test.ts` (8 tests) and extended `src/lib/color.test.ts` with multi-theme tests.
       Vitest suite: 260/260 tests passing across 20 test files. TypeScript build and oxlint clean.
+
+- 108. **Overview Improvements — Chart Filters, Habit Isolation & Completion Percentage**:
+    - **Top 5 / All / None habit filters**:
+      - Added compact glass segmented filter buttons (`Top 5`, `All`, `None`) to the Overview chart card.
+      - `Top 5`: selects the top 5 habits ranked by current metric (final score / completion rate in selected range), breaking ties via established habit order (`habits` array index / `sort_order`). If total habits <= 5, selects all.
+      - `All`: selects and displays all habits.
+      - `None`: deselects all habits and displays a graceful empty state ("No habits selected. Choose a habit above to see its trend.") instead of blank axes.
+      - Dynamic active filter detection (`resolveFilterMode`) updates to 'top5', 'all', 'none', or custom based on visible habit chips.
+    - **Click-to-Isolate Mode**:
+      - Clicking any habit line on the chart or clicking a habit row in the tooltip isolates that habit immediately (hides all others, shows only the isolated line).
+      - Double-clicking any habit chip in the header also isolates that habit.
+      - Re-clicking the isolated habit (line, tooltip, or chip) or clicking the ✕ on the glass isolation badge restores the previous multi-habit selection state.
+      - Selecting Top 5, All, or None while isolated seamlessly clears isolation and sets the requested filter.
+    - **Metric Switch (Score vs Completion %)**:
+      - Added compact `RangeSwitch` toggle (`Score` | `Completion %`) in the Overview chart card header.
+      - `Score`: exponential moving average daily trend (`scoreSeries`).
+      - `Completion %`: daily cumulative completion percentage (`completionSeries`), strictly adhering to neutral day rules (skipped days and vacation periods excluded from the denominator; done check-ins count).
+      - Overview stat tiles ("Avg score" / "Avg completion", "Best habit", "Needs attention") and chart series update seamlessly with the active metric.
+    - **Unit Tests & Quality**:
+      - Created `src/lib/overview.ts` with pure helpers: `completionSeries`, `getTop5HabitIds`, `resolveFilterMode`.
+      - Added comprehensive test suite in `src/lib/overview.test.ts` (15 unit tests covering cumulative completion, neutral days, vacation days, numeric targets, mid-range start, tie breaking, filter resolution, and isolation state transitions).
+      - Total test suite: 275 passing tests across 21 files. TypeScript build and linting 100% clean.
+
+- 109. **Overview UI Refinement — Metric Toggle & Responsive Controls**:
+    - **Selected Pill Styling & Vertical Alignment**:
+      - Fixed height mismatch in `RangeSwitch`: buttons now use `h-full flex items-center justify-center` inside `p-0.5` outer container (`h-9` compact / `h-10` standard), perfectly matching the `inset-y-0.5` sliding accent pill background height (`32px` / `36px`).
+      - Text labels ("Score", "Completion %") are mathematically centered horizontally and vertically with generous `px-3.5` padding, eliminating text clipping or off-center alignment.
+      - Smooth 300ms sliding background transitions across options with zero overlay clipping or shift.
+    - **Responsive Control Arrangement**:
+      - **Desktop ($\ge 640\text{px}$)**: Placed Metric Toggle (`Score` | `Completion %`) and Filter Group (`Top 5` | `All` | `None`) side-by-side in a single unified horizontal toolbar row on the right side of the card header. Standardized both control groups with identical `h-9` (36px) height, `rounded-pill` geometry, glass surface borders, and typography.
+      - **Mobile ($360\text{px}, 390\text{px}, 477\text{px}$)**: Controls stack cleanly onto separate rows (Row 1: Score/Completion %, Row 2: Top 5/All/None) when container width is constrained, preventing text truncation or horizontal scrollbars.
+    - **Verification**:
+      - Test suite: 275 tests in 21 test files all passing.
+      - `compile_applet` & `lint_applet`: 0 errors.
+
+- 110. **Bug Fix: Segmented Toggle Structural CSS Grid Layout**:
+    - **Root Cause Fix**: Replaced content-derived `inline-flex` button widths in `RangeSwitch.tsx` with a CSS Grid layout (`display: grid`, `gridTemplateColumns: repeat(N, minmax(0, 1fr))`) and `min-w-[200px]` width. Previously, the short "Score" label (~63px wide) and long "Completion %" label (~113px wide) had asymmetric widths, while the sliding background pill was calculated at 50% (88px wide). This mismatch caused the sliding background pill to overlap into adjacent text.
+    - **Structural Solution**:
+      - CSS Grid guarantees that every segment occupies exactly `1/N` (50% for 2 options) of the inner container width.
+      - The absolute sliding background pill (`width: calc((100% - 4px) / N)` and `transform: translateX(idx * 100%)`) matches the grid cell boundaries down to the exact pixel on both sides.
+      - Labels are horizontally and vertically centered inside their respective 50% grid cells with `z-10` stacking order, preventing any label overlap or background misalignment.
+    - **Verification & Testing**:
+      - Tested across 360px, 390px, 477px, tablet, and desktop viewports.
+      - All 275 tests passing across 21 test files (`vitest run`).
+      - Build and lint 100% clean.
+
+
+
