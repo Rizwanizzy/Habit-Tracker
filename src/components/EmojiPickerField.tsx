@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, Component, type ReactNode 
 import { createPortal } from 'react-dom'
 import type { EmojiClickData } from 'emoji-picker-react'
 import { useThemeName } from '../hooks/useThemeName'
+import { isDarkTheme } from '../lib/color'
 import { normalizeEmoji } from '../lib/emoji'
 import { IconSmileyPlus } from './icons'
 
@@ -308,7 +309,7 @@ function PickerBody({
     <EmojiPicker
       onEmojiClick={onPick}
       emojiStyle="native"
-      colorScheme={theme}
+      colorScheme={isDarkTheme(theme) ? 'dark' : 'light'}
       width="100%"
       height="100%"
       autoFocusSearch={autoFocusSearch}

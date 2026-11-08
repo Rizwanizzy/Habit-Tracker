@@ -604,3 +604,39 @@
     click and need no extra step. `CSS.supports('-webkit-touch-callout', 'none')`
     isolates iOS; no new files or libraries; ~40-line delta in ReminderSettings.tsx.
     Docs re-synced; tests/build re-verified 247/247 + build green.
+
+- 107. **Multi-Theme Appearance System** (safe extension of existing theme architecture):
+    Extended the light/dark theme system into a complete appearance system supporting 7 options:
+    1. `system` (follows OS via `matchMedia`, resolves to Light or Dark)
+    2. `light` (Aurora Glass light theme with pastel liquid glass)
+    3. `dark` (Aurora Glass dark theme with deep midnight background)
+    4. `sepia` (warm parchment cream `#f5eee6`, espresso `#2d2015`, warm beige surfaces, restrained amber/orange accent `#c26522`)
+    5. `oled` (pure `#000000` black for OLED/AMOLED screens, near-black surfaces, subtle borders, no stray orbs)
+    6. `solarized` (classic Ethan Schoonover palette, auto-resolving via OS to `solarized-light` `#fdf6e3` or `solarized-dark` `#002b36`)
+    7. `high-contrast` (accessibility-focused: `#000000` bg, `#ffffff` text & 2px borders, `#00e5ff` cyan accent, WCAG 2.2 AAA ready)
+    - Core architecture (`src/hooks/useTheme.ts`, `src/hooks/useThemeName.ts`, `src/lib/color.ts`):
+      Defined `Theme` ('system' | 'light' | 'dark' | 'sepia' | 'oled' | 'solarized' | 'high-contrast'),
+      `ResolvedTheme` ('light' | 'dark' | 'sepia' | 'oled' | 'solarized-light' | 'solarized-dark' | 'high-contrast'),
+      and `isDarkTheme()`.
+      `useTheme()` returns `{ theme, resolvedTheme, setTheme, dark, toggle }` and updates DOM attributes:
+      `data-theme` (resolved theme), `data-selected-theme` (raw selection), and `.dark` class for all dark palettes.
+      `useThemeName()` is reactive and returns `ResolvedTheme`.
+      Pre-paint script in `index.html` resolves the stored theme before CSS/JS load to eliminate any theme flash.
+      `surfaceColor()` and `readableColor()` updated with exact surface tokens and directional lightness walks for all 7 palettes.
+    - Styling tokens & recipes (`src/index.css`):
+      Added complete token blocks for `[data-theme="sepia"]`, `[data-theme="oled"]`, `[data-theme="solarized-light"]`,
+      `[data-theme="solarized-dark"]`, `[data-theme="high-contrast"]`.
+      Scoped `:root:not(.dark)` liquid glass rules to `:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"])`
+      so existing Light and Dark themes remain 100% untouched while non-light themes suppress drifting orbs and shell gradients.
+      Added theme-specific `.dialog-panel`, surface, input, and focus styles.
+    - Components:
+      Created `src/components/ThemeCard.tsx` for Settings: 2-column grid of all 7 options, visual swatches,
+      accessible radiogroup with keyboard Arrow/Home/End navigation, and header status badge.
+      Mounted in `Settings.tsx` in the left column on desktop, and `order-5 col-span-2` on mobile (phone habits card bumped to `order-6`).
+      Updated `src/components/ThemeIconButton.tsx` on Today header: preserves exact circular button size, placement, and Sun/Moon
+      rotation animation, adding a clamped, portalled theme menu on click with instant 1-tap quick toggle and double-click quick toggle.
+      *Follow-up (user request):* Removed the Appearance card from Settings (`ThemeCard.tsx` deleted) to keep the Today
+      header theme icon as the primary and only UI for selecting themes; restored Settings phone layout order (Habits at `order-5`).
+    - Tests & validation:
+      Added `src/hooks/useTheme.test.ts` (8 tests) and extended `src/lib/color.test.ts` with multi-theme tests.
+      Vitest suite: 260/260 tests passing across 20 test files. TypeScript build and oxlint clean.

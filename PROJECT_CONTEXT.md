@@ -4,7 +4,7 @@
 > understanding of this project — concept, stack, architecture, data model, features, and
 > conventions. It describes **what is true right now**; the per-pass history lives in
 > `CHANGELOG.md`. **Update this file after every completed task** (AGENTS.md rule 11).
-> Last updated: 2026-11-06
+> Last updated: 2026-11-08
 
 ## 1. What this project is
 
@@ -25,7 +25,7 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 | `AGENTS.md` | Rules for any AI/dev working on the repo. Read before every task. |
 | `DESIGN.md` | The design spec ("Aurora Glass": tokens, typography, components, motion). Read before any UI change. |
 | `supabase/schema.sql` | Database schema `README` for human setup (re-synced with the live DB — see §Data model). |
-| `CHANGELOG.md` | Numbered log of every completed pass (1–106). Append, never rewrite. |
+| `CHANGELOG.md` | Numbered log of every completed pass (1–107). Append, never rewrite. |
 | `README.md` | GitHub-facing overview (features, hosting, scripts, layout). Keep in sync. |
 
 ## 3. Stack (verified against `package.json`)
@@ -54,7 +54,7 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 npm run dev     # dev server — vite --host 0.0.0.0 --port 3000 (NOT 5173)
 npm run build   # tsc -b && vite build
 npm start       # node server.js — plain static SPA server (Cloud Run deploy route, not used day-to-day)
-npm test        # vitest run — currently 231/231 tests in 17 files, all green
+npm test        # vitest run — currently 260/260 tests in 20 files, all green
 npm run lint    # oxlint
 npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets.config.js)
 ```
@@ -163,7 +163,7 @@ src/
     StatTile.tsx        stat tiles (+ optionally stretched links on Overview)
     RangeSwitch.tsx     30/90/365 (optional `compact`), Week/Month/Year uses it too
     TodayGreeting.tsx   time-of-day greeting (+ `compact` phone variant)
-    ThemeIconButton.tsx sun/moon toggle in the Today header
+    ThemeIconButton.tsx theme button with rotating Sun/Moon icon, double-click quick toggle, and popover selector for all 7 themes
     HabitFormMobile.tsx phone HabitForm layout below 1024px (shared state with the page)
     EmojiPickerField.tsx lazy emoji-picker-react wrapper
     ColorPicker.tsx + ColorPickerCircle.tsx  swatches + native input + hex field (popover partner)

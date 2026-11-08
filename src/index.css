@@ -62,6 +62,135 @@
   --inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+/* ---------------------------------------------------------------------------
+   Theme palettes: Sepia, OLED, Solarized Light, Solarized Dark, High Contrast
+--------------------------------------------------------------------------- */
+
+/* Sepia: warm parchment / muted cream reading palette */
+[data-theme="sepia"] {
+  --bg-base: #f5eee6;
+  --surface: rgba(254, 250, 244, 0.88);
+  --surface-2: #eae0d0;
+  --surface-solid: #fcf8f0;
+  --border: rgba(74, 52, 34, 0.14);
+  --text-primary: #2d2015;
+  --text-secondary: #675545;
+  --text-muted: #8e7a68;
+  --fg: var(--text-primary);
+  --accent: #c26522;
+  --accent-gradient: linear-gradient(135deg, #c26522, #d97706);
+  --success: #2d8a4e;
+  --danger: #c93b3b;
+  --chart-grid: rgba(74, 52, 34, 0.08);
+  --chart-axis: #8e7a68;
+  --bg-aurora:
+    radial-gradient(55% 45% at 8% 0%, rgba(225, 200, 168, 0.45), transparent 70%),
+    radial-gradient(50% 45% at 92% 10%, rgba(215, 175, 135, 0.35), transparent 70%),
+    radial-gradient(45% 45% at 50% 95%, rgba(205, 185, 155, 0.35), transparent 70%);
+  --shadow-glass: 0 20px 45px -20px rgba(60, 40, 20, 0.12);
+  --shadow-pill: 0 10px 25px -12px rgba(60, 40, 20, 0.16);
+  --inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* OLED: true-black #000000 appearance for OLED/AMOLED screens */
+[data-theme="oled"] {
+  --bg-base: #000000;
+  --surface: rgba(18, 18, 22, 0.92);
+  --surface-2: rgba(28, 28, 34, 0.92);
+  --surface-solid: #101014;
+  --border: rgba(255, 255, 255, 0.12);
+  --text-primary: #f5f5f7;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --fg: var(--text-primary);
+  --accent: #818cf8;
+  --accent-gradient: linear-gradient(135deg, #818cf8, #38bdf8);
+  --success: #34d399;
+  --danger: #fb7185;
+  --chart-grid: rgba(255, 255, 255, 0.08);
+  --chart-axis: #71717a;
+  --bg-aurora: none;
+  --shadow-glass: 0 18px 40px -20px rgba(0, 0, 0, 0.95);
+  --shadow-pill: 0 10px 25px -15px rgba(0, 0, 0, 0.9);
+  --inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Solarized Light: warm cream background with teal, blue and yellow accents */
+[data-theme="solarized-light"] {
+  --bg-base: #fdf6e3;
+  --surface: rgba(238, 232, 213, 0.88);
+  --surface-2: #e0d7c0;
+  --surface-solid: #eee8d5;
+  --border: rgba(88, 110, 117, 0.18);
+  --text-primary: #073642;
+  --text-secondary: #586e75;
+  --text-muted: #839496;
+  --fg: var(--text-primary);
+  --accent: #268bd2;
+  --accent-gradient: linear-gradient(135deg, #268bd2, #2aa198);
+  --success: #859900;
+  --danger: #dc322f;
+  --chart-grid: rgba(88, 110, 117, 0.1);
+  --chart-axis: #839496;
+  --bg-aurora:
+    radial-gradient(55% 45% at 8% 0%, rgba(181, 137, 0, 0.12), transparent 70%),
+    radial-gradient(45% 40% at 95% 6%, rgba(42, 161, 152, 0.14), transparent 70%),
+    radial-gradient(50% 45% at 88% 100%, rgba(38, 139, 210, 0.12), transparent 70%);
+  --shadow-glass: 0 20px 45px -20px rgba(7, 54, 66, 0.12);
+  --shadow-pill: 0 10px 25px -12px rgba(7, 54, 66, 0.16);
+  --inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* Solarized Dark: deep blue-green background with muted teal and cyan accents */
+[data-theme="solarized-dark"] {
+  --bg-base: #002b36;
+  --surface: rgba(7, 54, 66, 0.88);
+  --surface-2: #0e4c5b;
+  --surface-solid: #073642;
+  --border: rgba(147, 161, 161, 0.18);
+  --text-primary: #fdf6e3;
+  --text-secondary: #93a1a1;
+  --text-muted: #657b83;
+  --fg: var(--text-primary);
+  --accent: #2aa198;
+  --accent-gradient: linear-gradient(135deg, #2aa198, #268bd2);
+  --success: #859900;
+  --danger: #dc322f;
+  --chart-grid: rgba(147, 161, 161, 0.1);
+  --chart-axis: #657b83;
+  --bg-aurora:
+    radial-gradient(55% 45% at 10% 0%, rgba(42, 161, 152, 0.2), transparent 70%),
+    radial-gradient(45% 40% at 92% 8%, rgba(38, 139, 210, 0.18), transparent 70%),
+    radial-gradient(50% 50% at 50% 100%, rgba(181, 137, 0, 0.12), transparent 70%);
+  --shadow-glass: 0 24px 60px -24px rgba(0, 0, 0, 0.65);
+  --shadow-pill: 0 16px 40px -20px rgba(0, 0, 0, 0.55);
+  --inset-top: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* High Contrast: maximum foreground/background contrast (WCAG 2.2 AAA ready) */
+[data-theme="high-contrast"] {
+  --bg-base: #000000;
+  --surface: #0a0a0c;
+  --surface-2: #18181c;
+  --surface-solid: #000000;
+  --border: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #e5e5e5;
+  --text-muted: #cccccc;
+  --fg: #ffffff;
+  --accent: #00e5ff;
+  --accent-gradient: linear-gradient(135deg, #00e5ff, #ffd700);
+  --success: #22c55e;
+  --danger: #ff3366;
+  --chart-grid: rgba(255, 255, 255, 0.25);
+  --chart-axis: #ffffff;
+  --bg-aurora: none;
+  --shadow-glass: 0 0 0 1px #ffffff;
+  --shadow-pill: 0 0 0 1px #ffffff;
+  --inset-top: none;
+}
+
+
 /* Map tokens to Tailwind color utilities. `inline` so utilities point at the
    switchable vars instead of copying values. */
 @theme inline {
@@ -808,6 +937,36 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     0 0 60px -20px color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
+[data-theme="sepia"] .dialog-panel {
+  border-color: rgba(74, 52, 34, 0.18);
+  background: linear-gradient(145deg, rgba(254, 250, 244, 0.96), rgba(246, 238, 226, 0.92));
+  box-shadow: 0 24px 60px -20px rgba(60, 40, 20, 0.22);
+}
+
+[data-theme="oled"] .dialog-panel {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: #0f0f13;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.95);
+}
+
+[data-theme="solarized-light"] .dialog-panel {
+  border-color: rgba(88, 110, 117, 0.22);
+  background: linear-gradient(145deg, rgba(253, 246, 227, 0.96), rgba(238, 232, 213, 0.92));
+  box-shadow: 0 24px 60px -20px rgba(7, 54, 66, 0.18);
+}
+
+[data-theme="solarized-dark"] .dialog-panel {
+  border-color: rgba(147, 161, 161, 0.22);
+  background: linear-gradient(145deg, rgba(7, 54, 66, 0.94), rgba(0, 43, 54, 0.92));
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="high-contrast"] .dialog-panel {
+  border: 2px solid #ffffff;
+  background: #000000;
+  box-shadow: 0 0 0 2px #000000, 0 0 0 4px #ffffff;
+}
+
 .dialog-panel.dialog-in {
   opacity: 1;
   transform: scale(1);
@@ -869,8 +1028,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
    blurred, pointer-transparent, painted under all content (negative z-index;
    body's background propagates to the canvas, so orbs still sit above it).
    The drift is very slow and stops under prefers-reduced-motion. */
-:root:not(.dark) body::before,
-:root:not(.dark) body::after {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) body::before,
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) body::after {
   content: '';
   position: fixed;
   width: 420px;
@@ -882,14 +1041,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   z-index: -1;
 }
 
-:root:not(.dark) body::before {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) body::before {
   top: -110px;
   right: -90px;
   background: #a78bfa; /* lavender */
   animation: orb-drift 24s ease-in-out infinite alternate;
 }
 
-:root:not(.dark) body::after {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) body::after {
   bottom: -110px;
   left: -90px;
   background: #38bdf8; /* sky blue */
@@ -907,8 +1066,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Glass surfaces (shell, cards, tiles, dialogs, popovers): gradient fill,
    stronger blur/saturation, white rim, inset highlights, indigo shadow. */
-:root:not(.dark) .glass-card,
-:root:not(.dark) .glass-pill {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .glass-card,
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .glass-pill {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.34));
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
@@ -922,7 +1081,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* App shell: 1px gradient border (white → sky → lavender, mask technique)
    plus the stronger outer shadow. Placed after .glass-card so it wins. */
-:root:not(.dark) .app-shell {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .app-shell {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
     inset 0 -1px 0 rgba(99, 102, 241, 0.06),
@@ -931,7 +1090,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     0 2px 6px rgba(15, 23, 42, 0.04);
 }
 
-:root:not(.dark) .app-shell::before {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .app-shell::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -952,27 +1111,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Inner rows and small chrome: translucent white fill + soft white rim,
    never the flat gray fill. */
-:root:not(.dark) .bg-surface-raised {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .bg-surface-raised {
   background-color: rgba(255, 255, 255, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 /* Controls: translucent white fills, white borders, inset highlight. */
-:root:not(.dark) .bg-surface {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .bg-surface {
   background-color: rgba(255, 255, 255, 0.55);
   border-color: rgba(255, 255, 255, 0.75);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-:root:not(.dark) .hover\:bg-surface-raised:hover {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .hover\:bg-surface-raised:hover {
   background-color: rgba(255, 255, 255, 0.55);
 }
 
-:root:not(.dark) .hover\:bg-surface:hover {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .hover\:bg-surface:hover {
   background-color: rgba(255, 255, 255, 0.55);
 }
 
-:root:not(.dark) .input-field {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .input-field {
   background-color: rgba(255, 255, 255, 0.55);
   border-color: rgba(255, 255, 255, 0.75);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
@@ -980,49 +1139,180 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Keep the accent focus ring working where the white border rules above
    would otherwise out-cascade the utilities, and add the soft glow. */
-:root:not(.dark) .input-field:focus,
-:root:not(.dark) .bg-surface:focus,
-:root:not(.dark) .bg-surface-raised:focus {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .input-field:focus,
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .bg-surface:focus,
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .bg-surface-raised:focus {
   border-color: var(--accent);
 }
 
-:root:not(.dark) .input-field:focus {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .input-field:focus {
   box-shadow:
     0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent),
     0 0 18px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 /* Accent glow (active nav, primary buttons, toggle knob) — light value. */
-:root:not(.dark) .glow-accent {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .glow-accent {
   box-shadow: 0 10px 28px -8px rgba(79, 70, 229, 0.55);
 }
 
 /* Habit tiles: colored resting shadow. The tile fill/border themselves are
    mixed toward white by the component when the theme is light. */
-:root:not(.dark) .habit-tile {
+:root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .habit-tile {
   box-shadow: 0 16px 36px -18px var(--tile-glow, rgba(79, 70, 229, 0.35));
 }
 
 /* Fallback when backdrop-filter is unsupported (light). */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root:not(.dark) .glass-card,
-  :root:not(.dark) .glass-pill {
+  :root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .glass-card,
+  :root:not(.dark):not([data-theme="sepia"]):not([data-theme="solarized-light"]) .glass-pill {
     background: rgba(255, 255, 255, 0.92);
   }
 }
 
-/* Opaque popovers (day-start listbox, color picker, profile toasts): the
-   translucent glass fill lets the content underneath bleed through, so these
-   floating lists get a solid surface instead. Theme-scoped selectors keep
-   this at least as specific as the `:root:not(.dark) .glass-card` gradient
-   override above, so it wins in both themes regardless of source order. */
-:root:not(.dark) .glass-card.popover-solid,
-.dark .glass-card.popover-solid,
-:root:not(.dark) .glass-pill.popover-solid,
-.dark .glass-pill.popover-solid {
-  background-color: var(--surface-solid);
+/* ---------------------------------------------------------------------------
+   Theme specific overrides: Sepia, OLED, Solarized, High Contrast
+--------------------------------------------------------------------------- */
+
+/* Suppress light theme orbs and shell gradient border for non-default themes */
+[data-theme="sepia"] body::before,
+[data-theme="sepia"] body::after,
+[data-theme="solarized-light"] body::before,
+[data-theme="solarized-light"] body::after,
+[data-theme="oled"] body::before,
+[data-theme="oled"] body::after,
+[data-theme="high-contrast"] body::before,
+[data-theme="high-contrast"] body::after {
+  display: none !important;
+}
+
+[data-theme="sepia"] .app-shell::before,
+[data-theme="solarized-light"] .app-shell::before,
+[data-theme="oled"] .app-shell::before,
+[data-theme="high-contrast"] .app-shell::before {
+  display: none !important;
+}
+
+/* Sepia surfaces & inputs */
+[data-theme="sepia"] .bg-surface-raised {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+[data-theme="sepia"] .bg-surface {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+}
+
+[data-theme="sepia"] .input-field {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+[data-theme="sepia"] .habit-tile {
+  box-shadow: 0 12px 28px -14px rgba(60, 40, 20, 0.22);
+}
+
+/* OLED surfaces: true black efficiency, minimal blur cost */
+[data-theme="oled"] .glass-card,
+[data-theme="oled"] .glass-pill {
+  background-color: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 16px 36px -18px rgba(0, 0, 0, 0.95);
+}
+
+[data-theme="oled"] .bg-surface-raised {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+[data-theme="oled"] .bg-surface {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+}
+
+[data-theme="oled"] .input-field {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+/* Solarized surfaces */
+[data-theme="solarized-light"] .bg-surface-raised {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+[data-theme="solarized-light"] .bg-surface {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+}
+
+[data-theme="solarized-light"] .input-field {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+}
+
+[data-theme="solarized-dark"] .bg-surface-raised {
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+[data-theme="solarized-dark"] .bg-surface {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+}
+
+[data-theme="solarized-dark"] .input-field {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+}
+
+/* High Contrast: solid opaque surfaces, 2px borders, visible focus */
+[data-theme="high-contrast"] .glass-card,
+[data-theme="high-contrast"] .glass-pill {
+  background-color: #000000;
+  border: 2px solid #ffffff;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
+  box-shadow: none;
+}
+
+[data-theme="high-contrast"] .app-shell {
+  border: 2px solid #ffffff;
+  box-shadow: none;
+}
+
+[data-theme="high-contrast"] .bg-surface-raised,
+[data-theme="high-contrast"] .bg-surface,
+[data-theme="high-contrast"] .input-field {
+  background-color: #0a0a0c;
+  border: 1px solid #ffffff;
+}
+
+[data-theme="high-contrast"] .input-field:focus {
+  border-color: #00e5ff !important;
+  outline: 2px solid #00e5ff;
+}
+
+[data-theme="high-contrast"] *:focus-visible {
+  outline: 3px solid #00e5ff !important;
+  outline-offset: 2px !important;
+}
+
+[data-theme="high-contrast"] button,
+[data-theme="high-contrast"] a {
+  text-decoration-thickness: 2px;
+}
+
+/* Opaque popovers (day-start listbox, color picker, profile toasts, theme selector):
+   solid surface across all themes so underlying content never bleeds through. */
+.glass-card.popover-solid,
+.glass-pill.popover-solid {
+  background: var(--surface-solid) !important;
+  background-color: var(--surface-solid) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 /* ---------------------------------------------------------------------------

@@ -2,28 +2,34 @@
 
 Futuristic, calm, high-contrast. Bento-grid layout, glass cards, soft glow. Dark theme is the default. Light theme follows the pastel look: white cards, big radii, soft tinted tiles. Each habit's own color is the only strong color on screen; everything else is neutral.
 
-## 1. Color tokens
-| Token | Dark | Light |
-|---|---|---|
-| bg-base | #070A12 | #E6EEF8 |
-| bg-aurora | radial-gradient(60% 50% at 12% 0%, rgba(99,102,241,.28), transparent), radial-gradient(50% 40% at 92% 8%, rgba(34,211,238,.20), transparent), radial-gradient(50% 50% at 50% 100%, rgba(236,72,153,.14), transparent) | radial-gradient(55% 45% at 8% 0%, rgba(125,211,252,.75), transparent 70%), radial-gradient(45% 40% at 95% 6%, rgba(196,181,253,.65), transparent 70%), radial-gradient(50% 45% at 88% 100%, rgba(253,186,160,.55), transparent 70%), radial-gradient(45% 45% at 10% 95%, rgba(167,243,208,.55), transparent 70%) |
-| surface (glass) | rgba(255,255,255,.05) | linear-gradient(145deg, rgba(255,255,255,.62), rgba(255,255,255,.34)) |
-| surface-2 | rgba(255,255,255,.08) | rgba(255,255,255,.40) rows/chrome (skeleton keeps flat #F1F4F6) |
-| border | rgba(255,255,255,.10) | hairlines rgba(15,23,42,.08) · glass rims rgba(255,255,255,.75) |
-| text-primary | #F4F6FB | #0F172A |
-| text-secondary | #A3ACC2 | #475569 |
-| text-muted | #6B7490 | #64748B |
-| accent | #7C83FF | #4F46E5 |
-| accent-gradient | linear-gradient(135deg,#7C83FF,#22D3EE) | linear-gradient(135deg,#4F46E5,#0EA5E9) |
-| success | #34D399 | #16A34A |
-| danger | #FB7185 | #E11D48 |
-| chart-grid | rgba(255,255,255,.06) | rgba(15,23,42,.06) |
-| chart-axis | #6B7490 | #64748B |
+## 1. Color tokens & Multi-Theme System
+The app supports 7 distinct appearance options:
+1. **System:** Follows OS `prefers-color-scheme`, dynamically resolving to Light or Dark.
+2. **Light:** Aurora Glass light theme with pastel radial glows and translucent liquid glass.
+3. **Dark (Default):** Aurora Glass dark theme with deep midnight background and glass refraction.
+4. **Sepia:** Warm parchment cream `#F5EEE6` reading palette with espresso `#2D2015` text, warm beige surfaces, and restrained amber/orange accent `#C26522`.
+5. **OLED / Midnight Black:** Pure `#000000` black for OLED/AMOLED efficiency, near-black `#121216` surfaces, clean borders, and subdued glowing orbs.
+6. **Solarized:** Classic Ethan Schoonover palette; user selects once, auto-resolving via OS to `solarized-light` (`#FDF6E3` base, `#073642` text, `#268BD2`/`#2AA198` accents) or `solarized-dark` (`#002B36` base, `#FDF6E3` text, `#2AA198` teal accent).
+7. **High Contrast:** Accessibility-focused theme (WCAG 2.2 AAA ready) with `#000000` base, `#FFFFFF` text and 2px borders, `#00E5FF` electric cyan accent, and bright focus rings.
+
+| Token | Dark (Default) | Light | Sepia | OLED | Solarized (L / D) | High Contrast |
+|---|---|---|---|---|---|---|
+| bg-base | #070A12 | #E6EEF8 | #F5EEE6 | #000000 | #FDF6E3 / #002B36 | #000000 |
+| surface | rgba(255,255,255,.05) | linear-gradient(145deg, rgba(255,255,255,.62), rgba(255,255,255,.34)) | rgba(254,250,244,.88) | rgba(18,18,22,.92) | rgba(238,232,213,.88) / rgba(7,54,66,.88) | #0A0A0C |
+| surface-2 | rgba(255,255,255,.08) | rgba(255,255,255,.40) | #EAE0D0 | rgba(28,28,34,.92) | #E0D7C0 / #0E4C5B | #18181C |
+| surface-solid | #131A27 | #F3F7FC | #FCF8F0 | #101014 | #EEE8D5 / #073642 | #000000 |
+| border | rgba(255,255,255,.10) | hairlines rgba(15,23,42,.08) / rims rgba(255,255,255,.75) | rgba(74,52,34,.14) | rgba(255,255,255,.12) | rgba(88,110,117,.18) / rgba(147,161,161,.18) | #FFFFFF (2px) |
+| text-primary | #F4F6FB | #0F172A | #2D2015 | #F5F5F7 | #073642 / #FDF6E3 | #FFFFFF |
+| text-secondary | #A3ACC2 | #475569 | #675545 | #A1A1AA | #586E75 / #93A1A1 | #E5E5E5 |
+| text-muted | #6B7490 | #64748B | #8E7A68 | #71717A | #839496 / #657B83 | #CCCCCC |
+| accent | #7C83FF | #4F46E5 | #C26522 | #818CF8 | #268BD2 / #2AA198 | #00E5FF |
+| success | #34D399 | #16A34A | #2D8A4E | #34D399 | #859900 | #22C55E |
+| danger | #FB7185 | #E11D48 | #C93B3B | #FB7185 | #DC322F | #FF3366 |
 
 Glass recipe (dark): background surface, 1px border, backdrop-filter: blur(20px) saturate(140%), inset 0 1px 0 rgba(255,255,255,.08), shadow 0 24px 60px -24px rgba(0,0,0,.65).
 
 ### Light theme glass ("liquid glass" pass — light only, dark theme untouched)
-- Background: #E6EEF8 under four pastel radial glows (sky, lavender, peach, mint), plus two fixed ~420px blurred orbs behind the shell (lavender top-right, sky blue bottom-left; blur 80px, opacity .5, below all content; 24s ease-in-out alternate drift, static under prefers-reduced-motion) so the glass has color to refract.
+- Background: #E6EEF8 under four pastel radial glows (sky, lavender, peach, mint), plus two fixed ~420px blurred orbs behind the shell (lavender top-right, sky blue bottom-left; blur 80px, opacity .5, below all content; 24s ease-in-out alternate drift, static under prefers-reduced-motion) so the glass has color to refract. Non-light themes (Sepia, OLED, Solarized, High Contrast) explicitly suppress these drifting orbs and shell gradient borders.
 - Glass surfaces (shell, cards, tiles, dialogs, popovers): fill linear-gradient(145deg, rgba(255,255,255,.62), rgba(255,255,255,.34)), backdrop-filter blur(24px) saturate(180%), border 1px rgba(255,255,255,.75), box-shadow inset 0 1px 0 rgba(255,255,255,.95), inset 0 -1px 0 rgba(99,102,241,.06), 0 24px 60px -24px rgba(79,70,229,.28), 0 2px 6px rgba(15,23,42,.04). Without backdrop-filter support: flat rgba(255,255,255,.92).
 - Shell: 1px gradient border (white → rgba(125,211,252,.6) → rgba(196,181,253,.6), mask/clip technique) plus outer shadow 0 40px 100px -30px rgba(79,70,229,.30).
 - Habit tiles on Today: fill linear-gradient(145deg, color-mix(habit 20%, white), color-mix(habit 7%, white)), border color-mix(habit 35%, white), colored shadow 0 16px 36px -18px habit 55%; readableColor still guards every habit-colored foreground.

@@ -3,11 +3,47 @@
  * No React or Supabase imports — keep it testable in isolation.
  */
 
-export type ThemeName = 'dark' | 'light'
+export type Theme = 'system' | 'light' | 'dark' | 'sepia' | 'oled' | 'solarized' | 'high-contrast'
+
+export type ResolvedTheme =
+  | 'light'
+  | 'dark'
+  | 'sepia'
+  | 'oled'
+  | 'solarized-light'
+  | 'solarized-dark'
+  | 'high-contrast'
+
+export type ThemeName = 'dark' | 'light' | ResolvedTheme | Theme
+
+/** Returns true for themes with dark backgrounds and light foregrounds. */
+export function isDarkTheme(theme: string): boolean {
+  return (
+    theme === 'dark' ||
+    theme === 'oled' ||
+    theme === 'solarized-dark' ||
+    theme === 'high-contrast'
+  )
+}
 
 /** Effective glass surface behind habit-colored elements (surface over bg-base). */
 export function surfaceColor(theme: ThemeName): string {
-  return theme === 'dark' ? '#13161e' : '#f8fafc'
+  switch (theme) {
+    case 'oled':
+    case 'high-contrast':
+      return '#000000'
+    case 'solarized-dark':
+      return '#073642'
+    case 'solarized-light':
+      return '#eee8d5'
+    case 'sepia':
+      return '#fbf7ee'
+    case 'light':
+      return '#f8fafc'
+    case 'dark':
+    default:
+      return '#13161e'
+  }
 }
 
 /** Habit-color tint for tile backgrounds (22%), borders (35%) and glows (55%). */
@@ -26,7 +62,7 @@ const MIN_RATIO = 3
 
 /**
  * Return `hex` adjusted so it reads against the theme's surface with at least
- * 3:1 contrast. Dark theme raises lightness; light theme lowers it. Colors that
+ * 3:1 contrast. Dark themes raise lightness; light themes lower it. Colors that
  * already pass come back unchanged, so very dark or very light custom habit
  * colors still show up on rings, bars, dots and heatmaps.
  */
@@ -37,7 +73,7 @@ export function readableColor(hex: string, theme: ThemeName, minRatio: number = 
 
   const [r, g, b] = hexToRgb(base)
   const [h, s, l] = rgbToHsl(r, g, b)
-  const step = theme === 'dark' ? 0.04 : -0.04
+  const step = isDarkTheme(theme) ? 0.04 : -0.04
   let lightness = l
   for (let i = 0; i < 50; i++) {
     lightness = Math.min(0.99, Math.max(0.01, lightness + step))
@@ -46,7 +82,15 @@ export function readableColor(hex: string, theme: ThemeName, minRatio: number = 
   }
   // Clamped at the far end and still below the ratio — fall back to the theme
   // secondary text color, which always reads on the surface.
-  return theme === 'dark' ? '#a3acc2' : '#5b6472'
+  if (isDarkTheme(theme)) {
+    if (theme === 'high-contrast') return '#ffffff'
+    if (theme === 'solarized-dark') return '#93a1a1'
+    return '#a3acc2'
+  } else {
+    if (theme === 'sepia') return '#675545'
+    if (theme === 'solarized-light') return '#586e75'
+    return '#5b6472'
+  }
 }
 
 /* ------------------------------------------------------------------ */

@@ -23,9 +23,15 @@
     <script>
       // Apply stored/system theme before first paint to avoid a flash.
       try {
-        var t = localStorage.getItem('theme')
-        var dark = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
-        if (dark) document.documentElement.classList.add('dark')
+        var t = localStorage.getItem('theme') || 'system'
+        var isDarkOs = window.matchMedia('(prefers-color-scheme: dark)').matches
+        var resolved = t === 'system' ? (isDarkOs ? 'dark' : 'light') : (t === 'solarized' ? (isDarkOs ? 'solarized-dark' : 'solarized-light') : t)
+        var dark = resolved === 'dark' || resolved === 'oled' || resolved === 'solarized-dark' || resolved === 'high-contrast'
+        var el = document.documentElement
+        if (dark) el.classList.add('dark')
+        else el.classList.remove('dark')
+        el.setAttribute('data-theme', resolved)
+        el.setAttribute('data-selected-theme', t)
       } catch (e) {}
     </script>
   </head>

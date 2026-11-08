@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { contrast, readableColor, surfaceColor, tint } from './color'
+import { contrast, isDarkTheme, readableColor, surfaceColor, tint } from './color'
 
 describe('tint', () => {
   it('returns a color-mix string at the given percent', () => {
@@ -44,5 +44,55 @@ describe('readableColor', () => {
 
   it('rejects invalid input instead of returning garbage', () => {
     expect(() => readableColor('teal', 'dark')).toThrow()
+  })
+})
+
+describe('surfaceColor & isDarkTheme', () => {
+  it('returns appropriate surfaces for all resolved themes', () => {
+    expect(surfaceColor('light')).toBe('#f8fafc')
+    expect(surfaceColor('dark')).toBe('#13161e')
+    expect(surfaceColor('sepia')).toBe('#fbf7ee')
+    expect(surfaceColor('oled')).toBe('#000000')
+    expect(surfaceColor('solarized-light')).toBe('#eee8d5')
+    expect(surfaceColor('solarized-dark')).toBe('#073642')
+    expect(surfaceColor('high-contrast')).toBe('#000000')
+  })
+
+  it('correctly classifies dark themes', () => {
+    expect(isDarkTheme('dark')).toBe(true)
+    expect(isDarkTheme('oled')).toBe(true)
+    expect(isDarkTheme('solarized-dark')).toBe(true)
+    expect(isDarkTheme('high-contrast')).toBe(true)
+    expect(isDarkTheme('light')).toBe(false)
+    expect(isDarkTheme('sepia')).toBe(false)
+    expect(isDarkTheme('solarized-light')).toBe(false)
+  })
+})
+
+describe('readableColor across multi-theme surfaces', () => {
+  it('adjusts dark colors for OLED and solarized-dark', () => {
+    const oledSurface = surfaceColor('oled')
+    const resOled = readableColor('#050505', 'oled')
+    expect(contrast(resOled, oledSurface)).toBeGreaterThanOrEqual(3)
+
+    const solDarkSurface = surfaceColor('solarized-dark')
+    const resSolDark = readableColor('#031d24', 'solarized-dark')
+    expect(contrast(resSolDark, solDarkSurface)).toBeGreaterThanOrEqual(3)
+  })
+
+  it('adjusts light colors for Sepia and Solarized-Light', () => {
+    const sepiaSurface = surfaceColor('sepia')
+    const resSepia = readableColor('#fffef9', 'sepia')
+    expect(contrast(resSepia, sepiaSurface)).toBeGreaterThanOrEqual(3)
+
+    const solLightSurface = surfaceColor('solarized-light')
+    const resSolLight = readableColor('#fdfcf6', 'solarized-light')
+    expect(contrast(resSolLight, solLightSurface)).toBeGreaterThanOrEqual(3)
+  })
+
+  it('ensures high contrast readability', () => {
+    const hcSurface = surfaceColor('high-contrast')
+    const res = readableColor('#111111', 'high-contrast')
+    expect(contrast(res, hcSurface)).toBeGreaterThanOrEqual(3)
   })
 })

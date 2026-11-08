@@ -128,14 +128,16 @@ export function HabitTile({
         skipped ? 'saturate-50 opacity-80' : ''
       } ${menuOpen && !overlay ? 'z-10' : ''}`}
       style={cssVars({
-        // Light theme mixes the habit toward white (pastel); dark keeps the
+        // Light palettes mix the habit toward white (pastel); dark palettes keep the
         // transparent tints. '--tile-glow' feeds the light-only tile shadow.
         '--tile-bg':
-          theme === 'light'
+          theme === 'light' || theme === 'sepia' || theme === 'solarized-light'
             ? `linear-gradient(145deg, color-mix(in srgb, ${c} 20%, white), color-mix(in srgb, ${c} 7%, white))`
             : `linear-gradient(145deg, ${tint(c, 22)}, ${tint(c, 6)})`,
         '--tile-border':
-          theme === 'light' ? `color-mix(in srgb, ${c} 35%, white)` : tint(c, 35),
+          theme === 'light' || theme === 'sepia' || theme === 'solarized-light'
+            ? `color-mix(in srgb, ${c} 35%, white)`
+            : tint(c, 35),
         '--tile-border-hover': tint(c, 70),
         '--tile-glow': `color-mix(in srgb, ${c} 55%, transparent)`,
         animationDelay: stagger,
