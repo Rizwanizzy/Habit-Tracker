@@ -752,4 +752,9 @@
     - **Verification**:
       - 291/291 unit tests passing across 22 test files (`npm test -- --run`).
       - TypeScript compiler (`tsc -b`) and linter 100% clean.
+- 115. **Docs sync for the multi-theme, Overview filters, and Performance Review commits**:
+    - **PROJECT_CONTEXT.md**: "Last updated" bumped to 2026-11-11; §2 CHANGELOG range corrected to 1–115; §6 architecture tree now lists the six `Review*` page pieces, the `PerformanceReview.tsx` page, and `lib/review.ts` / `lib/overview.ts` context; §8 rule 8 references the full 7-theme appearance system instead of just light + dark; §9 Overview bullet documents the Top 5 / All / None filter mode and click-to-isolate; §11 roadmap marks Pass 3 (Cloudflare Worker reminders sender) **Complete, deployed 2026-11-08** with secrets/vars/cron details, and Pass 2's Pages-env note as done.
+    - **README.md**: new **Performance Review (`/review`)** feature bullet; Web Push bullet rewritten from "in progress / upcoming Worker sender" to the live deployed Worker (`habit-tracker-reminders`, cron `*/15`, RFC 8291, ✓ Done pill on iOS); Stats & charts bullet mentions the Top 5 / All / None filter + click-to-isolate; Hosting section now covers both backends (Supabase + the reminders Worker) with `VITE_VAPID_PUBLIC_KEY` in the Pages env and a Worker deploy/secrets/vars note; Scripts table gains `worker:check` / `worker:dev` / `worker:deploy`; Project layout lists review/overview/reminders/notifications libs, the new hooks, Review* + ThemeIconButton components, the `/review` page and the `worker/` folder; Getting Started env block includes `VITE_VAPID_PUBLIC_KEY`.
+    - **AGENTS.md**: lib list adds `review.ts` + `overview.ts`; components list adds the six Review* pieces; pages list adds `PerformanceReview`; new `worker/` folder bullet.
+    - Doc-only change; no app code touched. Verification: 291/291 tests in 22 files, `tsc -b` + Vite build clean.
 

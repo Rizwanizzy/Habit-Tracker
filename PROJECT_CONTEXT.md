@@ -4,7 +4,7 @@
 > understanding of this project — concept, stack, architecture, data model, features, and
 > conventions. It describes **what is true right now**; the per-pass history lives in
 > `CHANGELOG.md`. **Update this file after every completed task** (AGENTS.md rule 11).
-> Last updated: 2026-11-08
+> Last updated: 2026-11-11
 
 ## 1. What this project is
 
@@ -25,7 +25,7 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 | `AGENTS.md` | Rules for any AI/dev working on the repo. Read before every task. |
 | `DESIGN.md` | The design spec ("Aurora Glass": tokens, typography, components, motion). Read before any UI change. |
 | `supabase/schema.sql` | Database schema `README` for human setup (re-synced with the live DB — see §Data model). |
-| `CHANGELOG.md` | Numbered log of every completed pass (1–107). Append, never rewrite. |
+| `CHANGELOG.md` | Numbered log of every completed pass (1–115). Append, never rewrite. |
 | `README.md` | GitHub-facing overview (features, hosting, scripts, layout). Keep in sync. |
 
 ## 3. Stack (verified against `package.json`)
@@ -186,12 +186,18 @@ src/
     ProfileBanner.tsx, ProfileDetails.tsx, ProfileDetailsDisplay.tsx, ProfileDetailsEdit.tsx,
     ProfileEditModal.tsx, VerifiedBadge.tsx     profile page pieces (desktop modal edit ≥1024px)
     JourneyCard.tsx (lifetime stats), MilestonesCard.tsx (badges)
+    ReviewHeroCard.tsx, ReviewPeriodNav.tsx, ReviewInsightsCard.tsx,
+    ReviewBreakdownCard.tsx, ReviewHabitList.tsx, ReviewHabitRow.tsx
+                        Performance Review page pieces (period navigator, hero rate card,
+                        breakdowns, insights, trajectory tables)
     ConfirmDialog.tsx   portal glass alertdialog (focus trap, Escape, scroll lock)
     RequireAuth.tsx     guard → /welcome when signed out (public landing for brand verification)
     icons.tsx           all inline SVG icons
   pages/
     Today.tsx           bento: header + date pill, hero rings, completion card, tiles
     Overview.tsx        stat tiles + Score / Completion % chart with Top 5 / All / None filters & click-to-isolate
+    PerformanceReview.tsx  /review — weekly/monthly/yearly retrospective (hero rate card, breakdowns,
+                        insights, habit trajectory tables)
     HabitDetail.tsx     stats, score chart, completion bars, heatmap, skip cycling
     HabitForm.tsx       create/edit habit (desktop ≥1024px layout + shared state → HabitFormMobile)
     Settings.tsx        Day/Habits/Vacation/Data/Account/Notification cards (phone reflow below 1024px)
@@ -261,7 +267,7 @@ creates every table above including the post-release `entries.status`, `profiles
    hairlines.
 8. Mobile-first; 44px tap targets (invisible hit-pads below that, positioned to avoid the
    stretched-link/pointer-eat bugs of CHANGELOG 20); loading/empty/error states on every page;
-   light + dark themes from DESIGN.md tokens.
+   light + dark and the full 7-theme appearance system from DESIGN.md tokens.
 9. Backup import is **additive and idempotent** (`lib/backupImport.ts`): never deletes or
    silently modifies; entry conflicts keep what's already in the app unless the user opts in.
 10. After every task: run `npm test` + `npm run build`, update `PROJECT_CONTEXT.md`,
@@ -280,7 +286,9 @@ creates every table above including the post-release `entries.status`, `profiles
   Mobile: compact two-row header, landscape hero summary card, floating dock with FAB.
 - **Overview** — RangeSwitch 30/90/365; StatTile row (avg score + delta chip, best habit,
   needs attention — both drill into `/habits/:id`); ScoreLineChart card with habit toggle
-  chips, habit-color lines with static halo glow `<Line>`, glass tooltip.
+  chips, habit-color lines with static halo glow `<Line>`, glass tooltip, Top 5 / All / None
+  filter mode (`lib/overview.ts` getTop5HabitIds ranking + tie breaker) and
+  click-to-isolate a single habit's line.
 - **Performance Review** (`/review`) — retrospective habit performance analysis across Weekly
   (Sun–Sat), Monthly, and Yearly cadences; ReviewPeriodNav with cadence switch and spacious
   period navigator card (‹ / ›, title, sublabel, Latest shortcut); Hero completion rate card,
@@ -356,13 +364,15 @@ creates every table above including the post-release `entries.status`, `profiles
      `push-sw.js` extension, settings diagnostic UI, and VAPID/Cloudflare Workers investigation.
    - **Pass 2 (Complete, 2026-11-07):** `notification_settings` + `push_subscriptions` tables
      live and folded into `supabase/schema.sql`; VAPID public key wired via
-     `VITE_VAPID_PUBLIC_KEY` (in `.env.local` — **also add it to Cloudflare Pages env**);
-     app-side done — `useNotificationSettings` hook (settings upsert on `user_id`, device
-     upsert on `endpoint`), `ReminderSettings` UI (reminder switch + time + device
-     registration), `src/lib/reminders.ts` pure helpers with tests. Reminders are stored but
-     NOT delivered yet — no sender exists until Pass 3.
-   - **Pass 3:** Cloudflare Worker cron dispatcher (zero external cost, native Web Crypto
-     ES256/RFC 8291) — needs the PRIVATE VAPID key as a secret; reads the tables designed
-     above and sends the daily push at each user's reminder_time.
+     `VITE_VAPID_PUBLIC_KEY` (in `.env.local` and the Cloudflare Pages env); app-side done —
+     `useNotificationSettings` hook (settings upsert on `user_id`, device upsert on
+     `endpoint`), `ReminderSettings` UI (reminder switch + time + device registration),
+     `src/lib/reminders.ts` pure helpers with tests.
+   - **Pass 3 (Complete, deployed 2026-11-08):** Cloudflare Worker `habit-tracker-reminders`
+     cron dispatcher (zero external cost, native Web Crypto RFC 8291 aes128gcm, validated
+     against the RFC Appendix-B vector) — secrets `VAPID_PRIVATE_KEY`,
+     `SUPABASE_SERVICE_ROLE_KEY`, `TEST_TOKEN` set via `wrangler secret put`; public vars
+     `SUPABASE_URL` / `VAPID_PUBLIC_KEY` / `VAPID_SUBJECT` in `worker/wrangler.toml`; cron
+     `*/15 * * * *`; `/send-test?token=` route; verified end-to-end on production.
 3. Optional polish: count-up numerals on stat tiles; periodic backup reminders.
 4. Optional (paid): Supabase Pro custom auth domain to brand the OAuth account chooser.
