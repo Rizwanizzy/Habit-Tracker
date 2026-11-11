@@ -109,7 +109,7 @@ export function PerformanceReview() {
   const sublabel = `${currentRange.start} to ${currentRange.end}`
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-5 sm:gap-6 pb-28 md:pb-12 min-w-0">
+    <div className="w-full max-w-4xl mx-auto flex flex-col gap-5 sm:gap-6 min-w-0">
       {/* Page Header */}
       <div className="flex flex-col gap-1">
         <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-fg">

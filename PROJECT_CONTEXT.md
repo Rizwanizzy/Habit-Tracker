@@ -294,7 +294,9 @@ creates every table above including the post-release `entries.status`, `profiles
   period navigator card (‹ / ›, title, sublabel, Latest shortcut); Hero completion rate card,
   monthly/yearly progress breakdowns, deterministic actionable insight recommendations, and
   habit trajectory tables (Improving, Consistent, Declining, Needs Attention). Accessible via
-  4th dock item on mobile and 2nd rail item on desktop.
+  4th dock item on mobile and 2nd rail item on desktop; the trajectory filter pills use the
+  accent-gradient selected treatment, and the page adds no extra bottom padding (AppShell's
+  dock clearance is the single source of the last-section-to-dock gap).
 - **Habit detail** — glass header (back/edit + color dot), StatTiles (current/best streak,
   30-day completion), score AreaChart (30/90), CompletionHistoryChart bars
   (week/month), custom Heatmap (14px cells, skip-cell outlines, tap-cycle

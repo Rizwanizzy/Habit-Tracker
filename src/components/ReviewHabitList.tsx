@@ -108,7 +108,7 @@ export function ReviewHabitList({ habits, bestPerformers, needsAttention }: Prop
                 onClick={() => setFilter(btn.key)}
                 className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                   filter === btn.key
-                    ? 'bg-surface text-fg shadow-xs font-semibold'
+                    ? 'bg-accent-gradient text-white shadow-xs font-semibold'
                     : 'text-fg-secondary hover:text-fg'
                 }`}
               >
