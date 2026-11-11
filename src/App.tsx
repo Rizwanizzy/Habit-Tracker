@@ -7,6 +7,7 @@ import { Settings } from './pages/Settings'
 import { HabitForm } from './pages/HabitForm'
 import { HabitDetail } from './pages/HabitDetail'
 import { Profile } from './pages/Profile'
+import { PerformanceReview } from './pages/PerformanceReview'
 import { Login } from './pages/Login'
 import { Privacy } from './pages/Privacy'
 import { Landing } from './pages/Landing'
@@ -37,6 +38,8 @@ export function App() {
             >
               <Route index element={<Today />} />
               <Route path="overview" element={<Overview />} />
+              <Route path="review" element={<PerformanceReview />} />
+              <Route path="performance-review" element={<Navigate to="/review" replace />} />
               <Route path="settings" element={<Settings />} />
               <Route path="profile" element={<Profile />} />
               <Route path="habits/new" element={<HabitForm />} />

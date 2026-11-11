@@ -57,7 +57,7 @@ export function RangeSwitch({
       role="radiogroup"
       aria-label={ariaLabel}
       className={`relative grid rounded-pill border border-border bg-surface p-0.5 select-none ${
-        compact ? 'h-9 min-w-[200px]' : 'h-10 min-w-[220px]'
+        compact ? 'h-8 sm:h-9 min-w-0 sm:min-w-[180px]' : 'h-10 min-w-[200px]'
       } ${className}`}
       style={{
         gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,

@@ -54,7 +54,7 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 npm run dev     # dev server — vite --host 0.0.0.0 --port 3000 (NOT 5173)
 npm run build   # tsc -b && vite build
 npm start       # node server.js — plain static SPA server (Cloud Run deploy route, not used day-to-day)
-npm test        # vitest run — currently 260/260 tests in 20 files, all green
+npm test        # vitest run — currently 291/291 tests in 22 files, all green
 npm run lint    # oxlint
 npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets.config.js)
 ```
@@ -89,8 +89,8 @@ src/
   main.tsx              entry — applies stored/system theme (<html class="dark">), registers the PWA SW
                         (registerSW from virtual:pwa-register — see vite-plugin-pwa), renders <App/>
   App.tsx               routes: public /login, /welcome (Landing), /privacy (Privacy);
-                        inside RequireAuth+AppShell: / (Today), /overview, /profile, /settings,
-                        /habits/new, /habits/:id/edit, /habits/:id
+                        inside RequireAuth+AppShell: / (Today), /overview, /review (Performance Review),
+                        /profile, /settings, /habits/new, /habits/:id/edit, /habits/:id
   index.css             Tailwind v4 + Aurora-Glass tokens (@theme) + component recipes
   App.css               (unused leftover styles)
   types/
@@ -117,7 +117,10 @@ src/
     useNotificationPermission.ts Web Push capabilities + permission + local test notification trigger
     useNotificationSettings.ts reminder prefs + device subscriptions (useVacations pattern:
                                  optimistic w/ rollback, errors exposed, endpoint upsert)
-  lib/                  pure logic + their *.test.ts (21 test files, 275 tests)
+  lib/                  pure logic + their *.test.ts (22 test files, 291 tests)
+    review.ts           Performance Review analysis engine (getCompletedWeekRange, getCompletedMonthRange,
+                        getCompletedYearRange, calculatePeriodReview, calculateMonthlyWeeklyBreakdown,
+                        calculateYearlyMonthlyBreakdown, generateActionableInsights)
     score.ts            EMA score (SMOOTHING_CONSTANT), scoreSeries, streaks, completionRate;
                         every public fn takes a trailing optional `vacations = []`
     overview.ts         completionSeries (daily cumulative completion % adhering to neutral days),
@@ -278,6 +281,12 @@ creates every table above including the post-release `entries.status`, `profiles
 - **Overview** — RangeSwitch 30/90/365; StatTile row (avg score + delta chip, best habit,
   needs attention — both drill into `/habits/:id`); ScoreLineChart card with habit toggle
   chips, habit-color lines with static halo glow `<Line>`, glass tooltip.
+- **Performance Review** (`/review`) — retrospective habit performance analysis across Weekly
+  (Sun–Sat), Monthly, and Yearly cadences; ReviewPeriodNav with cadence switch and spacious
+  period navigator card (‹ / ›, title, sublabel, Latest shortcut); Hero completion rate card,
+  monthly/yearly progress breakdowns, deterministic actionable insight recommendations, and
+  habit trajectory tables (Improving, Consistent, Declining, Needs Attention). Accessible via
+  4th dock item on mobile and 2nd rail item on desktop.
 - **Habit detail** — glass header (back/edit + color dot), StatTiles (current/best streak,
   30-day completion), score AreaChart (30/90), CompletionHistoryChart bars
   (week/month), custom Heatmap (14px cells, skip-cell outlines, tap-cycle

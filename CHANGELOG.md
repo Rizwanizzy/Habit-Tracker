@@ -682,9 +682,74 @@
       - The absolute sliding background pill (`width: calc((100% - 4px) / N)` and `transform: translateX(idx * 100%)`) matches the grid cell boundaries down to the exact pixel on both sides.
       - Labels are horizontally and vertically centered inside their respective 50% grid cells with `z-10` stacking order, preventing any label overlap or background misalignment.
     - **Verification & Testing**:
-      - Tested across 360px, 390px, 477px, tablet, and desktop viewports.
-      - All 275 tests passing across 21 test files (`vitest run`).
-      - Build and lint 100% clean.
+- 111. **Performance Review — Weekly, Monthly & Yearly Habit Analysis**:
+    - **Architecture & Pure Analysis Library (`src/lib/review.ts`)**:
+      - `getCompletedWeekRange`: Computes Monday–Sunday boundaries for completed weeks relative to logical today, supporting backwards/forwards navigation offsets (`offset <= 0`).
+      - `getCompletedMonthRange`: Computes calendar month boundaries (1st to last day) for completed months.
+      - `getCompletedYearRange`: Computes full calendar year boundaries (Jan 1 to Dec 31) for completed years.
+      - `calculatePeriodReview`: Core analysis computing total opportunities, check-ins, completion rates, EMA scores, previous-period deltas, best performers, habits needing attention, and trajectories (improving, declining, consistent, new). Strictly honors Asia/Kolkata logical days with `day_start_hour`, neutral skipped days, vacation periods, and mid-period created habit dates.
+      - `calculateMonthlyWeeklyBreakdown`: Segmented 7-day progress intervals across a calendar month.
+      - `calculateYearlyMonthlyBreakdown`: 12-month progress breakdown (Jan–Dec) across a calendar year.
+      - `generateActionableInsights`: Pure deterministic actionable suggestions engine (champions, momentum/improvements, focus/resets, trajectory trends) without external AI/API calls or generic filler.
+    - **Unit Test Coverage (`src/lib/review.test.ts`)**:
+      - 16 comprehensive unit tests covering: Monday–Sunday week boundaries across months/years, offset navigation, calendar month/year limits, overall metrics, neutral skipped days, vacation days (with done check-ins preserved), improving/declining trajectories, mid-range created habit eligibility, monthly weekly breakdowns, yearly monthly breakdowns, and actionable suggestions.
+    - **UI Components & Responsive Bento**:
+      - `ReviewPeriodNav.tsx`: Cadence switcher (`Weekly` | `Monthly` | `Yearly`) via `RangeSwitch`, previous/next navigation buttons with disabled state when on latest completed period (`offset === 0`), and dynamic period title/range subtitles.
+      - `ReviewHeroCard.tsx`: Hero overall completion rate percentage, previous-period comparison `DeltaChip`, visual progress bar, completed/eligible opportunities count, active habit count, and average EMA score.
+      - `ReviewBreakdownCard.tsx`: Weekly progression within month for monthly reviews; 12-month responsive progression grid for yearly reviews.
+      - `ReviewInsightsCard.tsx`: Actionable insight cards categorized by kind (`celebration`, `improvement`, `focus`, `tip`) with appropriate visual icons (`IconSparkles`, `IconTrendingUp`).
+      - `ReviewHabitList.tsx`: Highlight cards for "Top Performers" and "Needs Attention", plus a filterable habit trajectory table (`All`, `Improving`, `Consistent`, `Declining`) with drill-in navigation to `/habits/:id`.
+      - `PerformanceReview.tsx`: Single dedicated review page coordinating state, asynchronous entry fetching (800-day window to cover yearly and prior-year comparisons), and rendering cards with loading and empty states.
+    - **Navigation Integration (`AppShell.tsx` & `App.tsx`)**:
+      - Added `IconReview` and route `/review` (with `/performance-review` redirect).
+      - Desktop rail: Added "Performance Review" icon link immediately after Overview and before Settings.
+      - Mobile dock: Maintained exactly 5 items (Today, Overview, Add Habit FAB, Settings, Performance Review) replacing the redundant Profile dock shortcut while keeping Profile accessible via the Today avatar.
+    - **Verification**:
+- 112. **Performance Review UI & Navigation Refinements**:
+    - **Yearly Review Active Year Default & Switching**:
+      - Updated `getCompletedYearRange` in `src/lib/review.ts` so `offset = 0` resolves to the active calendar year (2026), allowing users to review their current habit routines without waiting for the calendar year to end.
+      - Enabled historical switching: users can freely navigate backwards (`‹`) to 2025 and earlier years, and navigate forwards (`›`) up to the active year 2026.
+    - **Desktop Single-Row Toolbar (`ReviewPeriodNav.tsx`)**:
+      - Placed the Cadence Switcher (`Weekly` | `Monthly` | `Yearly`) and Period Navigator (`[ ‹ ] [ Period Label ] [ › ]`) onto the **same horizontal row** in web/desktop view.
+      - Eliminated the awkward oversized empty card layout; on mobile viewports the controls stack cleanly into two compact rows without horizontal overflow.
+    - **Informative Performance Review Glyph (`IconReview` in `icons.tsx`)**:
+      - Replaced the chart bars glyph with a pixel-perfect `clipboard-check` icon (clipboard outline, clip, and bold checkmark), making the Review action instantly recognizable and clearly distinguished from the Overview bar chart.
+    - **Mobile Bottom Dock Re-ordering (`AppShell.tsx`)**:
+      - Repositioned Performance Review to the **4th position** and Settings to the **5th position** in the mobile floating glass dock (Order: Today, Overview, Add Habit (+), Performance Review, Settings).
+    - **Mobile Viewport Overflow & Layout Fix**:
+      - Diagnosed and resolved horizontal clipping: removed redundant nested `px-4` in `PerformanceReview.tsx` (which doubled inside `<main>`'s padding), applied `w-full min-w-0` across all cards, truncated long date ranges on narrow viewports, and prevented filter pills from stretching past screen boundaries.
+    - **Verification**:
+      - All 291 unit tests passing across 22 test files (`npm test -- --run`).
+      - TypeScript (`tsc -b`) and oxlint 100% clean.
 
-
+- 113. **Mobile Period Nav Reversion & Cohesive Icon System Redesign**:
+    - **Mobile Review Period Navigation (`ReviewPeriodNav.tsx`)**:
+      - Reverted the congested single-row mobile layout back to the spacious two-row stacked design:
+        - Row 1: Cadence Switcher (`[ Week | Month | Year ]`) comfortable and left-aligned, with a mobile-friendly "Latest" pill shortcut when reviewing past periods.
+        - Row 2: Full-width Period Navigation card with 36–40px touch targets for previous/next buttons (`‹` / `›`), centered period title, and informative date sublabel (`Current running week · 2026-11-08 to 2026-11-11`).
+      - Completely resolved horizontal crowding and text squishing on mobile devices.
+    - **Unified Icon System Redesign (`icons.tsx` & `AppShell.tsx`)**:
+      - Replaced key navigation icons with cohesive, bespoke SVG line-art glyphs matching user model references while sharing a unified design language (`stroke="currentColor"`, `strokeWidth={2}`, `strokeLinecap="round"`, `strokeLinejoin="round"`, `viewBox="0 0 24 24"`):
+        - **Settings (`IconSettings`, Model 1)**: Mechanical cog / gear wheel with precision outer teeth, inner rim, center axle hub, and 3 radial spokes.
+        - **Today / Home (`IconHome` & `IconToday`, Model 2)**: Pitched roof house with eaves overhang, right-side chimney, arched doorway, vertical door handle, and solid baseline.
+        - **Overview (`IconOverview`, Model 3)**: Rounded document / summary log card with top title pill and 3 item rows (horizontal bar on left, bullet indicator dot on right).
+        - **Add Habit (`IconPlus`, Model 4)**: Bold, optically balanced rounded cross arms (`strokeWidth={2.6}`) centered cleanly inside the floating action button.
+        - **Performance Review (`IconReview`, Model 5)**: 3 ascending rounded pill bars with an upward-surging zigzag trendline and top-right arrowhead.
+      - Maintained unified styling and proportions across both desktop rail and mobile glass dock.
+    - **Verification**:
+      - 291/291 unit tests passing across 22 test files (`npm test -- --run`).
+      - TypeScript compiler (`tsc -b`) and linter 100% clean.
+- 114. **Performance Review Navigation Layout & Yearly Trajectory Engine Refinement**:
+    - **Mobile & Web Review Period Navigation (`ReviewPeriodNav.tsx`)**:
+      - Mobile view (< 640px): Kept the spacious two-row stacked design with full words `Week`, `Month`, `Year` (removed `W`, `M`, `Y` short abbreviations).
+      - Web / Desktop view ($\ge$ 640px): Placed the cadence switcher (`Week | Month | Year`) and period navigator (`‹ Label ›`) on the **same horizontal row** to utilize available vacant space.
+    - **Circular Gear Settings Icon (`IconSettings` in `icons.tsx`)**:
+      - Updated `IconSettings` to a classic circular gear wheel icon featuring a center circular axle hub surrounded by 8 rounded gear teeth along the outer rim.
+    - **Yearly Habit Trajectory Analysis (`review.ts`)**:
+      - Fixed the issue where habits in the Yearly review filter were all categorized as `'new'`.
+      - When `prevEligible === 0` (e.g. reviewing the current year for habits created on Jan 1 or habits created prior to period start), the engine now divides the period's active timeline into two equal halves to calculate `firstHalfRate` vs `secondHalfRate`.
+      - Successfully evaluates real trajectories (`improving`, `declining`, or `consistent`) using within-period data while properly preserving `'new'` for habits actually created mid-period.
+    - **Verification**:
+      - 291/291 unit tests passing across 22 test files (`npm test -- --run`).
+      - TypeScript compiler (`tsc -b`) and linter 100% clean.
 

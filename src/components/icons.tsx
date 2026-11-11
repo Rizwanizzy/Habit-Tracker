@@ -9,28 +9,23 @@ const base: SVGProps<SVGSVGElement> = {
 }
 
 export function IconToday({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
-      <path d="M12 2v2" />
-      <path d="M12 20v2" />
-      <path d="m4.93 4.93 1.41 1.41" />
-      <path d="m17.66 17.66 1.41 1.41" />
-      <path d="M2 12h2" />
-      <path d="M20 12h2" />
-      <path d="m6.34 17.66-1.41 1.41" />
-      <path d="m19.07 4.93-1.41 1.41" />
-      <circle cx="12" cy="12" r="4" />
-    </svg>
-  )
+  return <IconHome className={className} />
 }
 
 export function IconOverview({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
-      <path d="M3 3v18h18" />
-      <path d="M18 17V9" />
-      <path d="M13 17V5" />
-      <path d="M8 17v-3" />
+      {/* Outer rounded document sheet */}
+      <rect x="4" y="2.5" width="16" height="19" rx="3" />
+      {/* Top title header notch */}
+      <path d="M8.5 6.5h7" />
+      {/* 3 report item rows: horizontal bar on left, bullet status dot on right */}
+      <path d="M8 10.5h5" />
+      <circle cx="16" cy="10.5" r="1.1" fill="currentColor" stroke="none" />
+      <path d="M8 14.5h5" />
+      <circle cx="16" cy="14.5" r="1.1" fill="currentColor" stroke="none" />
+      <path d="M8 18.5h5" />
+      <circle cx="16" cy="18.5" r="1.1" fill="currentColor" stroke="none" />
     </svg>
   )
 }
@@ -38,15 +33,10 @@ export function IconOverview({ className }: { className?: string }) {
 export function IconSettings({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
-      <line x1="21" x2="14" y1="4" y2="4" />
-      <line x1="10" x2="3" y1="4" y2="4" />
-      <line x1="21" x2="12" y1="12" y2="12" />
-      <line x1="8" x2="3" y1="12" y2="12" />
-      <line x1="21" x2="16" y1="20" y2="20" />
-      <line x1="12" x2="3" y1="20" y2="20" />
-      <line x1="14" x2="14" y1="2" y2="6" />
-      <line x1="8" x2="8" y1="10" y2="14" />
-      <line x1="16" x2="16" y1="18" y2="22" />
+      {/* Center circle axle hub */}
+      <circle cx="12" cy="12" r="3" />
+      {/* Precision 8-tooth circular gear wheel rim */}
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   )
 }
@@ -112,9 +102,9 @@ export function IconChevronDown({ className }: { className?: string }) {
 
 export function IconPlus({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 5.5v13" />
+      <path d="M5.5 12h13" />
     </svg>
   )
 }
@@ -220,15 +210,22 @@ export function IconTrash({ className }: { className?: string }) {
   )
 }
 
-/** Home icon for the mobile dock's Today button (DESIGN.md §5: the dock
- *  Today slot is the app's home, so it gets a home glyph rather than the
- *  sun-like `IconToday` that the desktop rail uses). */
+/** Home icon (DESIGN.md §5: Today / Home navigation glyph).
+ *  Matches the architectural house model: pitched roof with eaves overhang,
+ *  right-side roof chimney, arched doorway, door handle, and solid baseline. */
 export function IconHome({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
-      <path d="M3 11l9-8 9 8" />
-      <path d="M5 10v10h14V10" />
-      <path d="M9 22v-6h6v6" />
+      {/* Chimney on the right roof slope */}
+      <path d="M17 7.5V4h2.5v5.5" />
+      {/* Pitched roof with eaves overhang */}
+      <path d="m2 11.5 10-8 10 8" />
+      {/* House body walls and base */}
+      <path d="M4.5 10.5V21h15V10.5" />
+      {/* Arched doorway in center */}
+      <path d="M9 21v-6a3 3 0 0 1 6 0v6" />
+      {/* Vertical door handle */}
+      <path d="M13.5 16v-2.5" />
     </svg>
   )
 }
@@ -318,6 +315,49 @@ export function IconClock({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
       <path d="M12 6v6l4 2" />
+    </svg>
+  )
+}
+
+/** Performance Review icon: 3 rising rounded bar columns with an upward climbing
+ *  trendline and arrowhead (growth, progress analysis, retrospective performance). */
+export function IconReview({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      {/* 3 rising vertical pill bars */}
+      <rect x="3.5" y="16.5" width="3.2" height="4.5" rx="1.6" />
+      <rect x="10.4" y="13" width="3.2" height="8" rx="1.6" />
+      <rect x="17.3" y="9.5" width="3.2" height="11.5" rx="1.6" />
+      {/* Ascending zigzag trendline */}
+      <path d="M3.5 10.5 8.5 6.5l4 3 8-6.5" />
+      {/* Upward-pointing arrowhead */}
+      <path d="M16 3h4.5v4.5" />
+    </svg>
+  )
+}
+
+export function IconTrendingUp({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>
+  )
+}
+
+export function IconTrendingDown({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
+      <polyline points="16 17 22 17 22 11" />
+    </svg>
+  )
+}
+
+export function IconSparkles({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
     </svg>
   )
 }
