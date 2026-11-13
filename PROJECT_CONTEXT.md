@@ -4,7 +4,7 @@
 > understanding of this project — concept, stack, architecture, data model, features, and
 > conventions. It describes **what is true right now**; the per-pass history lives in
 > `CHANGELOG.md`. **Update this file after every completed task** (AGENTS.md rule 11).
-> Last updated: 2026-11-11
+> Last updated: 2026-11-13
 
 ## 1. What this project is
 
@@ -117,16 +117,37 @@ src/
     useNotificationPermission.ts Web Push capabilities + permission + local test notification trigger
     useNotificationSettings.ts reminder prefs + device subscriptions (useVacations pattern:
                                  optimistic w/ rollback, errors exposed, endpoint upsert)
-  lib/                  pure logic + their *.test.ts (22 test files, 291 tests)
+  lib/                  pure logic + their *.test.ts (24 test files, 350 tests)
     review.ts           Performance Review analysis engine (getCompletedWeekRange, getCompletedMonthRange,
                         getCompletedYearRange, calculatePeriodReview, calculateMonthlyWeeklyBreakdown,
                         calculateYearlyMonthlyBreakdown, generateActionableInsights)
     score.ts            EMA score (SMOOTHING_CONSTANT), scoreSeries, streaks, completionRate;
-                        every public fn takes a trailing optional `vacations = []`
+                        every public fn takes a trailing optional `vacations = []`;
+                        scoreRange/scoreSeries also take a trailing optional `epochs`
+                        (Stage 2 scoring law, CHANGELOG 118): omitted/empty = original
+                        walk bit-identical; with epochs — daily/weekdays/interval step
+                        1−0.95^1 per scheduled opportunity (unscheduled days carry),
+                        weekly_target steps 1−0.95^M per CLOSED Mon–Sun week (achieved =
+                        done ≥ M; current/partial/transition weeks carry), legacy uses
+                        the frozen snapshot 1−0.95^(M/N) over all days. Streak/completion
+                        fns untouched until the wiring stage
     overview.ts         completionSeries (daily cumulative completion % adhering to neutral days),
                         getTop5HabitIds (Overview ranking + tie breaker), resolveFilterMode
     dayStatus.ts        the one source of truth for "is this day counted":
-                        before-start/future → done → skipped → vacation → missed
+                        before-start/future → done → skipped → vacation → unscheduled → missed
+                        ('unscheduled' is neutral and appears only when the caller supplies
+                        schedule epochs — omitted/empty context = exact legacy behaviour)
+    schedule.ts         Habit Scheduling Stage 1 pure foundation (CHANGELOG 117; DB migration
+                        pending, no UI wiring yet): ScheduleType/ScheduleConfig/ScheduleEpoch
+                        types, weekday-bit mask helpers (Mon=1 … Sun=64, 1–127), weekdayBit,
+                        isValidWeekdayMask/isValidInterval/isValidWeeklyTarget, validateSchedule
+                        (error list), resolveEpoch (latest effective_from ≤ date, same-day
+                        final-wins in append order, never mutates), sortEpochs, isScheduledOn
+                        (daily/weekdays/interval anchored to the epoch's own effective_from/
+                        weekly_target with Tue–Sun transition weeks neutral/legacy = all days),
+                        weekStart/weekEnd (Monday–Sunday only; Review's Sun–Sat cadence
+                        untouched), weeklyTargetContext, isTransitionEpoch, transitionWeekStart,
+                        isTransitionWeek
     dates.ts            local YYYY-MM-DD (Asia/Kolkata): toLogicalDateString, logicalToday,
                         msUntilNextDayStart, DAY_START_HOURS — never toISOString().slice(0,10)
     clock.ts            now() — reads localStorage['dev-now'] in dev (time travel), real clock in prod
@@ -255,10 +276,11 @@ creates every table above including the post-release `entries.status`, `profiles
 3. Score/streak/completion logic lives only in `src/lib/score.ts` (+ `dayStatus.ts`,
    `completion.ts`) as pure, tested functions — never import React/Supabase there. Numeric
    done = `value ≥ target`. Stats count only from the habit's `created_at`.
-4. Skipped days and vacation days are **neutral** (rule 9 + 10): no EMA step, streaks neither
+4. Skipped, vacation and unscheduled days are **neutral** (rules 9 + 10): no EMA step, streaks neither
    count nor break, excluded from completion denominators, but a done check-in still wins
    during vacation. All "is this day counted" questions go through `src/lib/dayStatus.ts`
-   with the concrete vacation dates (`vacationDatesInRange`).
+   with the concrete vacation dates (`vacationDatesInRange`). `unscheduled` appears only
+   when the caller supplies schedule epochs (Stage 1 pure foundation; DB migration pending).
 5. Check-ins are one-tap optimistic with rollback, and **per-habit remote queues** — never a
    page-wide busy flag (drop-tap bug, CHANGELOG 27).
 6. Habit order: `sort_order` asc, ties by `created_at`, is the single source of truth
@@ -376,5 +398,36 @@ creates every table above including the post-release `entries.status`, `profiles
      `SUPABASE_SERVICE_ROLE_KEY`, `TEST_TOKEN` set via `wrangler secret put`; public vars
      `SUPABASE_URL` / `VAPID_PUBLIC_KEY` / `VAPID_SUBJECT` in `worker/wrangler.toml`; cron
      `*/15 * * * *`; `/send-test?token=` route; verified end-to-end on production.
-3. Optional polish: count-up numerals on stat tiles; periodic backup reminders.
-4. Optional (paid): Supabase Pro custom auth domain to brand the OAuth account chooser.
+3. **Habit Scheduling upgrade (approved v7-corrected architecture):**
+   - **Stage 1 (Complete, 2026-11-13):** pure foundation — `src/lib/schedule.ts`
+     (`ScheduleType`/`ScheduleConfig`/`ScheduleEpoch`, weekday-bit masks Mon=1…Sun=64,
+     `validateSchedule`, `resolveEpoch`, `isScheduledOn`, Mon–Sun `weekStart`/`weekEnd`,
+     `weeklyTargetContext`, transition-week helpers; legacy epochs stay all-days-eligible)
+     and `dayStatus` `unscheduled` neutral status (optional `schedule` epochs input,
+     precedence future → done → skipped → before-start → vacation → unscheduled → missed;
+     no/empty context = exact legacy behaviour). Tests: `schedule.test.ts` + extended
+     `dayStatus.test.ts`. **The DB migration is NOT yet run; no UI, forms or Supabase
+     code changed.**
+   - **Stage 2 — scoring law (Complete, 2026-11-13):** only `src/lib/score.ts` + new
+     `src/lib/scoreSchedule.test.ts`. `scoreRange`/`scoreSeries` gained a trailing
+     optional `epochs` param (additive API; omitted/empty = original walk bit-identical,
+     existing callers unchanged — no caller passes epochs yet). Law implemented:
+     daily/weekdays/interval = one EMA step per scheduled opportunity (`alphaFor(k) =
+     1−0.95^k`, k=1; unscheduled days carry; done-on-unscheduled still wins);
+     weekly_target = one step per closed Mon–Sun week (`1−0.95^M`, achieved = done ≥ M
+     via `isEntryDone`; the week containing endDate is never scored, partial window-edge
+     weeks skipped, `isTransitionWeek` weeks carry); legacy = frozen-snapshot
+     `1−0.95^(M/N)` daily, bit-identical to the no-epochs walk. Float-precision catch:
+     daily alpha is `alphaFor(1)`, not the bare 0.05 literal (different doubles).
+     Approved decisions (ratified by the user 2026-11-13): mid-week switch OUT of
+     weekly scores that week under the schedule active on its Monday — later
+     completions in that week still count toward the original weekly target;
+     skipped/vacation days inside a weekly week do NOT reduce M (neutral days
+     never count as completions). Streak/completionRate/Review/callers untouched
+     (later wiring stage). Tests: `scoreSchedule.test.ts` (18) — 350 tests in 24 files;
+     build clean, lint 0 errors. **DB migration still NOT run; no UI wiring.**
+   - Pending: migration execution on Supabase (user-run, v7-corrected package), then
+     epoch RPC wiring, form modes, score/streak/Review/Overview epoch wiring,
+     backup epoch restore (Stage 5).
+4. Optional polish: count-up numerals on stat tiles; periodic backup reminders.
+5. Optional (paid): Supabase Pro custom auth domain to brand the OAuth account chooser.

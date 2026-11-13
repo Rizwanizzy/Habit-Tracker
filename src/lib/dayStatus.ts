@@ -1,10 +1,20 @@
 import type { Entry, Habit } from './score'
+import { isScheduledOn, resolveEpoch, type ScheduleEpoch } from './schedule'
 
 /** The status of a single habit-day (the one source of truth for every
  *  "is this day counted" question). Precedence: future first, then done
- *  (done always wins, including on backfills and vacations), then skipped,
- *  then before-start, then vacation, then missed. */
-export type DayStatus = 'done' | 'missed' | 'skipped' | 'vacation' | 'before-start' | 'future'
+ *  (done always wins, including on backfills, vacations and unscheduled
+ *  days), then skipped, then before-start, then vacation, then unscheduled
+ *  (neutral — no scheduled opportunity under the habit's governing epoch),
+ *  then missed. */
+export type DayStatus =
+  | 'done'
+  | 'missed'
+  | 'skipped'
+  | 'vacation'
+  | 'before-start'
+  | 'future'
+  | 'unscheduled'
 
 /** Entry status as stored in the DB (`entries.status`, default 'done'). */
 export type EntryStatus = 'done' | 'skipped'
@@ -34,26 +44,42 @@ export interface DayStatusInput {
   today: string
   /** Local YYYY-MM-DD vacation dates (wired, unused until the vacation task). */
   vacations?: readonly string[]
+  /** Habit schedule epochs (Stage 1 of Habit Scheduling). Omitted or empty
+   *  means "no schedule context" → the exact pre-scheduling behaviour. When
+   *  supplied, a date governed by no epoch, or whose governing epoch gives it
+   *  no opportunity (mask off, off-anchor, transition week), is 'unscheduled'. */
+  schedule?: readonly ScheduleEpoch[]
 }
 
 /** Classify one habit-day. A future day is out of scope before anything
- *  else; then done (done always wins, including on backfilled entries
- *  before created_at and check-ins during vacations), skipped, before-start,
- *  vacation and finally missed. */
-export function dayStatus({ habit, date, entry, today, vacations = [] }: DayStatusInput): DayStatus {
+ *  else; then done (done always wins, including on backfilled entries,
+ *  check-ins during vacations and unscheduled days), skipped, before-start,
+ *  vacation, unscheduled and finally missed. */
+export function dayStatus({
+  habit,
+  date,
+  entry,
+  today,
+  vacations = [],
+  schedule,
+}: DayStatusInput): DayStatus {
   if (date > today) return 'future'
   if (isEntryDone(habit, entry)) return 'done'
   if (entry?.status === 'skipped') return 'skipped'
   if (date < habit.created_at) return 'before-start'
   if (vacations.includes(date)) return 'vacation'
+  if (schedule !== undefined && schedule.length > 0) {
+    const epoch = resolveEpoch(schedule, date)
+    if (epoch === undefined || !isScheduledOn(date, epoch)) return 'unscheduled'
+  }
   return 'missed'
 }
 
-/** Neutral days (skipped, vacation) are removed from the habit's timeline:
- *  they don't move the score, don't count and don't break streaks, and are
- *  excluded from completion-rate denominators. */
+/** Neutral days (skipped, vacation, unscheduled) are removed from the habit's
+ *  timeline: they don't move the score, don't count and don't break streaks,
+ *  and are excluded from completion-rate denominators. */
 export function isNeutral(status: DayStatus): boolean {
-  return status === 'skipped' || status === 'vacation'
+  return status === 'skipped' || status === 'vacation' || status === 'unscheduled'
 }
 
 /** The heatmap / tile-menu tap cycle: empty → done → skipped → empty.

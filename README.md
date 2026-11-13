@@ -99,7 +99,7 @@ Current live deployment: **Cloudflare Pages** — `https://habbits-tracker.pages
 
 ```
 src/
-  lib/        pure logic (score, dayStatus, dates, clock, color, profile, order, rings, avatar, backup + backupImport, vacation, wheel, haptics, stats, milestones, review, overview, reminders, notifications, supabase client)
+  lib/        pure logic (score (Stage 2 scoring law: optional `epochs` on scoreRange/scoreSeries — daily/weekdays/interval per-opportunity, weekly_target per closed week, legacy frozen snapshot), dayStatus, schedule (Stage 1 foundation), dates, clock, color, profile, order, rings, avatar, backup + backupImport, vacation, wheel, haptics, stats, milestones, review, overview, reminders, notifications, supabase client)
   hooks/      data hooks (useHabits, useEntries, useProfile, useAuth, useTheme, useThemeName, useUserSettings, useLogicalToday, useBackup, useImportBackup, useVacations, useLifetimeStats, useMediaQuery, useNotificationPermission, useNotificationSettings)
   components/ reusable UI (AppShell, HabitTile, TileMoreMenu, HabitReorderGrid, ProgressRings, Heatmap, ColorPicker, DayStartCard, ManageTileMobile (phone Settings tiles), VacationCard, WheelPicker, HabitFormMobile, JourneyCard, MilestonesCard, ThemeIconButton, NotificationCard + ReminderSettings (Reminders card), Review* (Performance Review page pieces), Profile*)
   contexts/   React context providers (ProfileContext, HabitsContext, SettingsContext, VacationsContext)
