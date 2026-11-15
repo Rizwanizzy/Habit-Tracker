@@ -1,6 +1,7 @@
 import { normalizeEmoji } from '../lib/emoji'
-import { IconArchive, IconUnarchive } from './icons'
+import { IconArchive, IconUnarchive, IconPencil } from './icons'
 import type { Habit } from '../lib/score'
+import { useNavigate } from 'react-router-dom'
 
 /** Phone (below-lg) habit tile for the Settings "Habits" card: a compact
  *  two-line tile — the emoji circle (habit-color ring, or a plain color dot)
@@ -19,6 +20,7 @@ export function ManageTileMobile({
   archived: boolean
   onToggleArchive: (h: Habit) => void
 }) {
+  const navigate = useNavigate()
   const emoji = normalizeEmoji(habit.emoji)
   const color = habit.color ?? '#3B82F6'
   return (
@@ -42,16 +44,40 @@ export function ManageTileMobile({
         ) : (
           <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: color }} />
         )}
-        <button
-          type="button"
-          onClick={() => onToggleArchive(habit)}
-          disabled={busy}
-          aria-label={`${archived ? 'Restore' : 'Archive'} ${habit.name}`}
-          title={archived ? 'Restore' : 'Archive'}
-          className="glass-pill relative grid size-9 shrink-0 place-items-center rounded-full text-fg-secondary transition-colors duration-150 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60 after:absolute after:-inset-1 after:content-['']"
-        >
-          {archived ? <IconUnarchive className="size-5" /> : <IconArchive className="size-5" />}
-        </button>
+        <div className="flex items-center gap-1.5">
+          {!archived && (
+            <button
+              type="button"
+              onClick={() => navigate(`/habits/${habit.id}/edit`)}
+              disabled={busy}
+              aria-label={`Edit ${habit.name}`}
+              className="glass-pill relative grid size-9 shrink-0 place-items-center rounded-full text-fg-secondary transition-colors duration-150 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60 after:absolute after:-inset-1 after:content-['']"
+            >
+              <IconPencil className="size-5" />
+            </button>
+          )}
+          {archived && (
+            <button
+              type="button"
+              disabled
+              className="glass-pill relative grid size-9 shrink-0 place-items-center rounded-full text-fg-muted/50 cursor-not-allowed after:absolute after:-inset-1 after:content-['']"
+              title="Unarchive to edit"
+              aria-label={`Cannot edit ${habit.name} — unarchive first`}
+            >
+              <IconPencil className="size-5" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onToggleArchive(habit)}
+            disabled={busy}
+            aria-label={`${archived ? 'Restore' : 'Archive'} ${habit.name}`}
+            title={archived ? 'Restore' : 'Archive'}
+            className="glass-pill relative grid size-9 shrink-0 place-items-center rounded-full text-fg-secondary transition-colors duration-150 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none disabled:opacity-60 after:absolute after:-inset-1 after:content-['']"
+          >
+            {archived ? <IconUnarchive className="size-5" /> : <IconArchive className="size-5" />}
+          </button>
+        </div>
       </div>
       <span className="line-clamp-2 min-w-0 break-words text-sm font-semibold leading-5 text-fg" title={habit.name}>
         {habit.name}

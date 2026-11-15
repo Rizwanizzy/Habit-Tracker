@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Habit } from '../lib/score'
+import type { ScheduleConfig, ScheduleMode, ScheduleType } from '../lib/schedule'
 import { getSupabase } from '../lib/supabase'
 import { toLogicalDateString } from '../lib/dates'
 import { diffOrder, sortHabits } from '../lib/order'
@@ -19,6 +20,14 @@ interface HabitRow {
   sort_order: number
   archived: boolean
   created_at: string
+  /** Stage 3 schedule columns — absent entirely on a pre-migration DB. */
+  schedule_type?: ScheduleMode | null
+  scheduled_days?: number | null
+  interval_days?: number | null
+  weekly_target?: number | null
+  /** Custom/legacy frequency columns (populated by the append_habit_schedule_epoch RPC). */
+  legacy_freq_times?: number | null
+  legacy_freq_days?: number | null
 }
 
 export type HabitInput = {
@@ -30,6 +39,15 @@ export type HabitInput = {
   freq_days: number
   color: string
   emoji: string | null
+  /** Stage 3 schedule columns — creation only. Omitting schedule_type keeps
+   *  the pre-scheduling behavior bit-for-bit (DB default 'daily'; the §9
+   *  normalize trigger reclassifies non-daily freq to 'legacy'). Edits of
+   *  existing schedules must NOT write these columns directly — the §7b
+   *  guard blocks it — they go through updateHabitSchedule (RPC). */
+  schedule_type?: ScheduleType
+  scheduled_days?: number
+  interval_days?: number
+  weekly_target?: number
 }
 
 export type HabitUpdate = Partial<HabitInput> & { archived?: boolean; sort_order?: number }
@@ -44,7 +62,14 @@ function mapHabit(row: HabitRow, dayStartHour: number): Habit {
   // created_at is a UTC timestamp; convert to the user's local LOGICAL date
   // (Asia/Kolkata shifted by the day start) — a habit created at 02:00 with a
   // 4 AM day start is eligible from the previous day.
-  return { ...row, created_at: toLogicalDateString(new Date(row.created_at), dayStartHour) }
+  return {
+    ...row,
+    created_at: toLogicalDateString(new Date(row.created_at), dayStartHour),
+    // A null schedule_type (pre-backfill window) means "no schedule data".
+    schedule_type: row.schedule_type ?? undefined,
+    legacy_freq_times: row.legacy_freq_times ?? undefined,
+    legacy_freq_days: row.legacy_freq_days ?? undefined,
+  }
 }
 
 async function fetchHabits(includeArchived: boolean, dayStartHour: number): Promise<Habit[]> {
@@ -93,6 +118,52 @@ export async function updateHabit(
   const { data, error } = await sb.from('habits').update(values).eq('id', id).select('*').single()
   if (error) throw error
   return mapHabit(data as HabitRow, dayStartHour)
+}
+
+/** Stage 3: change an existing habit's schedule through the approved v7 RPC
+ *  (append_habit_schedule_epoch). The RPC re-checks ownership, validates the
+ *  payload, syncs the freq mirror and appends/coalesces the history epoch
+ *  atomically — direct UPDATEs of the schedule/frequency columns are blocked
+ *  by the §7b guard once the migration is applied. Throws for the caller to
+ *  display; nothing is written when it fails. */
+export async function updateHabitSchedule(
+  id: string,
+  schedule: ScheduleConfig,
+): Promise<void> {
+  const sb = getSupabase()
+  const { error } = await sb.rpc('append_habit_schedule_epoch', {
+    p_habit_id: id,
+    p_schedule_type: schedule.schedule_type,
+    p_scheduled_days: schedule.scheduled_days ?? null,
+    p_interval_days: schedule.interval_days ?? null,
+    p_weekly_target: schedule.weekly_target ?? null,
+    p_legacy_freq_times: schedule.legacy_freq_times ?? null,
+    p_legacy_freq_days: schedule.legacy_freq_days ?? null,
+  })
+  if (error) throw error
+}
+
+/** Atomically update habit details and (optionally) its schedule in one RPC. */
+export async function updateHabitAtomically(
+  id: string,
+  values: Pick<HabitUpdate, 'name' | 'type' | 'target' | 'unit' | 'color' | 'emoji'>,
+  schedule: ScheduleConfig | null,
+): Promise<void> {
+  const { error } = await getSupabase().rpc('save_habit_with_schedule_v7', {
+    p_habit_id: id,
+    p_details: values,
+    p_schedule: schedule
+      ? {
+          schedule_type: schedule.schedule_type,
+          scheduled_days: schedule.scheduled_days ?? null,
+          interval_days: schedule.interval_days ?? null,
+          weekly_target: schedule.weekly_target ?? null,
+          legacy_freq_times: schedule.legacy_freq_times ?? null,
+          legacy_freq_days: schedule.legacy_freq_days ?? null,
+        }
+      : null,
+  })
+  if (error) throw error
 }
 
 /** Shared habit list state (all habits, archived included — views filter).

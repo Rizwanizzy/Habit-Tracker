@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
 interface Option {
   key: string
@@ -37,7 +37,9 @@ function useNarrowViewport(): boolean {
 
 /** Segmented range switch (DESIGN.md §6): CSS Grid layout guaranteeing that
  *  every segment occupies exactly 1/N equal width, with an absolute sliding
- *  accent pill sized to match the grid cell boundaries down to the pixel. */
+ *  accent pill sized to match the grid cell boundaries down to the pixel.
+ *  On desktop/tablet, uses short labels at intermediate widths to prevent
+ *  clipping/overlap. On narrow mobile (<400px), always uses short labels. */
 export function RangeSwitch({
   options,
   value,
@@ -51,9 +53,29 @@ export function RangeSwitch({
     options.findIndex((o) => o.key === value),
   )
   const isNarrow = useNarrowViewport()
+  // Desktop: use short labels when container would be < ~600px to prevent clipping
+  const [useShortLabels, setUseShortLabels] = useState(false)
+
+  // Track container width for responsive label switching
+  const containerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const updateLabelMode = () => {
+      const width = containerRef.current?.offsetWidth ?? 0
+      // Switch to short labels when each segment would be < 100px
+      // 5 segments * 100px = 500px minimum for full labels
+      setUseShortLabels(width < 500)
+    }
+    updateLabelMode()
+    const ro = new ResizeObserver(updateLabelMode)
+    if (containerRef.current) ro.observe(containerRef.current)
+    return () => ro.disconnect()
+  }, [])
+
+  const shouldUseShort = isNarrow || useShortLabels
 
   return (
     <div
+      ref={containerRef}
       role="radiogroup"
       aria-label={ariaLabel}
       className={`relative grid rounded-pill border border-border bg-surface p-0.5 select-none ${
@@ -72,7 +94,7 @@ export function RangeSwitch({
         }}
       />
       {options.map((opt, i) => {
-        const label = isNarrow && opt.short ? opt.short : opt.label
+        const label = shouldUseShort && opt.short ? opt.short : opt.label
         return (
           <button
             key={opt.key}

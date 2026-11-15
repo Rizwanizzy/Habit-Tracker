@@ -1,9 +1,11 @@
 import type { CSSProperties } from 'react'
 import type { Entry, Habit } from '../lib/score'
 import { isDone } from '../lib/score'
+import { dayStatus, isNeutral } from '../lib/dayStatus'
 import { addDays, parseLocalDate } from '../lib/dates'
 import { useLogicalToday } from '../hooks/useLogicalToday'
 import { sparseMonthLabels } from '../lib/completion'
+import type { ScheduleEpoch } from '../lib/schedule'
 
 const CELL = 14
 const GAP = 4
@@ -19,6 +21,8 @@ interface Props {
   /** Concrete vacation dates in the grid window: a vacation day gets the
    *  same neutral outlined look as a skipped day (unless it's done). */
   vacations?: readonly string[]
+  /** Schedule history epochs for this habit; off-days become neutral. */
+  epochs?: readonly ScheduleEpoch[]
 }
 
 /** Levels per DESIGN.md §7 heatmap intensities (12/35/65/100%):
@@ -47,10 +51,11 @@ function levelStyle(habit: Habit, level: number): CSSProperties {
   return { backgroundColor: 'var(--surface-2)' }
 }
 
-function statusText(level: number, future: boolean, kind?: 'skipped' | 'vacation'): string {
+function statusText(level: number, future: boolean, kind?: 'skipped' | 'vacation' | 'unscheduled'): string {
   if (future) return 'Not started yet'
   if (kind === 'skipped') return 'Skipped'
   if (kind === 'vacation') return 'Vacation'
+  if (kind === 'unscheduled') return 'Off day'
   if (level === 0) return 'Not completed'
   if (level === 1) return 'Trace progress'
   if (level === 2) return 'Partial progress'
@@ -58,10 +63,10 @@ function statusText(level: number, future: boolean, kind?: 'skipped' | 'vacation
   return 'Completed'
 }
 
-type Cell = { date: string; level: number; future: boolean; skipped: boolean; vacation: boolean }
+type Cell = { date: string; level: number; future: boolean; skipped: boolean; vacation: boolean; unscheduled: boolean }
 
 /** Small legend under the grid (DESIGN.md §7): Done / Partial (numeric
- *  habits only) / Skipped / Not completed. */
+ *  habits only) / Off day / Skipped / Vacation / Not completed. */
 function HeatmapLegend({ habit }: { habit: Habit }) {
   const color = habit.color ?? '#3B82F6'
   const sample = 'size-3.5 shrink-0 rounded-[4px]'
@@ -77,6 +82,13 @@ function HeatmapLegend({ habit }: { habit: Habit }) {
           Partial
         </span>
       )}
+      <span className="flex items-center gap-1.5">
+        <span
+          className={sample}
+          style={{ backgroundColor: 'transparent', border: '1.5px solid color-mix(in srgb, var(--fg) 40%, transparent)' }}
+        />
+        Off day
+      </span>
       <span className="flex items-center gap-1.5">
         <span
           className={sample}
@@ -102,7 +114,7 @@ function HeatmapLegend({ habit }: { habit: Habit }) {
 /** Loop-style calendar heatmap (DESIGN.md §7): weeks as columns, Sun–Sat as
  *  rows, 14px cells with 4px radius and gap, month labels on top, weekday
  *  labels left. Tapping a day toggles it. */
-export function Heatmap({ habit, entries, weeks = 18, onToggle, vacations = [] }: Props) {
+export function Heatmap({ habit, entries, weeks = 18, onToggle, vacations = [], epochs }: Props) {
   const today = useLogicalToday()
   const byDate = new Map(entries.map((e) => [e.date, e]))
   const dow = parseLocalDate(today).getDay()
@@ -119,14 +131,20 @@ export function Heatmap({ habit, entries, weeks = 18, onToggle, vacations = [] }
       const date = addDays(gridStart, w * 7 + i)
       const future = date > today
       const entry = byDate.get(date)
+      // Use dayStatus with schedule to correctly mark off-days as unscheduled.
+      const status = future
+        ? 'future'
+        : dayStatus({ habit, date, entry, today, vacations, schedule: epochs })
+      const skipped = !future && entry?.status === 'skipped'
+      const vacation = !future && vacations.includes(date) && !isDone(habit, entry)
+      const unscheduled = !future && isNeutral(status) && !skipped && !vacation
       col.push({
         date,
         level: future ? -1 : levelFor(habit, entry),
         future,
-        // A skipped row (value 0) is a neutral day, not a 0% miss...
-        skipped: !future && entry?.status === 'skipped',
-        // ...and so is a vacation day, unless a check-in marks it done.
-        vacation: !future && vacations.includes(date) && !isDone(habit, entry),
+        skipped,
+        vacation,
+        unscheduled,
       })
     }
     const month = parseLocalDate(col[0].date).getMonth()
@@ -190,7 +208,7 @@ export function Heatmap({ habit, entries, weeks = 18, onToggle, vacations = [] }
                     />
                   )
                 }
-                const kind = cell.skipped ? 'skipped' : cell.vacation ? 'vacation' : undefined
+                const kind = cell.unscheduled ? 'unscheduled' : cell.skipped ? 'skipped' : cell.vacation ? 'vacation' : undefined
                 const title = `${cell.date} — ${statusText(cell.level, cell.future, kind)}`
                 return (
                   <button
@@ -200,7 +218,7 @@ export function Heatmap({ habit, entries, weeks = 18, onToggle, vacations = [] }
                     onClick={() => onToggle?.(cell.date)}
                     className="cursor-pointer rounded-[4px] transition-transform duration-150 active:scale-90"
                     style={
-                      cell.skipped || cell.vacation
+                      cell.unscheduled || cell.skipped || cell.vacation
                         ? {
                             // Neutral outlined look — never a 0% miss.
                             backgroundColor: 'transparent',

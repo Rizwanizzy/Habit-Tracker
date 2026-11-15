@@ -33,3 +33,6 @@ worker/.wrangler/
 .dev.vars*
 !.dev.vars.example
 !.env.example
+.env.staging
+
+.env.localtest

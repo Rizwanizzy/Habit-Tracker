@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { extractError } from '../hooks/useHabits'
 import { useHabitsContext } from '../contexts/HabitsContext'
 import { DayStartCard } from '../components/DayStartCard'
@@ -7,6 +7,7 @@ import { BackupCard } from '../components/BackupCard'
 import { VacationCard } from '../components/VacationCard'
 import { NotificationCard } from '../components/NotificationCard'
 import { ManageTileMobile } from '../components/ManageTileMobile'
+import { IconPencil, IconArchive, IconUnarchive } from '../components/icons'
 import type { Habit } from '../lib/score'
 import { normalizeEmoji } from '../lib/emoji'
 
@@ -19,6 +20,7 @@ function ManageRow({
   busy: boolean
   onToggleArchive: (h: Habit) => void
 }) {
+  const navigate = useNavigate()
   const archived = habit.archived === true
   const emoji = normalizeEmoji(habit.emoji)
   return (
@@ -40,17 +42,43 @@ function ManageRow({
           style={{ backgroundColor: habit.color ?? '#3B82F6' }}
         />
       )}
-      <span className="manage-name min-w-0 flex-1 truncate text-body font-medium text-fg" title={habit.name}>
+      <span className="manage-name min-w-0 flex-1 break-words text-body font-medium text-fg leading-snug" style={{ maxWidth: 'calc(100% - 120px)' }}>
         {habit.name}
       </span>
-      <button
-        type="button"
-        onClick={() => onToggleArchive(habit)}
-        disabled={busy}
-        className="manage-archive relative glass-pill h-11 shrink-0 rounded-pill px-4 text-body font-medium text-fg-secondary transition-colors duration-150 hover:text-fg disabled:opacity-60"
-      >
-        {archived ? 'Restore' : 'Archive'}
-      </button>
+      <div className="flex items-center gap-2 shrink-0">
+        {!archived && (
+          <button
+            type="button"
+            onClick={() => navigate(`/habits/${habit.id}/edit`)}
+            disabled={busy}
+            className="manage-edit relative glass-pill h-11 shrink-0 w-11 place-items-center rounded-full text-fg-secondary transition-colors duration-150 hover:text-fg disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none after:absolute after:-inset-1 after:content-['']"
+            aria-label={`Edit ${habit.name}`}
+            title="Edit"
+          >
+            <IconPencil className="size-5" />
+          </button>
+        )}
+        {archived && (
+          <button
+            type="button"
+            disabled
+            className="manage-edit relative glass-pill h-11 shrink-0 w-11 place-items-center rounded-full text-fg-muted/50 cursor-not-allowed after:absolute after:-inset-1 after:content-['']"
+            title="Unarchive to edit"
+            aria-label={`Cannot edit ${habit.name} — unarchive first`}
+          >
+            <IconPencil className="size-5" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => onToggleArchive(habit)}
+          disabled={busy}
+          className="manage-archive relative glass-pill h-11 shrink-0 w-11 place-items-center rounded-full text-fg-secondary transition-colors duration-150 hover:text-fg disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none after:absolute after:-inset-1 after:content-['']"
+          aria-label={`${archived ? 'Restore' : 'Archive'} ${habit.name}`}
+        >
+          {archived ? <IconUnarchive className="size-5" /> : <IconArchive className="size-5" />}
+        </button>
+      </div>
     </li>
   )
 }

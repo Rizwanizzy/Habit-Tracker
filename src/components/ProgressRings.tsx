@@ -6,8 +6,9 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { tint } from '../lib/color'
-import { isDone, type Entry, type Habit } from '../lib/score'
+import { isDone, isEntryDone, weeklyTargetProgress, type Entry, type Habit } from '../lib/score'
 import { dayStatus, isNeutral } from '../lib/dayStatus'
+import { isTransitionWeek, opportunityScope, shouldShowHabitOnDate, type ScheduleEpoch } from '../lib/schedule'
 import { layoutRings, ringGeometry, segmentArcs, arcRotateDeg } from '../lib/rings'
 import { RingTooltip } from './RingTooltip'
 
@@ -22,6 +23,10 @@ interface Props {
   paused?: boolean
   /** Concrete vacation dates in the stats window (dayStatus neutrality). */
   vacations?: readonly string[]
+  /** Schedule epochs per habit (Stage 4A): off-days are neutral and weekly-
+   *  target habits are week-scoped — they drop out of the day's done/total
+   *  pair and their arcs fill with the week's progress (done / target). */
+  epochsByHabit?: Record<string, ScheduleEpoch[]>
 }
 
 function formatNumber(n: number): string {
@@ -48,6 +53,20 @@ function statusText(habit: Habit, entry: Entry | undefined, vacationDay: boolean
   return entry && isDone(habit, entry) ? 'done' : 'not done'
 }
 
+/** Tooltip/aria text for one habit on the date: weekly progress for a
+ *  week-scoped habit ("2/3 this week", or "0/4 this partial week" in the
+ *  habit's first transition week), the day state otherwise. */
+function rowStatusText(
+  habit: Habit,
+  entry: Entry | undefined,
+  weekly: { done: number; target: number; partial?: boolean } | null,
+): string {
+  if (weekly) {
+    return `${formatNumber(weekly.done)}/${formatNumber(weekly.target)} this${weekly.partial ? ' partial' : ''} week`
+  }
+  return statusText(habit, entry, false)
+}
+
 interface Row {
   habit: Habit
   radius: number
@@ -64,7 +83,7 @@ interface Row {
  *  (stroke-dasharray) instead of remounting. The SVG-based pointer picker
  *  (nearest arc by polar distance) is the hit area — no per-arc listeners,
  *  and tapping never toggles anything. */
-export function ProgressRings({ habits, entriesByHabit, date, caption = 'done today', paused = false, vacations = [] }: Props) {
+export function ProgressRings({ habits, entriesByHabit, date, caption = 'done today', paused = false, vacations = [], epochsByHabit }: Props) {
   // First render draws the rings in over 900ms; afterwards they morph in 400ms.
   const [mounted, setMounted] = useState(false)
   const [drawn, setDrawn] = useState(false)
@@ -82,7 +101,15 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
 
   useEffect(() => () => { if (tipTimer.current !== null) window.clearTimeout(tipTimer.current) }, [])
 
-  const layout = useMemo(() => layoutRings(habits.map((h) => h.id)), [habits])
+  // Filter habits for visibility on the selected date (Stage 4E)
+  const visibleHabits = useMemo(() => {
+    return habits.filter((habit) => {
+      const list = entriesByHabit[habit.id] ?? []
+      return shouldShowHabitOnDate(habit, list, date, date, vacations, epochsByHabit?.[habit.id]) === 'visible'
+    })
+  }, [habits, entriesByHabit, date, vacations, epochsByHabit])
+
+  const layout = useMemo(() => layoutRings(visibleHabits.map((h) => h.id)), [visibleHabits])
   const numRings = layout.rings.length
   // ringGeometry packs sharp-edged rings between a ≥96px center hole and the
   // rim of the 240-unit box (hole shrinks as rings are added; strokes thin
@@ -91,7 +118,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
   const geo = useMemo(() => ringGeometry(size, numRings), [size, numRings])
   const C = size / 2
 
-  const byId = useMemo(() => new Map(habits.map((h) => [h.id, h])), [habits])
+  const byId = useMemo(() => new Map(visibleHabits.map((h) => [h.id, h])), [visibleHabits])
   const rows = useMemo(() => {
     const list: Row[] = []
     layout.rings.forEach((ring, ringIndex) => {
@@ -112,9 +139,32 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
   // Center totals count ALL active habits — not just the ones on the rings
   // and not only those within the 28-habit rings cap. A skipped habit is
   // excluded from the total (neutral day, never a 0% miss); days before a
-  // habit's start keep counting as empty rings (old behavior).
-  const total = habits.filter(
+  // habit's start keep counting as empty rings (old behavior). With epochs,
+  // an off-day is 'unscheduled' (neutral, same exclusion) and a weekly-target
+  // habit is week-scoped: it leaves the day's done/total pair entirely —
+  // its progress is per Monday–Sunday week and lives in its own arc.
+  const isWeekScoped = (habitId: string): boolean => {
+    const epochs = epochsByHabit?.[habitId]
+    return epochs !== undefined && epochs.length > 0 && opportunityScope(epochs, date) === 'week'
+  }
+  /** Weekly progress for one habit on the date ({done, target}, flagged
+   *  `partial` while the epoch's first transition week runs), or null. */
+  const weeklyProgress = (
+    habitId: string,
+  ): { done: number; target: number; partial?: boolean } | null => {
+    const epochs = epochsByHabit?.[habitId]
+    const habit = byId.get(habitId)
+    if (epochs === undefined || epochs.length === 0 || habit === undefined) return null
+    const wp = weeklyTargetProgress(habit, entriesByHabit[habitId] ?? [], date, epochs)
+    if (wp === null) return null
+    return isTransitionWeek(epochs, date) ? { ...wp, partial: true } : wp
+  }
+
+  // For center totals, we consider ALL habits (not just visible ones) to match
+  // the daily denominator logic from Today.tsx
+  const allTotal = habits.filter(
     (h) =>
+      !isWeekScoped(h.id) &&
       !isNeutral(
         dayStatus({
           habit: h,
@@ -122,11 +172,13 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
           entry: (entriesByHabit[h.id] ?? []).find((e) => e.date === date),
           today: date,
           vacations,
+          schedule: epochsByHabit?.[h.id],
         }),
       ),
   ).length
-  const done = habits.filter((h) =>
-    isDone(h, (entriesByHabit[h.id] ?? []).find((e) => e.date === date)),
+  const allDone = habits.filter(
+    (h) =>
+      !isWeekScoped(h.id) && isDone(h, (entriesByHabit[h.id] ?? []).find((e) => e.date === date)),
   ).length
 
   function clearTip() {
@@ -185,7 +237,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
   const tipRow = tip ? rows.find((row) => row.habit.id === tip.id) : undefined
   // Numeral scales to the shrinking center: full size when roomy, smaller
   // for many-digit totals, smallest when 6–7 rings leave a 96px-ish hole.
-  const compact = total > 9 || numRings > 3
+  const compact = allTotal > 9 || numRings > 3
   const numeralSize = numRings > 5 ? '1.35rem' : compact ? '1.5rem' : undefined
   const showCaption = numRings <= 5
 
@@ -196,7 +248,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
         className="w-full max-w-[240px]"
         style={{ touchAction: 'pan-y' }}
         role="img"
-        aria-label={`${done} of ${total} habits done on ${date}`}
+        aria-label={`${allDone} of ${allTotal} habits done on ${date}`}
         onPointerMove={onMove}
         onPointerDown={onDown}
         onPointerLeave={clearTip}
@@ -205,9 +257,15 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
         {rows.map(({ habit, radius, width, arc }) => {
           const c = habit.color ?? '#3B82F6'
           const entry = (entriesByHabit[habit.id] ?? []).find((e) => e.date === date)
-          const frac = fraction(habit, entry)
+          const weekly = isWeekScoped(habit.id)
+            ? weeklyProgress(habit.id)
+            : null
+          // Stage 4E: Weekly-target rings show DAILY completion (0% or 100%),
+          // not weekly progress. The weekly progress caption remains separate.
+          const doneToday = entry !== undefined && isEntryDone(habit, entry)
+          const frac = weekly ? (doneToday ? 1 : 0) : fraction(habit, entry)
           const circ = 2 * Math.PI * radius
-          const label = `${habit.name}: ${statusText(habit, entry, vacations.includes(date))}`
+          const label = `${habit.name}: ${weekly ? rowStatusText(habit, undefined, weekly) : statusText(habit, entry, vacations.includes(date))}`
           const drawClass = mounted && !drawn ? 'ring-draw' : ''
 
           if (!arc) {
@@ -272,7 +330,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
           <p className="text-stat tabular-nums text-fg" style={numeralSize ? { fontSize: numeralSize } : undefined}>
             {paused ? <span className="text-body font-semibold">Paused</span> : (
               <>
-                {done} / {total}
+                {allDone} / {allTotal}
               </>
             )}
           </p>
@@ -285,7 +343,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
             {paused ? (
               <span className="text-[11px] font-semibold">Paused</span>
             ) : (
-              `${total > 0 ? Math.round((done / total) * 100) : 0}%`
+              `${allTotal > 0 ? Math.round((allDone / allTotal) * 100) : 0}%`
             )}
           </p>
         </div>
@@ -302,10 +360,19 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
           const tipR = tipRow.radius + tipRow.width
           const x = C + tipR * Math.cos(mid)
           const y = C + tipR * Math.sin(mid)
+          const tipWeekly = isWeekScoped(tip.id) ? weeklyProgress(tip.id) : null
           return (
             <RingTooltip
               habit={tip}
-              status={statusText(tip, (entriesByHabit[tip.id] ?? []).find((e) => e.date === date), vacations.includes(date))}
+              status={
+                tipWeekly
+                  ? rowStatusText(tip, undefined, tipWeekly)
+                  : statusText(
+                      tip,
+                      (entriesByHabit[tip.id] ?? []).find((e) => e.date === date),
+                      vacations.includes(date),
+                    )
+              }
               x={(x / size) * 100}
               y={(y / size) * 100}
               above={y < C}

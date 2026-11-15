@@ -1,5 +1,14 @@
 import { dayStatus, isEntryDone, isNeutral, type DayStatus } from './dayStatus'
-import { isTransitionWeek, resolveEpoch, weekEnd, weekStart, type ScheduleEpoch } from './schedule'
+export { isEntryDone } from './dayStatus'
+import {
+  isTransitionWeek,
+  isValidWeeklyTarget,
+  resolveEpoch,
+  weekEnd,
+  weekStart,
+  type ScheduleEpoch,
+  type ScheduleMode,
+} from './schedule'
 
 export const SMOOTHING_CONSTANT = 0.05
 
@@ -31,6 +40,16 @@ export type Habit = {
   archived?: boolean
   /** Local YYYY-MM-DD date the habit counts from. */
   created_at: string
+  /** Stage 3 schedule columns (present once the v7 migration is applied;
+   *  'legacy' = a frozen pre-scheduling freq). Type-only addition — all
+   *  scoring reads them via the epoch history, never from the habit row. */
+  schedule_type?: ScheduleMode
+  scheduled_days?: number | null
+  interval_days?: number | null
+  weekly_target?: number | null
+  /** Custom/legacy frequency (populated by the append_habit_schedule_epoch RPC). */
+  legacy_freq_times?: number | null
+  legacy_freq_days?: number | null
 }
 
 export type EntryStatus = 'done' | 'skipped'
@@ -106,7 +125,11 @@ export function currentStreak(
   entries: Entry[],
   asOf: string,
   vacations: readonly string[] = [],
+  epochs?: readonly ScheduleEpoch[],
 ): number {
+  if (epochs !== undefined && epochs.length > 0) {
+    return scheduledCurrentStreak(habit, entries, asOf, vacations, epochs)
+  }
   const byDate = new Map(entries.map((e) => [e.date, e]))
   let streak = 0
   let d = asOf
@@ -127,7 +150,11 @@ export function bestStreak(
   habit: Habit,
   entries: Entry[],
   vacations: readonly string[] = [],
+  epochs?: readonly ScheduleEpoch[],
 ): number {
+  if (epochs !== undefined && epochs.length > 0) {
+    return scheduledBestStreak(habit, entries, vacations, epochs)
+  }
   const byDate = new Map(entries.map((e) => [e.date, e]))
   let best = 0
   let cur = 0
@@ -150,12 +177,160 @@ export function bestStreak(
   return best
 }
 
+// --- Stage 4A scheduled streaks (epochs supplied) ------------------------------
+// Day-granularity for daily/weekdays/interval/legacy epochs (dayStatus marks
+// off-days 'unscheduled' → neutral, so they neither count nor break) and
+// WEEK granularity for weekly_target: a full Monday–Sunday week governed by
+// a weekly epoch counts as one unit when its done entries reach M (done wins
+// on vacation days; skipped rows never count). The schedule active on a
+// week's Monday governs that whole week — the ratified Stage 2 rule — so
+// later completions after a mid-week switch still count toward the original
+// weekly target. An open (unclosed) week that has not yet reached M is
+// pending — it neither counts nor breaks, because a week that has not ended
+// has decided nothing (an open week that already reached M counts — done
+// wins). Transition weeks (epoch effective Tue–Sun) are neutral, matching
+// the Stage 2 scoring law's weekly handling.
+
+function scheduledCurrentStreak(
+  habit: Habit,
+  entries: Entry[],
+  asOf: string,
+  vacations: readonly string[],
+  epochs: readonly ScheduleEpoch[],
+): number {
+  const byDate = new Map(entries.map((e) => [e.date, e]))
+  let streak = 0
+  let d = asOf
+  while (d >= habit.created_at) {
+    // The schedule active on the week's Monday governs the whole week.
+    const ws = weekStart(d)
+    const weekEpoch = resolveEpoch(epochs, ws)
+    if (
+      weekEpoch !== undefined &&
+      weekEpoch.schedule_type === 'weekly_target' &&
+      !isTransitionWeek(epochs, ws) &&
+      ws >= habit.created_at
+    ) {
+      const we = weekEnd(d)
+      if (weeklyTargetAchieved(habit, byDate, ws, we, weekEpoch.weekly_target ?? 0)) {
+        streak++
+      } else if (we > asOf) {
+        // Open week, not yet achieved: pending, not a failure — keep the
+        // streak from the closed weeks behind it.
+      } else {
+        break // a closed, unachieved week ends the streak
+      }
+      d = addDaysStr(ws, -1) // the week is decided once; jump past it
+      continue
+    }
+    const status = dayStatus({
+      habit,
+      date: d,
+      entry: byDate.get(d),
+      today: asOf,
+      vacations,
+      schedule: epochs,
+    })
+    if (status === 'done') {
+      streak++
+    } else if (!isNeutral(status)) {
+      break
+    }
+    d = addDaysStr(d, -1)
+  }
+  return streak
+}
+
+function scheduledBestStreak(
+  habit: Habit,
+  entries: Entry[],
+  vacations: readonly string[],
+  epochs: readonly ScheduleEpoch[],
+): number {
+  const byDate = new Map(entries.map((e) => [e.date, e]))
+  const dates = entries.map((e) => e.date).sort()
+  if (dates.length === 0) return 0
+  const end = dates[dates.length - 1]
+  let best = 0
+  let cur = 0
+  let d = habit.created_at
+  while (d <= end) {
+    // The schedule active on the week's Monday governs the whole week.
+    const ws = weekStart(d)
+    const weekEpoch = resolveEpoch(epochs, ws)
+    if (
+      weekEpoch !== undefined &&
+      weekEpoch.schedule_type === 'weekly_target' &&
+      !isTransitionWeek(epochs, ws) &&
+      ws >= habit.created_at
+    ) {
+      const we = weekEnd(d)
+      if (weeklyTargetAchieved(habit, byDate, ws, we, weekEpoch.weekly_target ?? 0)) {
+        cur++
+        if (cur > best) best = cur
+      } else if (we <= end) {
+        cur = 0 // a closed, unachieved week resets the run
+      }
+      // An open week not yet achieved is pending — it carries, because more
+      // days of that week can still reach M.
+      d = addDaysStr(we, 1)
+      continue
+    }
+    const status = dayStatus({
+      habit,
+      date: d,
+      entry: byDate.get(d),
+      today: end,
+      vacations,
+      schedule: epochs,
+    })
+    if (status === 'done') {
+      cur++
+      if (cur > best) best = cur
+    } else if (!isNeutral(status)) {
+      cur = 0
+    }
+    d = addDaysStr(d, 1)
+  }
+  return best
+}
+
+/** Weekly-target progress for the week containing `date` (Monday–Sunday):
+ *  done entries in the week (done wins on vacation days; skipped rows never
+ *  count) against the habit's governing epoch target, or the habit row's
+ *  schedule columns when no epochs are supplied (pre-migration rows have no
+ *  history to read). Returns null when the habit is not on a weekly target
+ *  for that week (no weekly epoch governs it and the row says otherwise). */
+export function weeklyTargetProgress(
+  habit: Habit,
+  entries: Entry[],
+  date: string,
+  epochs?: readonly ScheduleEpoch[],
+): { done: number; target: number } | null {
+  const epoch = epochs !== undefined && epochs.length > 0 ? resolveEpoch(epochs, date) : undefined
+  if (epoch !== undefined && epoch.schedule_type !== 'weekly_target') return null
+  if (epoch === undefined && habit.schedule_type !== 'weekly_target') return null
+  const target = epoch !== undefined ? (epoch.weekly_target ?? 0) : (habit.weekly_target ?? 0)
+  if (!isValidWeeklyTarget(target)) return null
+  const byDate = new Map(entries.map((e) => [e.date, e]))
+  const firstDay = weekStart(date)
+  const lastDay = weekEnd(date)
+  let done = 0
+  let d = firstDay
+  while (d <= lastDay) {
+    if (isEntryDone(habit, byDate.get(d))) done++
+    d = addDaysStr(d, 1)
+  }
+  return { done, target }
+}
+
 export function completionRate(
   habit: Habit,
   entries: Entry[],
   startDate: string,
   endDate: string,
   vacations: readonly string[] = [],
+  epochs?: readonly ScheduleEpoch[],
 ): number {
   const byDate = new Map(entries.map((e) => [e.date, e]))
   const start = habit.created_at > startDate ? habit.created_at : startDate
@@ -163,7 +338,14 @@ export function completionRate(
   let done = 0
   let d = start
   while (d <= endDate) {
-    const status = classify(habit, byDate, d, endDate, vacations)
+    const status = dayStatus({
+      habit,
+      date: d,
+      entry: byDate.get(d),
+      today: endDate,
+      vacations,
+      schedule: epochs,
+    })
     // Neutral days are excluded from the denominator: zero eligible days
     // keeps the rate at 0 (never NaN).
     if (!isNeutral(status)) {
@@ -212,23 +394,46 @@ export function scoreSeries(
 // daily/weekdays/interval → one step per scheduled opportunity (alpha
 // 1 − 0.95^1; unscheduled days carry). weekly_target → one step per CLOSED
 // Monday–Sunday week (alpha 1 − 0.95^M, achieved = done entries ≥ M; current,
-// incomplete and transition weeks carry). legacy → the frozen-snapshot daily
-// formula 1 − 0.95^(M/N) over every day, exactly like the pre-scheduling walk.
+// incomplete and transition weeks carry). legacy/custom → the frozen-snapshot
+// daily formula 1 − 0.95^(X/Y) over every day, exactly like the pre-scheduling
+// walk for an equivalent frequency.
 
-/** EMA step size for one opportunity of the epoch's mode: the frozen legacy
- *  snapshot formula for legacy epochs, the base opportunity step otherwise. */
+/** A valid Custom frequency snapshot: whole X/Y with X ≤ Y and Y ≤ 31,
+ *  matching the Custom form/DB law. */
+function validCustomFrequency(
+  times: number | null | undefined,
+  days: number | null | undefined,
+): { times: number; days: number } | null {
+  if (typeof times !== 'number' || typeof days !== 'number') return null
+  if (!Number.isInteger(times) || !Number.isInteger(days)) return null
+  if (times < 1 || days < 1 || times > days || days > 31) return null
+  return { times, days }
+}
+
+/** EMA step size for one opportunity of the epoch's mode: the frozen snapshot
+ *  formula for legacy/custom epochs, the base opportunity step otherwise.
+ *  A missing or corrupt Custom snapshot falls back to the base opportunity
+ *  step rather than a zero, negative or oversized alpha; it deliberately does
+ *  not borrow the habit's current mirror, which may describe a later schedule
+ *  than the historical date being scored. */
 function epochAlpha(habit: Habit, epoch: ScheduleEpoch): number {
   if (epoch.schedule_type === 'legacy') {
     const times = epoch.legacy_freq_times ?? habit.freq_times
     const days = epoch.legacy_freq_days ?? habit.freq_days
     return alphaFor(times / Math.max(1, days))
   }
+  if (epoch.schedule_type === 'custom') {
+    const freq = validCustomFrequency(epoch.legacy_freq_times, epoch.legacy_freq_days)
+    return freq ? alphaFor(freq.times / freq.days) : OPPORTUNITY_ALPHA
+  }
   return OPPORTUNITY_ALPHA
 }
 
 /** Was a weekly-target week achieved? Done entries count (including on
- *  vacation days — done wins); skipped rows are never done. */
-function weeklyTargetAchieved(
+ *  vacation days — done wins); skipped rows are never done. Shared with the
+ *  Overview completion series (Stage 4B) so the weekly rule lives in one
+ *  place. */
+export function weeklyTargetAchieved(
   habit: Habit,
   byDate: Map<string, Entry>,
   firstDay: string,

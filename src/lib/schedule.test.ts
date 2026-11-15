@@ -21,6 +21,10 @@ import {
   isTransitionEpoch,
   transitionWeekStart,
   isTransitionWeek,
+  opportunityScope,
+  weekdayMaskCount,
+  freqMirrorFor,
+  scheduleLabel,
   type ScheduleEpoch,
 } from './schedule'
 
@@ -193,6 +197,8 @@ describe('validateSchedule (error-list convention)', () => {
     expect(validateSchedule({ schedule_type: 'weekdays', scheduled_days: 127 })).toEqual([])
     expect(validateSchedule({ schedule_type: 'interval', interval_days: 3 })).toEqual([])
     expect(validateSchedule({ schedule_type: 'weekly_target', weekly_target: 4 })).toEqual([])
+    expect(validateSchedule({ schedule_type: 'custom', legacy_freq_times: 3, legacy_freq_days: 7 })).toEqual([])
+    expect(validateSchedule({ schedule_type: 'custom', legacy_freq_times: 1, legacy_freq_days: 1 })).toEqual([])
   })
 
   it('rejects invalid payloads with a message each', () => {
@@ -202,6 +208,17 @@ describe('validateSchedule (error-list convention)', () => {
     expect(validateSchedule({ schedule_type: 'weekly_target', weekly_target: 0 }).length).toBe(1)
     expect(validateSchedule({ schedule_type: 'weekly_target', weekly_target: 9 }).length).toBe(1)
     expect(validateSchedule({ schedule_type: 'nope' as never }).length).toBe(1)
+    expect(validateSchedule({ schedule_type: 'custom', legacy_freq_times: 0, legacy_freq_days: 7 }).length).toBe(1)
+    expect(validateSchedule({ schedule_type: 'custom', legacy_freq_times: 3, legacy_freq_days: 0 }).length).toBe(1)
+    expect(validateSchedule({ schedule_type: 'custom', legacy_freq_times: 5, legacy_freq_days: 3 }).length).toBe(1)
+    expect(validateSchedule({ schedule_type: 'custom', legacy_freq_times: 3, legacy_freq_days: 32 }).length).toBe(1)
+    expect(validateSchedule({ schedule_type: 'custom', legacy_freq_times: 3.5, legacy_freq_days: 7 }).length).toBe(1)
+    expect(validateSchedule({ schedule_type: 'custom', legacy_freq_times: 3, legacy_freq_days: 7.5 }).length).toBe(1)
+  })
+
+  it('accepts the Custom boundaries (1/1 and 31/31)', () => {
+    expect(validateSchedule({ schedule_type: 'custom', legacy_freq_times: 1, legacy_freq_days: 1 })).toEqual([])
+    expect(validateSchedule({ schedule_type: 'custom', legacy_freq_times: 31, legacy_freq_days: 31 })).toEqual([])
   })
 
   it('rejects stray fields that do not belong to the mode', () => {
@@ -215,6 +232,15 @@ describe('validateSchedule (error-list convention)', () => {
     ).toBe(1)
     expect(
       validateSchedule({ schedule_type: 'weekly_target', weekly_target: 2, interval_days: 3 }).length,
+    ).toBe(1)
+    expect(
+      validateSchedule({ schedule_type: 'custom', legacy_freq_times: 3, legacy_freq_days: 7, scheduled_days: 5 }).length,
+    ).toBe(1)
+    expect(
+      validateSchedule({ schedule_type: 'custom', legacy_freq_times: 3, legacy_freq_days: 7, interval_days: 3 }).length,
+    ).toBe(1)
+    expect(
+      validateSchedule({ schedule_type: 'custom', legacy_freq_times: 3, legacy_freq_days: 7, weekly_target: 2 }).length,
     ).toBe(1)
   })
 })
@@ -329,5 +355,157 @@ describe('weekly-target day eligibility across the transition', () => {
     const mon = epoch({ schedule_type: 'weekly_target', weekly_target: 3, effective_from: MON })
     for (const d of [MON, TUE, WED, THU, FRI, SAT, SUN]) expect(isScheduledOn(d, mon)).toBe(true)
     expect(isScheduledOn(NEXT_MON, mon)).toBe(true)
+  })
+})
+
+// --- Stage 3 wiring helpers (freq mirror, mask count, labels) ------------------
+
+describe('weekdayMaskCount (popcount)', () => {
+  it('counts selected bits', () => {
+    expect(weekdayMaskCount(0)).toBe(0)
+    expect(weekdayMaskCount(MONDAY)).toBe(1)
+    expect(weekdayMaskCount(MONDAY | TUESDAY | WEDNESDAY | THURSDAY | FRIDAY)).toBe(5)
+    expect(weekdayMaskCount(MONDAY | SUNDAY)).toBe(2)
+    expect(weekdayMaskCount(127)).toBe(7)
+  })
+})
+
+describe('freqMirrorFor (the DB freq pair per mode)', () => {
+  it('daily mirrors to 1/1', () => {
+    expect(freqMirrorFor('daily', {})).toEqual({ freq_times: 1, freq_days: 1 })
+  })
+
+  it('weekdays mirror to k/7', () => {
+    expect(freqMirrorFor('weekdays', { scheduled_days: MONDAY | WEDNESDAY | FRIDAY })).toEqual({
+      freq_times: 3,
+      freq_days: 7,
+    })
+    expect(freqMirrorFor('weekdays', { scheduled_days: 127 })).toEqual({
+      freq_times: 7,
+      freq_days: 7,
+    })
+  })
+
+  it('interval mirrors to 1/N', () => {
+    expect(freqMirrorFor('interval', { interval_days: 3 })).toEqual({ freq_times: 1, freq_days: 3 })
+  })
+
+  it('weekly_target mirrors to M/7', () => {
+    expect(freqMirrorFor('weekly_target', { weekly_target: 4 })).toEqual({
+      freq_times: 4,
+      freq_days: 7,
+    })
+  })
+
+  it('custom mirrors to X/Y', () => {
+    expect(freqMirrorFor('custom', { legacy_freq_times: 3, legacy_freq_days: 7 })).toEqual({
+      freq_times: 3,
+      freq_days: 7,
+    })
+    expect(freqMirrorFor('custom', { legacy_freq_times: 1, legacy_freq_days: 1 })).toEqual({
+      freq_times: 1,
+      freq_days: 1,
+    })
+  })
+
+  it('throws on invalid params (callers validate first)', () => {
+    expect(() => freqMirrorFor('weekdays', { scheduled_days: 0 })).toThrow()
+    expect(() => freqMirrorFor('interval', { interval_days: 1 })).toThrow()
+    expect(() => freqMirrorFor('weekly_target', { weekly_target: 8 })).toThrow()
+    expect(() => freqMirrorFor('custom', { legacy_freq_times: 0, legacy_freq_days: 7 })).toThrow()
+    expect(() => freqMirrorFor('custom', { legacy_freq_times: 3, legacy_freq_days: 0 })).toThrow()
+    expect(() => freqMirrorFor('custom', { legacy_freq_times: 5, legacy_freq_days: 3 })).toThrow()
+    expect(() => freqMirrorFor('custom', { legacy_freq_times: 3, legacy_freq_days: 32 })).toThrow()
+    expect(() => freqMirrorFor('custom', { legacy_freq_times: 3.5, legacy_freq_days: 7 })).toThrow()
+    expect(() => freqMirrorFor('custom', { legacy_freq_times: 3, legacy_freq_days: 7.5 })).toThrow()
+  })
+})
+
+describe('scheduleLabel (human descriptions)', () => {
+  it('daily and weekly_target', () => {
+    expect(scheduleLabel({ schedule_type: 'daily' })).toBe('Every day')
+    expect(scheduleLabel({ schedule_type: 'weekly_target', weekly_target: 3 })).toBe('3× per week')
+  })
+
+  it('weekdays lists the selected day names in week order', () => {
+    expect(scheduleLabel({ schedule_type: 'weekdays', scheduled_days: MONDAY | WEDNESDAY | SUNDAY })).toBe(
+      'Mon, Wed, Sun',
+    )
+    expect(scheduleLabel({ schedule_type: 'weekdays', scheduled_days: 127 })).toBe(
+      'Mon, Tue, Wed, Thu, Fri, Sat, Sun',
+    )
+  })
+
+  it('interval', () => {
+    expect(scheduleLabel({ schedule_type: 'interval', interval_days: 5 })).toBe('Every 5 days')
+  })
+
+  it('legacy shows the frozen freq, never a converted mode', () => {
+    expect(scheduleLabel({ schedule_type: 'legacy', freq_times: 2, freq_days: 7 })).toBe(
+      '2 times every 7 days',
+    )
+    expect(scheduleLabel({ schedule_type: 'legacy', freq_times: 1, freq_days: 1 })).toBe('Every day')
+  })
+
+  it('custom shows the editable freq', () => {
+    expect(scheduleLabel({ schedule_type: 'custom', legacy_freq_times: 3, legacy_freq_days: 7 })).toBe(
+      '3 times every 7 days',
+    )
+    expect(scheduleLabel({ schedule_type: 'custom', legacy_freq_times: 1, legacy_freq_days: 1 })).toBe('Every day')
+    // Falls back to freq_times/freq_days if legacy fields not provided
+    expect(scheduleLabel({ schedule_type: 'custom', freq_times: 2, freq_days: 5 })).toBe(
+      '2 times every 5 days',
+    )
+  })
+
+  it('invalid params fall back to a neutral label instead of throwing', () => {
+    expect(scheduleLabel({ schedule_type: 'weekdays', scheduled_days: 0 })).toBe('Custom schedule')
+    expect(scheduleLabel({ schedule_type: 'interval', interval_days: 1 })).toBe('Custom schedule')
+    expect(scheduleLabel({ schedule_type: 'weekly_target', weekly_target: 9 })).toBe('Custom schedule')
+    expect(scheduleLabel({ schedule_type: 'legacy', freq_times: 0, freq_days: 0 })).toBe('Custom schedule')
+    expect(scheduleLabel({ schedule_type: 'custom', legacy_freq_times: 0, legacy_freq_days: 0 })).toBe('Custom schedule')
+    expect(scheduleLabel({ schedule_type: 'weird' as never })).toBe('Custom schedule')
+  })
+})
+
+describe('opportunityScope (day vs week vs off-day)', () => {
+  it('daily/weekdays-on/interval-on/legacy dates are day-scoped', () => {
+    expect(opportunityScope([epoch({ schedule_type: 'daily' })], WED)).toBe('day')
+    expect(
+      opportunityScope([epoch({ schedule_type: 'weekdays', scheduled_days: MONDAY | FRIDAY })], FRI),
+    ).toBe('day')
+    expect(opportunityScope([epoch({ schedule_type: 'interval', interval_days: 3 })], THU)).toBe('day')
+    expect(opportunityScope([epoch({ schedule_type: 'legacy' })], SUN)).toBe('day')
+  })
+
+  it('off-days (mask off, interval anchor off, pre-first-epoch) are null', () => {
+    expect(opportunityScope([epoch({ schedule_type: 'weekdays', scheduled_days: MONDAY })], TUE)).toBeNull()
+    expect(opportunityScope([epoch({ schedule_type: 'interval', interval_days: 3 })], WED)).toBeNull()
+    expect(
+      opportunityScope([epoch({ effective_from: NEXT_MON, schedule_type: 'daily' })], MON),
+    ).toBeNull()
+    expect(opportunityScope([], WED)).toBeNull()
+  })
+
+  it('an active weekly_target week is week-scoped on every scheduled day', () => {
+    const epochs = [epoch({ schedule_type: 'weekly_target', weekly_target: 3 })]
+    expect(opportunityScope(epochs, MON)).toBe('week')
+    expect(opportunityScope(epochs, THU)).toBe('week')
+    expect(opportunityScope(epochs, SUN)).toBe('week')
+    expect(opportunityScope(epochs, NEXT_MON)).toBe('week')
+  })
+
+  it('a weekly_target epoch scopes its transition (partial) start week as week too', () => {
+    // Stage 4A fix: a habit created mid-week must show weekly progress
+    // ("0/4 this partial week"), never a misleading "Not scheduled". The
+    // scoring side keeps the transition week neutral on its own.
+    const epochs = [epoch({ schedule_type: 'weekly_target', weekly_target: 2, effective_from: WED })]
+    expect(opportunityScope(epochs, WED)).toBe('week')
+    expect(opportunityScope(epochs, SUN)).toBe('week')
+    expect(opportunityScope(epochs, NEXT_MON)).toBe('week')
+  })
+
+  it('a weekly_target epoch with an invalid target is not week-scoped', () => {
+    expect(opportunityScope([epoch({ schedule_type: 'weekly_target', weekly_target: 0 })], WED)).toBeNull()
   })
 })

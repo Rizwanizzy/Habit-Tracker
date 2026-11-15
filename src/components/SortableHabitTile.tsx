@@ -14,6 +14,9 @@ interface Props {
   /** Whether a status-'skipped' ROW exists (drives the menu item; a
    *  vacation day is neutral without any row). */
   skippedRow?: boolean
+  /** Weekly-target progress caption ("2/3 this week", or "0/4 this partial
+   *  week" in the first transition week), forwarded to the tile. */
+  weekly?: { done: number; target: number; partial?: boolean } | null
   streak: number
   value: number | null
   /** Label for the skip menu item: "today" or the selected date, short. */

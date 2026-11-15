@@ -10,6 +10,8 @@ import { isVacationDay, vacationDatesInRange } from '../lib/vacation'
 import { useVacationsContext } from '../contexts/VacationsContext'
 import { now } from '../lib/clock'
 import { useLogicalToday } from '../hooks/useLogicalToday'
+import { useScheduleHistory } from '../hooks/useScheduleHistory'
+import { opportunityScope } from '../lib/schedule'
 import { useSettings } from '../contexts/SettingsContext'
 import { layoutRings } from '../lib/rings'
 import { ThemeIconButton } from '../components/ThemeIconButton'
@@ -60,6 +62,12 @@ export function Today() {
     setEntriesByHabit,
   } = useEntries(ids)
 
+  // Schedule epochs (Stage 4A): the user's habit_schedule_history rows, RLS-
+  // scoped, grouped per habit. With them, off-days become neutral,
+  // weekly-target habits go week-scoped, and streaks/denominators follow the
+  // schedule rules. No epochs (pre-migration probe) = exact legacy behaviour.
+  const { epochsByHabit, loading: scheduleLoading, error: scheduleError } = useScheduleHistory()
+
   const today = useLogicalToday()
   const { dayStartHour } = useSettings()
   // Vacation mode: one shared period list; the hero, tiles and stats all ask
@@ -82,6 +90,10 @@ export function Today() {
   const dayShifted = today !== toLocalDateString(now())
   const [selectedDate, setSelectedDate] = useState(today)
   const [actionError, setActionError] = useState<string | null>(null)
+  // View mode toggle (Feature A): 'scheduled' (default) uses Stage 4E filtering;
+  // 'all' shows every active habit. Only affects tile visibility — rings/stats
+  // remain governed by scheduling rules.
+  const [viewMode, setViewMode] = useState<'scheduled' | 'all'>('scheduled')
 
   // Tiles-per-row density (1–6): the user's grid-width preference — no code
   // changes needed to rearrange rows. Persisted, validated on read, and it now
@@ -238,18 +250,21 @@ export function Today() {
     void vacationsStore.endVacation(activeVacation.id)
   }
 
-  /** Longest active streak across habits — the hero card's "overall streak". */
+  /** Longest active streak across habits — the hero card's "overall streak".
+   *  Epoch-aware (Stage 4A): off-days neither count nor break; weekly targets
+   *  count achieved weeks instead of calendar days. */
   const overallStreak = useMemo(
     () =>
       habits.reduce((best, h) => {
-        const s = currentStreak(h, entriesByHabit[h.id] ?? [], today, vacationDays)
+        const s = currentStreak(h, entriesByHabit[h.id] ?? [], today, vacationDays, epochsByHabit[h.id])
         return s > best ? s : best
       }, 0),
-    [habits, entriesByHabit, today, vacationDays],
+    [habits, entriesByHabit, today, vacationDays, epochsByHabit],
   )
 
   // Hero counts go through dayStatus (the rule: every "is this day counted"
-  // question). A skipped habit is excluded from the total — never a 0% miss.
+  // question). A skipped habit is excluded from the total — never a 0% miss;
+  // with epochs, an off-day is 'unscheduled' (neutral, same exclusion).
   const dayStatuses = useMemo(
     () =>
       habits.map((h) =>
@@ -259,14 +274,33 @@ export function Today() {
           entry: (entriesByHabit[h.id] ?? []).find((e) => e.date === selectedDate),
           today: selectedDate,
           vacations: vacationDays,
+          schedule: epochsByHabit[h.id],
         }),
       ),
-    [habits, entriesByHabit, selectedDate, vacationDays],
+    [habits, entriesByHabit, selectedDate, vacationDays, epochsByHabit],
   )
 
-  const doneToday = dayStatuses.filter((s) => s === 'done').length
+  // Weekly-target habits are WEEK-scoped (Stage 4A): they leave the daily
+  // done/total pair entirely — their progress is per Monday–Sunday week and
+  // shows in the tile caption and the rings — while their check-ins still
+  // count toward the week (done wins).
+  const weekScoped = useMemo(() => {
+    const set = new Set<string>()
+    for (const h of habits) {
+      const epochs = epochsByHabit[h.id]
+      if (epochs !== undefined && epochs.length > 0 && opportunityScope(epochs, selectedDate) === 'week') {
+        set.add(h.id)
+      }
+    }
+    return set
+  }, [habits, epochsByHabit, selectedDate])
+
+  const doneToday = habits.reduce(
+    (n, h, i) => (dayStatuses[i] === 'done' && !weekScoped.has(h.id) ? n + 1 : n),
+    0,
+  )
   const skippedToday = dayStatuses.filter(isNeutral).length
-  const totalToday = habits.length - skippedToday
+  const totalToday = habits.length - skippedToday - weekScoped.size
 
   const motivational =
     habits.length === 0
@@ -289,7 +323,7 @@ export function Today() {
   const todayLabel = DATE_FMT.format(parseLocalDate(today))
   const pillDateLabel = PILL_FMT.format(parseLocalDate(selectedDate))
 
-  const pageError = habitsError ?? entriesError
+  const pageError = habitsError ?? entriesError ?? scheduleError
   if (pageError) {
     return (
       <section>
@@ -308,7 +342,7 @@ export function Today() {
     )
   }
 
-  if (habitsLoading || entriesLoading) {
+  if (habitsLoading || entriesLoading || scheduleLoading) {
     return (
       <section>
         <TodayGreeting />
@@ -547,17 +581,49 @@ export function Today() {
         </div>
       </header>
 
-      {/* Desktop >7 habits note & TileDensity stepper (hidden below lg) */}
-      <div className="mb-3 mt-1 hidden lg:flex flex-wrap items-end justify-between gap-3 lg:mt-0">
-        {habits.length > 7 && (
-          <p className="text-caption max-w-[70%] text-fg-muted">
-            You have {habits.length} active habits. Rings are shared from here on (up to 4 habits
-            per ring). Fewer habits are easier to stick to.
-            {ringLayout.hiddenCount > 0 &&
-              ` +${ringLayout.hiddenCount} more habits are not shown in the rings.`}
-          </p>
-        )}
-        <TileDensity value={perRow} onChange={updatePerRow} />
+      {/* Desktop >7 habits note LEFT | Scheduled/All toggle + Per row RIGHT (matching-height pills) */}
+      <div className="mb-3 mt-1 hidden lg:flex flex-wrap items-center justify-between gap-3 lg:mt-0">
+        {/* LEFT: Dynamic description */}
+        <div className="flex items-center min-w-0">
+          {habits.length > 7 && (
+            <p className="text-caption max-w-[70%] text-fg-muted whitespace-nowrap truncate">
+              You have {habits.length} active habits. Rings are shared from here on (up to 4 habits
+              per ring). Fewer habits are easier to stick to.
+              {ringLayout.hiddenCount > 0 &&
+                ` +${ringLayout.hiddenCount} more habits are not shown in the rings.`}
+            </p>
+          )}
+        </div>
+        {/* RIGHT: Toggle + Per row - matching height pills */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div role="group" aria-label="Habit view" className="glass-pill inline-flex items-center gap-0.5 rounded-pill p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode('scheduled')}
+              aria-pressed={viewMode === 'scheduled'}
+              className={`relative grid h-9 place-items-center rounded-pill px-3 text-caption font-medium transition-all duration-150 ${
+                viewMode === 'scheduled'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-fg-secondary hover:text-fg'
+              }`}
+            >
+              Scheduled
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('all')}
+              aria-pressed={viewMode === 'all'}
+              className={`relative grid h-9 place-items-center rounded-pill px-3 text-caption font-medium transition-all duration-150 ${
+                viewMode === 'all'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-fg-secondary hover:text-fg'
+              }`}
+            >
+              All Habits
+            </button>
+          </div>
+          <TileDensity value={perRow} onChange={updatePerRow} />
+        </div>
       </div>
 
       {/* Mobile hidden-count note only (when > 28 habits) */}
@@ -620,7 +686,7 @@ export function Today() {
               <p className="text-caption mt-1 text-fg-muted">
                 {vacationToday && selectedDate === today
                   ? 'habits are paused'
-                  : totalToday === 0 && habits.length > 0
+                  : skippedToday === habits.length && habits.length > 0
                     ? 'all habits skipped'
                     : isPast
                       ? 'done that day'
@@ -652,6 +718,7 @@ export function Today() {
                 caption={vacationToday ? 'habits are paused' : isPast ? 'done that day' : 'done today'}
                 paused={vacationToday && selectedDate === today}
                 vacations={vacationDays}
+                epochsByHabit={epochsByHabit}
               />
             </div>
 
@@ -678,7 +745,38 @@ export function Today() {
             entriesByHabit={entriesByHabit}
             today={today}
             vacations={vacationDays}
+            scheduleByHabit={epochsByHabit}
           />
+        </div>
+
+        {/* Mobile: Scheduled / All Habits toggle (right-aligned, compact) */}
+        <div className="lg:hidden flex justify-end mb-2">
+          <div role="group" aria-label="Habit view" className="glass-pill flex items-center rounded-pill p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode('scheduled')}
+              aria-pressed={viewMode === 'scheduled'}
+              className={`relative flex h-8 items-center rounded-pill px-2.5 text-[11px] font-medium transition-all duration-150 after:absolute after:inset-y-[-4px] after:inset-x-1 after:rounded-pill after:content-[''] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                viewMode === 'scheduled'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-fg-secondary hover:text-fg'
+              }`}
+            >
+              Scheduled
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('all')}
+              aria-pressed={viewMode === 'all'}
+              className={`relative flex h-8 items-center rounded-pill px-2.5 text-[11px] font-medium transition-all duration-150 after:absolute after:inset-y-[-4px] after:inset-x-1 after:rounded-pill after:content-[''] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                viewMode === 'all'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-fg-secondary hover:text-fg'
+              }`}
+            >
+              All Habits
+            </button>
+          </div>
         </div>
 
         {/* Habit tiles (sortable grid; long-press enters jiggle mode) */}
@@ -689,8 +787,10 @@ export function Today() {
             selectedDate={selectedDate}
             today={today}
             vacations={vacationDays}
+            epochsByHabit={epochsByHabit}
             perRow={perRow}
             reorderMode={reorderMode}
+            viewMode={viewMode}
             enterReorderMode={() => setReorderMode(true)}
             exitReorderMode={exitReorderMode}
             reorderHabits={reorderHabits}

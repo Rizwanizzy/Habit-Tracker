@@ -17,6 +17,10 @@ interface Props {
   /** Whether a status-'skipped' ROW exists (drives the menu's Skip/Undo-skip
    *  item; a vacation day is neutral without any row). Defaults to `skipped`. */
   skippedRow?: boolean
+  /** Weekly-target habit (Stage 4A): weekly progress for the tile caption —
+   *  "2/3 this week" (or "0/4 this partial week" in the habit's first
+   *  transition week) — instead of treating every calendar day as mandatory. */
+  weekly?: { done: number; target: number; partial?: boolean } | null
   streak: number
   /** Entry value at the displayed date (numeric habits); always null when skipped. */
   value: number | null
@@ -71,6 +75,7 @@ export function HabitTile({
   skipped = false,
   skippedLabel = 'Skipped',
   skippedRow,
+  weekly = null,
   streak,
   value,
   dayLabel = 'today',
@@ -154,7 +159,8 @@ export function HabitTile({
       >
         <span className="sr-only">View {habit.name} overview</span>
       </Link>
-      <div className="flex items-start justify-between">
+      {/* Header row: emoji/check ring LEFT, streak + three-dot menu RIGHT */}
+      <div className="flex items-start justify-between gap-2 min-w-0">
         {/* 44px circular check: pending = 2px habit ring; done = fill + glow + white check;
             skipped = dashed muted neutral ring (a check-in on a skipped day upserts done).
             A habit emoji is painted inside the ring (tinted while pending) so the tile
@@ -224,38 +230,61 @@ export function HabitTile({
             </span>
           )}
         </button>
-        <TileMoreMenu
-          habitId={habit.id}
-          habitName={habit.name ?? 'habit'}
-          dayLabel={dayLabel}
-          skipped={skippedRow ?? skipped}
-          disabled={reorderMode}
-          onSkipToggle={onSkipToggle}
-          onOpenChange={setMenuOpen}
-        />
+
+        {/* Right header controls: streak + three-dot menu */}
+        <div className="flex items-center gap-1.5 shrink-0 min-w-0">
+          {/* Streak indicator — hidden on narrow mobile tiles (3-4 per row) via container query */}
+          <span
+            className="tile-streak-header inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-border bg-surface px-2.5 py-1"
+            title={`Current streak: ${streak}`}
+            aria-label={`Current streak: ${streak}`}
+          >
+            <span className="grid place-items-center" style={{ color: readableColor(c, theme) }}>
+              <IconFlame className="size-3.5" />
+            </span>
+            <span className="text-caption tabular-nums">{streak}</span>
+          </span>
+
+          {/* Three-dot overflow menu */}
+          <TileMoreMenu
+            habitId={habit.id}
+            habitName={habit.name ?? 'habit'}
+            dayLabel={dayLabel}
+            skipped={skippedRow ?? skipped}
+            disabled={reorderMode}
+            onSkipToggle={onSkipToggle}
+            onOpenChange={setMenuOpen}
+          />
+        </div>
       </div>
 
-      <div className="mt-1 flex items-center gap-2">
-        <span className="tile-name text-habit-name min-w-0 flex-1 truncate text-fg">
+      {/* Title row: single line, truncate with ellipsis */}
+      <div className="mt-1.5 min-w-0">
+        <h3 className="tile-name text-habit-name truncate text-fg leading-snug" title={habit.name}>
           {habit.name}
-        </span>
+        </h3>
+      </div>
+
+      {/* Schedule-status row: NOT SCHEDULED / weekly progress (truncates gracefully on narrow tiles) */}
+      <div className="mt-1 flex items-center gap-1.5 min-w-0">
         {skipped && (
           <span
-            className="shrink-0 text-caption text-fg-muted"
+            className="tile-status-caption text-caption text-fg-muted truncate min-w-0"
             title={`${skippedLabel} — the day is neutral`}
+            aria-label={`${skippedLabel} — the day is neutral`}
           >
             {skippedLabel}
           </span>
         )}
-        <span
-          className="tile-streak inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-border bg-surface px-2.5 py-1"
-          title="Current streak"
-        >
-          <span className="grid place-items-center" style={{ color: readableColor(c, theme) }}>
-            <IconFlame className="size-3.5" />
+        {!skipped && weekly && (
+          <span
+            className="tile-status-caption text-caption tabular-nums text-fg-muted truncate min-w-0"
+            title={`Weekly target: ${weekly.done} of ${weekly.target} done ${weekly.partial ? 'this partial week (the schedule started mid-week)' : 'this week (Monday–Sunday)'}`}
+            aria-label={`Weekly progress: ${weekly.done} of ${weekly.target} done${weekly.partial ? ' this partial week' : ' this week'}`}
+          >
+            {weekly.done}/{weekly.target} this{weekly.partial ? ' partial' : ''} week
           </span>
-          <span className="text-caption tabular-nums">{streak}</span>
-        </span>
+        )}
       </div>
 
       {isNumeric && (

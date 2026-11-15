@@ -1,6 +1,14 @@
 import { addDays } from './dates'
 import { dayStatus, isNeutral } from './dayStatus'
-import type { Entry, Habit, ScorePoint } from './score'
+import {
+  isTransitionWeek,
+  isValidWeeklyTarget,
+  resolveEpoch,
+  weekEnd,
+  weekStart,
+  type ScheduleEpoch,
+} from './schedule'
+import { weeklyTargetAchieved, type Entry, type Habit, type ScorePoint } from './score'
 
 /**
  * Calculates a cumulative daily completion percentage series for a habit over [startDate, endDate].
@@ -10,6 +18,18 @@ import type { Entry, Habit, ScorePoint } from './score'
  * - Uses the established dayStatus logic where skipped days and vacation periods are neutral
  *   and excluded from the denominator.
  * - Done count / eligible count * 100, clamped safely, 0 when no eligible days exist.
+ *
+ * With schedule epochs supplied (Stage 4B), the walk mirrors the Stage 2
+ * scoring law: daily/weekdays/interval/legacy dates count per day with
+ * off-days neutral ('unscheduled' — neither eligible nor failed; a done
+ * check-in on an off-day still wins), while a weekly_target habit is
+ * evaluated per closed Monday–Sunday week — one opportunity per week,
+ * achieved when its done entries reach M (never seven mandatory days).
+ * Transition/partial weeks (epoch effective Tue–Sun, or a week only partly
+ * inside the window) and the week containing endDate carry, exactly like the
+ * scoring law. Historical epochs are honoured per date (resolveEpoch), so
+ * past performance follows the schedule that governed it. Omitted or empty
+ * epochs reproduce the legacy walk bit-identically.
  */
 export function completionSeries(
   habit: Habit,
@@ -17,21 +37,54 @@ export function completionSeries(
   startDate: string,
   endDate: string,
   vacations: readonly string[] = [],
+  epochs?: readonly ScheduleEpoch[],
 ): ScorePoint[] {
   const byDate = new Map(entries.map((e) => [e.date, e]))
   const points: ScorePoint[] = []
 
   let eligibleCount = 0
   let doneCount = 0
+  const rate = () => (eligibleCount > 0 ? doneCount / eligibleCount : 0)
 
   let d = habit.created_at > startDate ? habit.created_at : startDate
   while (d <= endDate) {
+    if (epochs !== undefined && epochs.length > 0) {
+      const epoch = resolveEpoch(epochs, d)
+      if (epoch !== undefined && epoch.schedule_type === 'weekly_target' && isValidWeeklyTarget(epoch.weekly_target ?? 0)) {
+        const ws = weekStart(d)
+        const we = weekEnd(d)
+        // Transition week (epoch effective Tue–Sun inside it) or a partial
+        // week at the window edge (the walk entered mid-week): no weekly
+        // step — carry through to next Monday. Earlier days of a transition
+        // week were already walked under their governing epochs.
+        if (isTransitionWeek(epochs, d) || ws < d) {
+          for (let p = d; p <= we && p <= endDate; p = addDays(p, 1)) {
+            points.push({ date: p, score: rate() })
+          }
+          d = addDays(we, 1)
+          continue
+        }
+        if (we < endDate) {
+          // Closed week (the week containing endDate is the current week and
+          // is never evaluated).
+          eligibleCount++
+          if (weeklyTargetAchieved(habit, byDate, ws, we, epoch.weekly_target ?? 0)) doneCount++
+        }
+        for (let p = d; p <= we && p <= endDate; p = addDays(p, 1)) {
+          points.push({ date: p, score: rate() })
+        }
+        d = addDays(we, 1)
+        continue
+      }
+    }
+
     const status = dayStatus({
       habit,
       date: d,
       entry: byDate.get(d),
       today: endDate,
       vacations,
+      schedule: epochs,
     })
 
     if (!isNeutral(status)) {
@@ -41,8 +94,7 @@ export function completionSeries(
       }
     }
 
-    const rate = eligibleCount > 0 ? doneCount / eligibleCount : 0
-    points.push({ date: d, score: rate })
+    points.push({ date: d, score: rate() })
     d = addDays(d, 1)
   }
 

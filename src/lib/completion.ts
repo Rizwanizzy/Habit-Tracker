@@ -1,5 +1,6 @@
 import { addDays, daysBetween, parseLocalDate, toLocalDateString } from './dates'
 import { dayStatus, isNeutral } from './dayStatus'
+import { opportunityScope, type ScheduleEpoch } from './schedule'
 import type { Entry, Habit } from './score'
 
 /** View modes of the completion card (Today page): 7 bar pills, a month
@@ -19,23 +20,33 @@ export type DayCompletion = {
  *  (created_at on or before the date) are eligible, mirroring the rules
  *  that scoreRange uses. Entries are grouped per habit (unique per date).
  *  Neutral days (skipped/vacation) are excluded from the denominator, so
- *  eligible/done count only counted habits. */
+ *  eligible/done count only counted habits. With schedule epochs supplied,
+ *  off-days are 'unscheduled' (neutral, same exclusion) and weekly-target
+ *  habits are week-scoped: they drop out of the DAY denominator entirely —
+ *  their progress is measured per Monday–Sunday week, never per calendar
+ *  day — while their check-ins still count for the week. */
 export function dayCompletion(
   habits: Habit[],
   entriesByHabit: Record<string, Entry[]>,
   date: string,
   vacations: readonly string[] = [],
+  scheduleByHabit?: Record<string, ScheduleEpoch[]>,
 ): DayCompletion {
   const eligible = habits.filter((h) => h.created_at <= date)
   let counted = 0
   let done = 0
   for (const h of eligible) {
+    const epochs = scheduleByHabit?.[h.id]
+    if (epochs !== undefined && epochs.length > 0 && opportunityScope(epochs, date) === 'week') {
+      continue
+    }
     const status = dayStatus({
       habit: h,
       date,
       entry: (entriesByHabit[h.id] ?? []).find((e) => e.date === date),
       today: date,
       vacations,
+      schedule: epochs,
     })
     if (isNeutral(status)) continue
     counted++
@@ -50,8 +61,9 @@ export function completionForDates(
   entriesByHabit: Record<string, Entry[]>,
   dates: string[],
   vacations: readonly string[] = [],
+  scheduleByHabit?: Record<string, ScheduleEpoch[]>,
 ): DayCompletion[] {
-  return dates.map((d) => dayCompletion(habits, entriesByHabit, d, vacations))
+  return dates.map((d) => dayCompletion(habits, entriesByHabit, d, vacations, scheduleByHabit))
 }
 
 /** Single-color ramp (DESIGN.md §7 intensity rule): 0 = neutral track,

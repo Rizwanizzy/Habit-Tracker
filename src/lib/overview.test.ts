@@ -4,6 +4,7 @@ import {
   getTop5HabitIds,
   resolveFilterMode,
 } from './overview'
+import type { ScheduleEpoch } from './schedule'
 import type { Entry, Habit } from './score'
 
 function makeHabit(id: string, name: string, created_at = '2026-10-01', sort_order = 1): Habit {
@@ -18,6 +19,21 @@ function makeHabit(id: string, name: string, created_at = '2026-10-01', sort_ord
     sort_order,
   }
 }
+
+function ep(over: Partial<ScheduleEpoch>): ScheduleEpoch {
+  return {
+    id: 'e1',
+    effective_from: '2026-11-02',
+    schedule_type: 'daily',
+    scheduled_days: null,
+    interval_days: null,
+    weekly_target: null,
+    ...over,
+  }
+}
+
+const done = (date: string): Entry => ({ date, value: 1 })
+const missed = (date: string): Entry => ({ date, value: 0 })
 
 describe('completionSeries', () => {
   const habit = makeHabit('h1', 'Read', '2026-10-01')
@@ -262,3 +278,159 @@ describe('isolation & filter state transitions', () => {
   })
 })
 
+
+// --- Stage 4B: schedule-aware completionSeries (Overview) ----------------------
+// Reference weeks (Nov 2026, Monday–Sunday): 02–08, 09–15, 16–22.
+
+describe('Stage 4B completionSeries — daily/weekdays/interval/legacy epochs', () => {
+  const habit = makeHabit('h1', 'Read', '2026-11-02')
+
+  it('a daily epoch reproduces the no-epochs series bit-identically', () => {
+    const entries = [done('2026-11-02'), missed('2026-11-03'), done('2026-11-04')]
+    expect(completionSeries(habit, entries, '2026-11-02', '2026-11-08', [], [ep({})])).toEqual(
+      completionSeries(habit, entries, '2026-11-02', '2026-11-08', []),
+    )
+  })
+
+  it('an explicitly empty epochs array behaves exactly like omitted', () => {
+    const entries = [done('2026-11-02'), missed('2026-11-03')]
+    expect(completionSeries(habit, entries, '2026-11-02', '2026-11-08', [], [])).toEqual(
+      completionSeries(habit, entries, '2026-11-02', '2026-11-08', []),
+    )
+  })
+
+  it('weekdays: off-days are neutral (not failures); done on an off-day still wins', () => {
+    const epochs = [ep({ schedule_type: 'weekdays', scheduled_days: 42 })] // Mon | Wed | Fri
+    const entries = [done('2026-11-09'), done('2026-11-11'), missed('2026-11-13')]
+    const series = completionSeries(habit, entries, '2026-11-09', '2026-11-15', [], epochs)
+    // Mon done → 1/1; Tue off → carry; Wed done → 2/2; Thu off; Fri missed → 2/3.
+    expect(series[0].score).toBe(1)
+    expect(series[1].score).toBe(1)
+    expect(series[2].score).toBe(1)
+    expect(series[4].score).toBeCloseTo(2 / 3)
+    expect(series[6].score).toBeCloseTo(2 / 3)
+    // A done check-in on the masked-off Tuesday counts (done wins).
+    const tuesday = completionSeries(habit, [done('2026-11-10')], '2026-11-09', '2026-11-11', [], epochs)
+    expect(tuesday[1].score).toBeCloseTo(1 / 2)
+  })
+
+  it('interval: off-anchor days are neutral', () => {
+    const epochs = [ep({ schedule_type: 'interval', interval_days: 3, effective_from: '2026-11-09' })]
+    const entries = [done('2026-11-09'), done('2026-11-12'), missed('2026-11-15')]
+    const series = completionSeries(habit, entries, '2026-11-09', '2026-11-15', [], epochs)
+    expect(series[0].score).toBe(1)
+    expect(series[1].score).toBe(1) // 10 carries
+    expect(series[3].score).toBe(1) // 12 done → 2/2
+    expect(series[6].score).toBeCloseTo(2 / 3) // 15 missed → 2/3
+  })
+
+  it('legacy epochs reproduce the no-epochs series bit-identically', () => {
+    const legacy: Habit = { ...habit, freq_times: 2, freq_days: 7 }
+    const entries = [done('2026-11-02'), missed('2026-11-03'), done('2026-11-05')]
+    expect(
+      completionSeries(legacy, entries, '2026-11-02', '2026-11-08', [], [
+        ep({ schedule_type: 'legacy', legacy_freq_times: 2, legacy_freq_days: 7 }),
+      ]),
+    ).toEqual(completionSeries(legacy, entries, '2026-11-02', '2026-11-08', []))
+  })
+
+  it('a schedule change mid-range: the daily era counts per day, the weekdays era drops off-days', () => {
+    const epochs = [
+      ep({ id: 'd1', schedule_type: 'daily', effective_from: '2026-11-01' }),
+      ep({ id: 'w2', schedule_type: 'weekdays', scheduled_days: 42, effective_from: '2026-11-09' }),
+    ]
+    const entries = [done('2026-11-05'), done('2026-11-06'), done('2026-11-09'), done('2026-11-11')]
+    const series = completionSeries(habit, entries, '2026-11-05', '2026-11-15', [], epochs)
+    // Daily era: 05 done 1/1, 06 done 2/2, 07 missed 2/3, 08 missed 2/4.
+    expect(series[0].score).toBe(1)
+    expect(series[1].score).toBe(1)
+    expect(series[2].score).toBeCloseTo(2 / 3)
+    expect(series[3].score).toBeCloseTo(2 / 4)
+    // Weekdays era: 09 done 3/5, 10 off → carry, 11 done 4/6, 13 missed 4/7.
+    expect(series[4].score).toBeCloseTo(3 / 5)
+    expect(series[5].score).toBeCloseTo(3 / 5)
+    expect(series[6].score).toBeCloseTo(4 / 6)
+    expect(series[8].score).toBeCloseTo(4 / 7)
+    expect(series[10].score).toBeCloseTo(4 / 7)
+  })
+})
+
+describe('Stage 4B completionSeries — weekly_target weeks as opportunities', () => {
+  const habit = makeHabit('h1', 'Read', '2026-11-02')
+  const epochs = [ep({ schedule_type: 'weekly_target', weekly_target: 2 })]
+
+  it('one opportunity per closed Mon–Sun week; the week containing endDate carries', () => {
+    // Week 1 achieved (2 done), week 2 not (1 done), week 3 is the current week.
+    const entries = [done('2026-11-02'), done('2026-11-03'), done('2026-11-09')]
+    const series = completionSeries(habit, entries, '2026-11-02', '2026-11-22', [], epochs)
+    expect(series).toHaveLength(21)
+    // Week 1 closes on 11-08 → 1/1 = 100% through its days.
+    expect(series[0].score).toBe(1)
+    expect(series[6].score).toBe(1)
+    // Week 2 closes on 11-15 with 1 of 2 → 50%.
+    expect(series[7].score).toBeCloseTo(0.5)
+    expect(series[13].score).toBeCloseTo(0.5)
+    // Week 3 (11-16..22) contains endDate → never evaluated → carries.
+    expect(series[14].score).toBeCloseTo(0.5)
+    expect(series[20].score).toBeCloseTo(0.5)
+  })
+
+  it('skipped rows never count toward M; vacation-day dones do', () => {
+    // Week 2: 1 done + 1 skipped = 1 of 2 → not achieved → rate drops to 1/2.
+    const entries: Entry[] = [done('2026-11-02'), done('2026-11-03'), done('2026-11-09'), { date: '2026-11-10', value: 0, status: 'skipped' }]
+    const series = completionSeries(habit, entries, '2026-11-02', '2026-11-16', [], epochs)
+    expect(series[6].score).toBe(1) // week 1 achieved
+    expect(series[13].score).toBeCloseTo(0.5) // week 2 not achieved (skipped never counts)
+    // A done entry on a vacation day inside the week counts (done wins).
+    const vac = ['2026-11-10']
+    const withVac = completionSeries(
+      habit,
+      [done('2026-11-02'), done('2026-11-03'), done('2026-11-09'), done('2026-11-10')],
+      '2026-11-02',
+      '2026-11-16',
+      vac,
+      epochs,
+    )
+    expect(withVac[13].score).toBe(1)
+  })
+
+  it('a transition week (epoch effective Tue–Sun) carries; the first full week scores', () => {
+    const tEpochs = [ep({ schedule_type: 'weekly_target', weekly_target: 2, effective_from: '2026-11-11' })]
+    const entries = [done('2026-11-16'), done('2026-11-17')]
+    const series = completionSeries(habit, entries, '2026-11-02', '2026-11-23', [], tEpochs)
+    expect(series).toHaveLength(22)
+    // 11-02..10 resolve no epoch → neutral carry; 11-11..15 transition → carry.
+    for (let i = 0; i <= 13; i++) expect(series[i].score).toBe(0)
+    // Week 16–22 closes before endDate 23 with M dones → 100%.
+    expect(series[14].score).toBe(1)
+    expect(series[21].score).toBe(1)
+  })
+
+  it('a partial week at the window start edge is not scored (scoring-law rule)', () => {
+    // Window starts Wednesday of week 1 → that week is only partly covered.
+    const entries = [done('2026-11-02'), done('2026-11-03'), done('2026-11-09'), done('2026-11-10')]
+    const series = completionSeries(habit, entries, '2026-11-04', '2026-11-15', [], epochs)
+    // Week 1: partial at the edge → carry; week 2 contains endDate → carry.
+    expect(series[0].score).toBe(0)
+    expect(series[11].score).toBe(0)
+    // With endDate in the next week, week 2 closes and scores.
+    const wider = completionSeries(habit, entries, '2026-11-04', '2026-11-16', [], epochs)
+    expect(wider[12].score).toBe(1)
+  })
+
+  it('a habit created mid-week: days before created_at are excluded, its partial week carries', () => {
+    const satHabit = makeHabit('sat', 'Weekly', '2026-11-14') // Saturday
+    const satEpochs = [ep({ schedule_type: 'weekly_target', weekly_target: 4, effective_from: '2026-11-14' })]
+    const series = completionSeries(satHabit, [], '2026-11-09', '2026-11-16', [], satEpochs)
+    // Points start at created_at (11-14), not at the range start.
+    expect(series).toHaveLength(3)
+    for (const p of series) expect(p.score).toBe(0)
+    // The next full week (16–22) closes on 22 < endDate 23 with M dones → scored.
+    const entries = [done('2026-11-16'), done('2026-11-17'), done('2026-11-18'), done('2026-11-19')]
+    const next = completionSeries(satHabit, entries, '2026-11-09', '2026-11-23', [], satEpochs)
+    expect(next[0].score).toBe(0) // 11-14: partial week carries
+    expect(next[1].score).toBe(0) // 11-15: partial week carries
+    expect(next[2].score).toBe(1) // 11-16: first full week scored 1/1
+    expect(next[8].score).toBe(1)
+  })
+})

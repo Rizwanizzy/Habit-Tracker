@@ -1,6 +1,14 @@
 import { addDays, daysBetween, parseLocalDate, toLocalDateString } from './dates'
 import { dayStatus, isNeutral } from './dayStatus'
-import { scoreRange, type Entry, type Habit } from './score'
+import {
+  isTransitionWeek,
+  isValidWeeklyTarget,
+  resolveEpoch,
+  weekEnd,
+  weekStart,
+  type ScheduleEpoch,
+} from './schedule'
+import { scoreRange, weeklyTargetAchieved, type Entry, type Habit } from './score'
 
 export type PeriodType = 'weekly' | 'monthly' | 'yearly'
 
@@ -180,6 +188,123 @@ export function getPeriodRange(type: PeriodType, today: string, offset = 0): Per
   }
 }
 
+// --- Stage 4C: schedule-aware opportunity collection ---------------------------
+
+/** One schedule-aware opportunity inside an aggregation window: a scheduled
+ *  day (daily/weekdays/interval/legacy epochs, anchored at its own date) or a
+ *  closed weekly-target Mon–Sun week (anchored at its Monday, evaluated over
+ *  the full week). Neutral opportunities — off-days, vacations, skipped rows,
+ *  transition/partial weeks, future days, the still-open current week — are
+ *  never recorded, so they can neither help nor fail a rate. */
+export interface OpportunityRecord {
+  anchor: string
+  achieved: boolean
+}
+
+export interface HabitOpportunities {
+  records: OpportunityRecord[]
+  /** True when every recorded opportunity was a weekly-target week. */
+  weekBased: boolean
+}
+
+/**
+ * Collects the schedule-aware opportunities for one habit over [start, end].
+ *
+ * Mirrors the Stage 2 scoring law and the Stage 4B completion series exactly:
+ * - daily/weekdays/interval/legacy dates are opportunities per day via
+ *   `dayStatus` — off-days are 'unscheduled' neutral (done check-ins on
+ *   off-days still win); vacations and skipped rows are neutral;
+ * - a weekly_target habit gets ONE opportunity per closed Mon–Sun week,
+ *   achieved when its done entries reach M (`weeklyTargetAchieved` — skipped
+ *   rows never count, vacation-day dones do); never seven daily obligations.
+ *   Transition weeks (epoch effective Tue–Sun) and partial weeks at the
+ *   window edge (the walk entered mid-week, or the week's Sunday lies beyond
+ *   the window end) carry: no record, never a failure. The week containing
+ *   `today` is the current week and is never evaluated, matching
+ *   `scoreRange`'s `we < endDate` rule;
+ * - historical epochs are honoured per date via `resolveEpoch`, so past
+ *   performance follows the schedule that governed it. Omitted/empty epochs
+ *   reproduce the pre-scheduling day-walk bit-identically.
+ *
+ * Records are anchored (day date / week Monday) so callers can both total
+ * them over the whole window and re-bucket them into sub-windows (monthly
+ * week chunks, yearly month chunks) without re-walking.
+ */
+export function habitOpportunities(
+  habit: Habit,
+  entries: Entry[],
+  start: string,
+  end: string,
+  today: string,
+  vacations: readonly string[] = [],
+  epochs?: readonly ScheduleEpoch[],
+): HabitOpportunities {
+  const byDate = new Map(entries.map((e) => [e.date, e]))
+  const records: OpportunityRecord[] = []
+  let dayOpportunities = 0
+  let weekOpportunities = 0
+
+  let d = habit.created_at > start ? habit.created_at : start
+  while (d <= end) {
+    const epoch = epochs !== undefined && epochs.length > 0 ? resolveEpoch(epochs, d) : undefined
+    if (epoch !== undefined && epoch.schedule_type === 'weekly_target' && isValidWeeklyTarget(epoch.weekly_target ?? 0)) {
+      const ws = weekStart(d)
+      const we = weekEnd(d)
+      // Transition week (epoch effective Tue–Sun inside it) or a partial week
+      // at the window edge (ws < d): neutral — skip through to next Monday.
+      if (isTransitionWeek(epochs ?? [], d) || ws < d) {
+        d = addDays(we, 1)
+        continue
+      }
+      // Closed within the window AND complete in real time: the week
+      // containing today (or the window end) is never evaluated.
+      if (we < end && we < today) {
+        records.push({
+          anchor: ws,
+          achieved: weeklyTargetAchieved(habit, byDate, ws, we, epoch.weekly_target ?? 0),
+        })
+        weekOpportunities++
+      }
+      d = addDays(we, 1)
+      continue
+    }
+
+    const status = dayStatus({
+      habit,
+      date: d,
+      entry: byDate.get(d),
+      today,
+      vacations,
+      schedule: epochs,
+    })
+    if (!isNeutral(status)) {
+      records.push({ anchor: d, achieved: status === 'done' })
+      dayOpportunities++
+    }
+    d = addDays(d, 1)
+  }
+
+  return { records, weekBased: dayOpportunities === 0 && weekOpportunities > 0 }
+}
+
+/** Counts the records anchored inside [start, end] (inclusive). */
+function countRecords(
+  records: readonly OpportunityRecord[],
+  start: string,
+  end: string,
+): { eligible: number; done: number; missed: number } {
+  let eligible = 0
+  let done = 0
+  let missed = 0
+  for (const r of records) {
+    if (r.anchor < start || r.anchor > end) continue
+    eligible++
+    if (r.achieved) done++
+    else missed++
+  }
+  return { eligible, done, missed }
+}
+
 export interface HabitPeriodPerformance {
   habit: Habit
   eligibleDays: number
@@ -194,6 +319,9 @@ export interface HabitPeriodPerformance {
   deltaRate: number | null
   deltaScore: number | null
   trajectory: 'improving' | 'declining' | 'consistent' | 'new'
+  /** True when every eligible opportunity in the CURRENT period was a
+   *  weekly-target week (counters are week-granular; UI copy says "weeks"). */
+  weekBased: boolean
 }
 
 export interface PeriodReviewSummary {
@@ -225,12 +353,16 @@ export function calculatePeriodReview({
   period,
   today,
   vacations = [],
+  epochsByHabit,
 }: {
   habits: Habit[]
   entriesByHabit: Record<string, Entry[]>
   period: PeriodRange
   today: string
   vacations?: readonly string[]
+  /** Schedule history per habit (Stage 4C). Omitted/empty = exact
+   *  pre-scheduling behaviour. */
+  epochsByHabit?: Record<string, ScheduleEpoch[]>
 }): PeriodReviewSummary {
   const activeHabits = habits.filter((h) => !h.archived)
   const habitPerformances: HabitPeriodPerformance[] = []
@@ -244,37 +376,23 @@ export function calculatePeriodReview({
 
   for (const habit of activeHabits) {
     const entries = entriesByHabit[habit.id] ?? []
-    const byDate = new Map(entries.map((e) => [e.date, e]))
+    const epochs = epochsByHabit?.[habit.id]
 
-    // 1. Current period metrics
-    let eligible = 0
-    let done = 0
-    let missed = 0
-
-    // Only count from habit.created_at onward
-    let d = habit.created_at > period.start ? habit.created_at : period.start
-    while (d <= period.end) {
-      const status = dayStatus({
-        habit,
-        date: d,
-        entry: byDate.get(d),
-        today,
-        vacations,
-      })
-
-      if (!isNeutral(status)) {
-        eligible++
-        if (status === 'done') {
-          done++
-        } else if (status === 'missed') {
-          missed++
-        }
-      }
-      d = addDays(d, 1)
-    }
+    // 1. Current period metrics — schedule-aware opportunities (per scheduled
+    // day, or per closed weekly-target week; neutral days/weeks record nothing).
+    const current = habitOpportunities(
+      habit,
+      entries,
+      period.start,
+      period.end,
+      today,
+      vacations,
+      epochs,
+    )
+    const { eligible, done, missed } = countRecords(current.records, period.start, period.end)
 
     const completionRate = eligible > 0 ? done / eligible : 0
-    const score = scoreRange(habit, entries, period.start, period.end, vacations)
+    const score = scoreRange(habit, entries, period.start, period.end, vacations, epochs)
 
     if (done > 0) {
       habitsWithActivity++
@@ -284,30 +402,21 @@ export function calculatePeriodReview({
     totalEligibleOpportunities += eligible
 
     // 2. Preceding period metrics
-    let prevEligible = 0
-    let prevDone = 0
-
-    let pd = habit.created_at > period.prevStart ? habit.created_at : period.prevStart
-    while (pd <= period.prevEnd) {
-      const status = dayStatus({
-        habit,
-        date: pd,
-        entry: byDate.get(pd),
-        today,
-        vacations,
-      })
-
-      if (!isNeutral(status)) {
-        prevEligible++
-        if (status === 'done') {
-          prevDone++
-        }
-      }
-      pd = addDays(pd, 1)
-    }
+    const previous = habitOpportunities(
+      habit,
+      entries,
+      period.prevStart,
+      period.prevEnd,
+      today,
+      vacations,
+      epochs,
+    )
+    const prev = countRecords(previous.records, period.prevStart, period.prevEnd)
+    const prevEligible = prev.eligible
+    const prevDone = prev.done
 
     const prevCompletionRate = prevEligible > 0 ? prevDone / prevEligible : 0
-    const prevScore = scoreRange(habit, entries, period.prevStart, period.prevEnd, vacations)
+    const prevScore = scoreRange(habit, entries, period.prevStart, period.prevEnd, vacations, epochs)
 
     prevTotalDone += prevDone
     prevTotalEligible += prevEligible
@@ -343,31 +452,16 @@ export function calculatePeriodReview({
         const halfDays = Math.floor(totalDays / 2)
         const midDate = addDays(periodStart, Math.max(0, halfDays - 1))
 
-        let h1Eligible = 0
-        let h1Done = 0
-        let h2Eligible = 0
-        let h2Done = 0
-
-        let cd = periodStart
-        while (cd <= period.end) {
-          const status = dayStatus({
-            habit,
-            date: cd,
-            entry: byDate.get(cd),
-            today,
-            vacations,
-          })
-          if (!isNeutral(status)) {
-            if (cd <= midDate) {
-              h1Eligible++
-              if (status === 'done') h1Done++
-            } else {
-              h2Eligible++
-              if (status === 'done') h2Done++
-            }
-          }
-          cd = addDays(cd, 1)
-        }
+        // Split the already-collected opportunities at the mid date. Day
+        // opportunities anchor at their own date (identical to the previous
+        // day-walk); weekly-target weeks anchor at their Monday, so a week
+        // straddling the split counts whole in the half holding its Monday.
+        const h1 = countRecords(current.records, periodStart, midDate)
+        const h2 = countRecords(current.records, addDays(midDate, 1), period.end)
+        const h1Eligible = h1.eligible
+        const h1Done = h1.done
+        const h2Eligible = h2.eligible
+        const h2Done = h2.done
 
         const h1Rate = h1Eligible > 0 ? h1Done / h1Eligible : 0
         const h2Rate = h2Eligible > 0 ? h2Done / h2Eligible : 0
@@ -405,6 +499,7 @@ export function calculatePeriodReview({
       deltaRate,
       deltaScore,
       trajectory,
+      weekBased: current.weekBased,
     })
   }
 
@@ -493,6 +588,13 @@ export interface MonthlyWeekBreakdown {
 
 /**
  * Calculates weekly completion breakdown for a calendar month.
+ *
+ * Schedule-aware (Stage 4C): each habit's opportunities are collected once
+ * over the whole month via `habitOpportunities` (day opportunities anchored at
+ * their date, weekly-target weeks at their Monday) and then bucketed into the
+ * month's 7-day chunks by anchor — so a weekly-target week counts whole in
+ * the chunk containing its Monday, never as seven daily obligations, and
+ * chunk-edge neutral days stay neutral.
  */
 export function calculateMonthlyWeeklyBreakdown({
   habits,
@@ -501,6 +603,7 @@ export function calculateMonthlyWeeklyBreakdown({
   monthEnd,
   today,
   vacations = [],
+  epochsByHabit,
 }: {
   habits: Habit[]
   entriesByHabit: Record<string, Entry[]>
@@ -508,7 +611,25 @@ export function calculateMonthlyWeeklyBreakdown({
   monthEnd: string
   today: string
   vacations?: readonly string[]
+  epochsByHabit?: Record<string, ScheduleEpoch[]>
 }): MonthlyWeekBreakdown[] {
+  // Collect each habit's opportunities for the month once, keyed by anchor.
+  const perHabit: OpportunityRecord[][] = []
+  for (const habit of habits) {
+    if (habit.archived) continue
+    const entries = entriesByHabit[habit.id] ?? []
+    const collected = habitOpportunities(
+      habit,
+      entries,
+      monthStart,
+      monthEnd,
+      today,
+      vacations,
+      epochsByHabit?.[habit.id],
+    )
+    perHabit.push(collected.records)
+  }
+
   const weeks: MonthlyWeekBreakdown[] = []
   let currentStart = monthStart
   let weekIndex = 1
@@ -520,26 +641,10 @@ export function calculateMonthlyWeeklyBreakdown({
     let totalDone = 0
     let totalEligible = 0
 
-    for (const habit of habits) {
-      if (habit.archived) continue
-      const entries = entriesByHabit[habit.id] ?? []
-      const byDate = new Map(entries.map((e) => [e.date, e]))
-
-      let d = habit.created_at > currentStart ? habit.created_at : currentStart
-      while (d <= currentEnd) {
-        const status = dayStatus({
-          habit,
-          date: d,
-          entry: byDate.get(d),
-          today,
-          vacations,
-        })
-        if (!isNeutral(status)) {
-          totalEligible++
-          if (status === 'done') totalDone++
-        }
-        d = addDays(d, 1)
-      }
+    for (const records of perHabit) {
+      const { eligible, done } = countRecords(records, currentStart, currentEnd)
+      totalEligible += eligible
+      totalDone += done
     }
 
     const rate = totalEligible > 0 ? totalDone / totalEligible : 0
@@ -571,6 +676,11 @@ export interface YearlyMonthBreakdown {
 
 /**
  * Calculates monthly breakdown for a calendar year (Jan–Dec).
+ *
+ * Schedule-aware (Stage 4C): each habit's opportunities are collected once
+ * over the year via `habitOpportunities` and bucketed into calendar months by
+ * anchor — weekly-target weeks count whole in the month containing their
+ * Monday, never as seven daily obligations.
  */
 export function calculateYearlyMonthlyBreakdown({
   habits,
@@ -578,13 +688,35 @@ export function calculateYearlyMonthlyBreakdown({
   year,
   today,
   vacations = [],
+  epochsByHabit,
 }: {
   habits: Habit[]
   entriesByHabit: Record<string, Entry[]>
   year: number
   today: string
   vacations?: readonly string[]
+  epochsByHabit?: Record<string, ScheduleEpoch[]>
 }): YearlyMonthBreakdown[] {
+  const yearStart = `${year}-01-01`
+  const yearEnd = `${year}-12-31`
+
+  // Collect each habit's opportunities for the year once, keyed by anchor.
+  const perHabit: OpportunityRecord[][] = []
+  for (const habit of habits) {
+    if (habit.archived) continue
+    const entries = entriesByHabit[habit.id] ?? []
+    const collected = habitOpportunities(
+      habit,
+      entries,
+      yearStart,
+      yearEnd,
+      today,
+      vacations,
+      epochsByHabit?.[habit.id],
+    )
+    perHabit.push(collected.records)
+  }
+
   const result: YearlyMonthBreakdown[] = []
 
   for (let m = 1; m <= 12; m++) {
@@ -596,26 +728,10 @@ export function calculateYearlyMonthlyBreakdown({
     let totalDone = 0
     let totalEligible = 0
 
-    for (const habit of habits) {
-      if (habit.archived) continue
-      const entries = entriesByHabit[habit.id] ?? []
-      const byDate = new Map(entries.map((e) => [e.date, e]))
-
-      let d = habit.created_at > start ? habit.created_at : start
-      while (d <= end) {
-        const status = dayStatus({
-          habit,
-          date: d,
-          entry: byDate.get(d),
-          today,
-          vacations,
-        })
-        if (!isNeutral(status)) {
-          totalEligible++
-          if (status === 'done') totalDone++
-        }
-        d = addDays(d, 1)
-      }
+    for (const records of perHabit) {
+      const { eligible, done } = countRecords(records, start, end)
+      totalEligible += eligible
+      totalDone += done
     }
 
     const rate = totalEligible > 0 ? totalDone / totalEligible : 0
@@ -671,11 +787,12 @@ export function generateActionableInsights({
 
   if (topHabit) {
     const pct = Math.round(topHabit.completionRate * 100)
+    const unit = topHabit.weekBased ? 'weeks' : 'days'
     insights.push({
       id: `champion-${topHabit.habit.id}`,
       kind: 'celebration',
       title: `Standout Consistency: ${topHabit.habit.name}`,
-      description: `Achieved ${pct}% completion with ${topHabit.doneDays} of ${topHabit.eligibleDays} days completed. Keep this routine anchored!`,
+      description: `Achieved ${pct}% completion with ${topHabit.doneDays} of ${topHabit.eligibleDays} ${unit} completed. Keep this routine anchored!`,
       habitId: topHabit.habit.id,
     })
   }

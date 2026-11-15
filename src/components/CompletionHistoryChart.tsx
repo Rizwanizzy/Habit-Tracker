@@ -12,12 +12,15 @@ import {
 } from 'recharts'
 import type { Entry, Habit } from '../lib/score'
 import { isDone } from '../lib/score'
+import { dayStatus, isNeutral } from '../lib/dayStatus'
 import { addDays, parseLocalDate } from '../lib/dates'
 import { useLogicalToday } from '../hooks/useLogicalToday'
 import { tint } from '../lib/color'
+import type { ScheduleEpoch } from '../lib/schedule'
+import { weekStart, weekEnd, resolveEpoch, isTransitionWeek, isValidWeeklyTarget } from '../lib/schedule'
 
 type Range = 'week' | 'month'
-type Bucket = { label: string; count: number }
+type Bucket = { label: string; count: number; total?: number }
 
 /** Honors prefers-reduced-motion: skip Recharts draw-ins (DESIGN.md §9). */
 const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -39,57 +42,152 @@ function CompletionTip({
   color,
 }: TipProps & { range: Range; color: string }) {
   if (!active || !payload || payload.length === 0) return null
+  const value = payload[0].value as number
+  const total = (payload[0] as { payload?: { total?: number } }).payload?.total
   return (
     <div className="glass-card rounded-input px-3 py-2">
       <p className="text-body flex items-center gap-2">
         <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
         <span className="text-fg-secondary">{range === 'week' ? `Week of ${String(label)}` : String(label)}</span>
-        <span className="pl-2 font-semibold tabular-nums text-fg">{String(payload[0].value)}</span>
+        <span className="pl-2 font-semibold tabular-nums text-fg">
+          {total !== undefined && total > 0 ? `${value} / ${total}` : String(value)}
+        </span>
       </p>
     </div>
   )
 }
 
-function completedInWeek(habit: Habit, byDate: Map<string, Entry>, start: string, today: string): number {
-  let count = 0
-  for (let d = 0; d < 7; d++) {
-    const date = addDays(start, d)
-    if (date > today) break
-    if (isDone(habit, byDate.get(date))) count++
-  }
-  return count
-}
-
-function weeklyBuckets(habit: Habit, entries: Entry[], today: string): Bucket[] {
+function weeklyBuckets(
+  habit: Habit,
+  entries: Entry[],
+  today: string,
+  vacations: readonly string[],
+  epochs?: readonly ScheduleEpoch[],
+): Bucket[] {
   const byDate = new Map(entries.map((e) => [e.date, e]))
   const lastSunday = addDays(today, -parseLocalDate(today).getDay())
   const out: Bucket[] = []
+
+  // Check if this is a weekly_target habit with epochs
+  const currentEpoch = epochs?.length ? resolveEpoch(epochs, today) : undefined
+  const isWeeklyTarget = currentEpoch?.schedule_type === 'weekly_target' && isValidWeeklyTarget(currentEpoch.weekly_target ?? 0)
+
   for (let i = 7; i >= 0; i--) {
     const start = addDays(lastSunday, -i * 7)
-    out.push({ label: DAY_FMT.format(parseLocalDate(start)), count: completedInWeek(habit, byDate, start, today) })
+
+    if (isWeeklyTarget && epochs) {
+      // Weekly-target: check if this week is achieved
+      const weekEpoch = resolveEpoch(epochs, start)
+      if (weekEpoch?.schedule_type === 'weekly_target' && !isTransitionWeek(epochs, start) && start >= habit.created_at) {
+        const target = weekEpoch.weekly_target ?? 0
+        let done = 0
+        for (let d = 0; d < 7; d++) {
+          const date = addDays(start, d)
+          if (date > today) break
+          if (isDone(habit, byDate.get(date))) done++
+        }
+        const achieved = done >= target
+        out.push({ label: DAY_FMT.format(parseLocalDate(start)), count: achieved ? 1 : 0, total: 1 })
+      } else {
+        // Transition week or before habit creation - neutral
+        out.push({ label: DAY_FMT.format(parseLocalDate(start)), count: 0, total: 0 })
+      }
+    } else {
+      // Daily/weekdays/interval/legacy: count eligible days completed
+      let eligible = 0
+      let done = 0
+      for (let d = 0; d < 7; d++) {
+        const date = addDays(start, d)
+        if (date > today) break
+        const status = dayStatus({ habit, date, entry: byDate.get(date), today, vacations, schedule: epochs })
+        if (!isNeutral(status)) {
+          eligible++
+          if (status === 'done') done++
+        }
+      }
+      out.push({ label: DAY_FMT.format(parseLocalDate(start)), count: done, total: eligible })
+    }
   }
   return out
 }
 
-function monthlyBuckets(habit: Habit, entries: Entry[], today: string): Bucket[] {
+function monthlyBuckets(
+  habit: Habit,
+  entries: Entry[],
+  today: string,
+  vacations: readonly string[],
+  epochs?: readonly ScheduleEpoch[],
+): Bucket[] {
+  const byDate = new Map(entries.map((e) => [e.date, e]))
   const now = parseLocalDate(today)
   const out: Bucket[] = []
+
+  // Check if this is a weekly_target habit with epochs
+  const currentEpoch = epochs?.length ? resolveEpoch(epochs, today) : undefined
+  const isWeeklyTarget = currentEpoch?.schedule_type === 'weekly_target' && isValidWeeklyTarget(currentEpoch.weekly_target ?? 0)
+
   for (let k = 5; k >= 0; k--) {
     const start = new Date(now.getFullYear(), now.getMonth() - k, 1)
     const y = start.getFullYear()
     const m = start.getMonth()
-    const count = entries.filter((e) => {
-      const d = parseLocalDate(e.date)
-      return d.getFullYear() === y && d.getMonth() === m && isDone(habit, e)
-    }).length
-    out.push({ label: MONTH_FMT.format(start), count })
+    const end = new Date(y, m + 1, 0) // last day of month
+    const startStr = start.toISOString().slice(0, 10)
+    const endStr = end.toISOString().slice(0, 10)
+
+    if (isWeeklyTarget && epochs) {
+      // Weekly-target: count achieved weeks in this month
+      let achievedWeeks = 0
+      let totalWeeks = 0
+      // Iterate through each week (Monday-Sunday) in the month
+      let weekStartDate = weekStart(startStr)
+
+      while (weekStartDate <= endStr) {
+        const weekEndDate = weekEnd(weekStartDate)
+        // Check if this week falls in the month
+        if (weekStartDate >= startStr && weekEndDate <= endStr) {
+          const weekEpoch = resolveEpoch(epochs, weekStartDate)
+          if (weekEpoch?.schedule_type === 'weekly_target' && !isTransitionWeek(epochs, weekStartDate) && weekStartDate >= habit.created_at) {
+            totalWeeks++
+            let done = 0
+            for (let d = 0; d < 7; d++) {
+              const date = addDays(weekStartDate, d)
+              if (date > today) break
+              if (isDone(habit, byDate.get(date))) done++
+            }
+            if (done >= (weekEpoch.weekly_target ?? 0)) achievedWeeks++
+          }
+        }
+        weekStartDate = addDays(weekStartDate, 7)
+      }
+      out.push({ label: MONTH_FMT.format(start), count: achievedWeeks, total: totalWeeks })
+    } else {
+      // Daily/weekdays/interval/legacy: count eligible days completed in month
+      let eligible = 0
+      let done = 0
+      for (let d = 0; d <= end.getDate(); d++) {
+        const date = new Date(y, m, d + 1).toISOString().slice(0, 10)
+        if (date > today) break
+        if (date < habit.created_at) continue
+        const status = dayStatus({ habit, date, entry: byDate.get(date), today, vacations, schedule: epochs })
+        if (!isNeutral(status)) {
+          eligible++
+          if (status === 'done') done++
+        }
+      }
+      out.push({ label: MONTH_FMT.format(start), count: done, total: eligible })
+    }
   }
   return out
 }
 
 /** Weekly/monthly completion bars (DESIGN.md §7): 10px habit-color bars with
  *  fully rounded tops; the latest (current) bucket glows. */
-export function CompletionHistoryChart({ habit, entries }: { habit: Habit; entries: Entry[] }) {
+export function CompletionHistoryChart({
+  habit,
+  entries,
+  vacations = [],
+  epochs,
+}: { habit: Habit; entries: Entry[]; vacations?: readonly string[]; epochs?: readonly ScheduleEpoch[] }) {
   const [range, setRange] = useState<Range>('week')
   const today = useLogicalToday()
   const color = habit.color ?? '#3B82F6'
@@ -97,9 +195,9 @@ export function CompletionHistoryChart({ habit, entries }: { habit: Habit; entri
   const data = useMemo(
     () =>
       range === 'week'
-        ? weeklyBuckets(habit, entries, today)
-        : monthlyBuckets(habit, entries, today),
-    [range, habit, entries, today],
+        ? weeklyBuckets(habit, entries, today, vacations, epochs)
+        : monthlyBuckets(habit, entries, today, vacations, epochs),
+    [range, habit, entries, today, vacations, epochs],
   )
 
   return (

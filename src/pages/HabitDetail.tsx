@@ -18,6 +18,7 @@ import { IconChevronLeft, IconPencil } from '../components/icons'
 import { useHabitsContext } from '../contexts/HabitsContext'
 import { normalizeEmoji } from '../lib/emoji'
 import { useEntries } from '../hooks/useEntries'
+import { useScheduleHistory } from '../hooks/useScheduleHistory'
 import {
   bestStreak,
   completionRate,
@@ -26,6 +27,7 @@ import {
   type Entry,
 } from '../lib/score'
 import { dayActionFor, nextDayAction } from '../lib/dayStatus'
+import { scheduleLabel } from '../lib/schedule'
 import { addDays } from '../lib/dates'
 import { vacationDatesInRange } from '../lib/vacation'
 import { useVacationsContext } from '../contexts/VacationsContext'
@@ -90,6 +92,10 @@ export function HabitDetail() {
     setEntriesByHabit,
   } = useEntries(id ? [id] : [], 365)
 
+  // Schedule history for this habit (Stage 4D)
+  const { epochsByHabit } = useScheduleHistory()
+  const habitEpochs = useMemo(() => (id ? epochsByHabit[id] ?? [] : []), [epochsByHabit, id])
+
   const today = useLogicalToday()
   const { periods } = useVacationsContext()
   // The 365-day entries window is the widest anything here walks (streaks,
@@ -139,11 +145,11 @@ export function HabitDetail() {
   const series = useMemo(() => {
     if (!habit) return []
     const start = addDays(today, -(Number(scoreWindow) - 1))
-    return scoreSeries(habit, entries, start, today, vacations).map((p) => {
+    return scoreSeries(habit, entries, start, today, vacations, habitEpochs).map((p) => {
       const score = Math.round(p.score * 100)
       return { date: p.date, score, 'g:score': score }
     })
-  }, [habit, entries, today, scoreWindow, vacations])
+  }, [habit, entries, today, scoreWindow, vacations, habitEpochs])
 
   if (loading || entriesLoading) {
     return (
@@ -183,9 +189,10 @@ export function HabitDetail() {
     )
   }
 
-  const cur = currentStreak(habit, entries, today, vacations)
-  const best = bestStreak(habit, entries, vacations)
-  const rate = Math.round(completionRate(habit, entries, addDays(today, -29), today, vacations) * 100)
+  // Pass epochs to streak, rate, and score calculations (Stage 4D)
+  const cur = currentStreak(habit, entries, today, vacations, habitEpochs)
+  const best = bestStreak(habit, entries, vacations, habitEpochs)
+  const rate = Math.round(completionRate(habit, entries, addDays(today, -29), today, vacations, habitEpochs) * 100)
 
   return (
     <section>
@@ -224,6 +231,19 @@ export function HabitDetail() {
           <IconPencil className="size-4" />
         </Link>
       </header>
+
+      {/* Repeat schedule (Stage 3): the saved schedule shown as-is — legacy
+          habits display their frozen freq, never a converted mode. */}
+      {habit.schedule_type && (
+        <p className="text-caption mt-3 text-fg-secondary">
+          Repeat · {scheduleLabel({
+            ...habit,
+            schedule_type: habit.schedule_type,
+            legacy_freq_times: habit.legacy_freq_times ?? undefined,
+            legacy_freq_days: habit.legacy_freq_days ?? undefined,
+          })}
+        </p>
+      )}
 
       {/* Stat tiles: caption on top, big numeral (DESIGN.md §6). */}
       <div className="mt-4 grid grid-cols-3 gap-3 lg:gap-5">
@@ -315,7 +335,7 @@ export function HabitDetail() {
 
         {/* Weekly/monthly completion bars (§7) in habit color. */}
         <section className="glass-card fade-up rounded-card p-5 lg:p-6" style={{ animationDelay: '160ms' }}>
-          <CompletionHistoryChart habit={habit} entries={entries} />
+          <CompletionHistoryChart habit={habit} entries={entries} vacations={vacations} epochs={habitEpochs} />
         </section>
       </div>
 
@@ -327,7 +347,7 @@ export function HabitDetail() {
           empty → done → skipped.
         </p>
         <div className="mt-3">
-          <Heatmap habit={habit} entries={entries} vacations={vacations} onToggle={(d) => void cycleDay(d)} />
+          <Heatmap habit={habit} entries={entries} vacations={vacations} epochs={habitEpochs} onToggle={(d) => void cycleDay(d)} />
         </div>
         {actionError && (
           <p role="alert" className="mt-3 rounded-input bg-danger/10 px-3 py-2 text-body text-danger">

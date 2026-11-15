@@ -10,13 +10,25 @@ interface Props {
   /** Accessible name ("Times", "Days"). */
   label: string
   className?: string
+  /** Render only the selected value in the same 64×108 shell: no adjacent
+   *  numbers, no scroll/drag/keyboard, no onChange. Used by the frozen legacy
+   *  schedule in the habit form. */
+  readOnly?: boolean
 }
 
 /** Alarm-clock wheel (HabitFormMobile phone layout): a 64×108px scroll-snap
  *  spinner. The row closest to the centre IS the value; every change fires a
  *  short haptic tick (a no-op on iOS Safari, which has no navigator.vibrate).
  *  Pure math lives in lib/wheel.ts and is unit-tested there. */
-export function WheelPicker({ value, onChange, min, max, label, className = '' }: Props) {
+export function WheelPicker({
+  value,
+  onChange,
+  min,
+  max,
+  label,
+  className = '',
+  readOnly = false,
+}: Props) {
   const elRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
   /** Value last reported from a wheel-initiated scroll — lets the layout
@@ -54,6 +66,30 @@ export function WheelPicker({ value, onChange, min, max, label, className = '' }
     },
     [],
   )
+
+  if (readOnly) {
+    return (
+      <div className={`relative ${className}`}>
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-1/2 z-0 h-9 -translate-y-1/2 rounded-input bg-surface-raised"
+        />
+        <div
+          role="spinbutton"
+          aria-label={label}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={value}
+          aria-readonly="true"
+          className="relative z-10 flex h-[108px] w-16 select-none items-center justify-center text-center"
+        >
+          <span className="font-display text-[22px] font-bold leading-none tabular-nums text-fg">
+            {value}
+          </span>
+        </div>
+      </div>
+    )
+  }
 
   /** rAF-throttled scroll → nearest row → onChange (+ tick). */
   const onScroll = () => {

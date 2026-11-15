@@ -5,11 +5,28 @@ import { EmojiPickerField } from '../components/EmojiPickerField'
 import { HabitPreview } from '../components/HabitPreview'
 import { RangeSwitch } from '../components/RangeSwitch'
 import { HabitFormMobile } from '../components/HabitFormMobile'
-import { createHabit, extractError, updateHabit, type HabitInput } from '../hooks/useHabits'
+import { ScheduleEditor } from '../components/ScheduleEditor'
+import {
+  createHabit,
+  extractError,
+  updateHabit,
+  updateHabitAtomically,
+  type HabitInput,
+} from '../hooks/useHabits'
 import { useHabitsContext } from '../contexts/HabitsContext'
 import { useSettings } from '../contexts/SettingsContext'
 import { getSupabase } from '../lib/supabase'
 import { normalizeEmoji } from '../lib/emoji'
+import { scheduleColumnsAvailable } from '../lib/scheduleSupport'
+import { validateSchedule } from '../lib/schedule'
+import {
+  creationScheduleFields,
+  draftSchedule,
+  formScheduleFromRow,
+  loadedScheduleFromRow,
+  scheduleChanged,
+  type ScheduleSnapshot,
+} from '../lib/habitForm'
 import { FORM_BLANK, type FormState } from '../types/habit-form'
 
 const Label = ({ htmlFor, children }: { htmlFor: string; children: string }) => (
@@ -30,6 +47,33 @@ export function HabitForm() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  /** Schedule capability probe: null = pending, true = v7 migration applied
+   *  (schedule UI + RPC edits), false = pre-migration DB (legacy form). */
+  const [capable, setCapable] = useState<boolean | null>(null)
+  /** The loaded habit's schedule snapshot for change detection. */
+  const [loadedSchedule, setLoadedSchedule] = useState<ScheduleSnapshot | null>(null)
+  /** Stable "originally legacy" identity for this unsaved edit session. Set on
+   *  load and cleared only after a modern schedule save succeeds, so the
+   *  Custom pill can return to the frozen legacy mode even after the user
+   *  temporarily selects another repeat mode. */
+  const [legacyHabit, setLegacyHabit] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    scheduleColumnsAvailable()
+      .then((ok) => {
+        if (active) setCapable(ok)
+      })
+      .catch((e) => {
+        if (active) {
+          setCapable(false)
+          setLoadError(extractError(e))
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!id) return
@@ -40,15 +84,17 @@ export function HabitForm() {
         const { data, error } = await sb.from('habits').select('*').eq('id', id).single()
         if (error) throw error
         if (!active) return
+        const snapshot = loadedScheduleFromRow(data)
+        setLoadedSchedule(snapshot)
+        setLegacyHabit(snapshot?.schedule_type === 'legacy')
         setForm({
           name: data.name,
           emoji: data.emoji ?? '',
           type: data.type,
           target: String(data.target),
           unit: data.unit ?? '',
-          freq_times: String(data.freq_times),
-          freq_days: String(data.freq_days),
           color: data.color,
+          ...formScheduleFromRow(data),
         })
       } catch (e) {
         if (active) setLoadError(extractError(e))
@@ -104,24 +150,52 @@ export function HabitForm() {
       setFormError('The daily target must be a number greater than 0.')
       return
     }
-    const values: HabitInput = {
+    // Schedule validation (schedule-capable DB only — validateSchedule needs
+    // a non-legacy config; the custom/legacy freq path validates as before).
+    if (capable) {
+      const draft = draftSchedule(form)
+      if (draft) {
+        const errors = validateSchedule(draft)
+        if (errors.length > 0) {
+          setFormError(errors[0])
+          return
+        }
+      }
+    }
+    const base = {
       name,
       type: form.type,
       target: form.type === 'numeric' ? target : 1,
       unit: form.type === 'numeric' ? form.unit.trim() : null,
-      freq_times: freqTimes,
-      freq_days: freqDays,
       color: form.color,
       emoji: normalizeEmoji(form.emoji),
     }
     setFormError(null)
     setBusy(true)
     try {
-      if (id) await updateHabit(id, values, dayStartHour)
-      else await createHabit(values, dayStartHour)
-      // Refresh the shared habit list immediately so Today/Overview/Settings
-      // show the change; navigation happens right away (same loading state
-      // users saw when each page fetched on mount).
+      if (id) {
+        if (capable) {
+          const changedSchedule = scheduleChanged(form, loadedSchedule) ? draftSchedule(form) : null
+          await updateHabitAtomically(id, base, changedSchedule)
+          if (changedSchedule) {
+            setLegacyHabit(false)
+            window.dispatchEvent(new Event('schedule-reload'))
+          }
+        } else {
+          // Preserve the pre-migration editing path.
+          await updateHabit(id, { ...base, freq_times: freqTimes, freq_days: freqDays }, dayStartHour)
+        }
+      } else {
+        const scheduleFields = capable ? creationScheduleFields(form, freqTimes, freqDays) : null
+        const values: HabitInput = {
+          ...base,
+          freq_times: freqTimes,
+          freq_days: freqDays,
+          ...(scheduleFields ?? {}),
+        }
+        await createHabit(values, dayStartHour)
+        if (capable) window.dispatchEvent(new Event('schedule-reload'))
+      }
       void reload()
       navigate('/', { replace: true })
     } catch (err) {
@@ -143,6 +217,8 @@ export function HabitForm() {
           busy={busy}
           form={form}
           formError={formError}
+          capable={capable}
+          legacyHabit={legacyHabit}
           setField={set}
           setColor={(hex) => set('color', hex)}
           onSubmit={(e: FormEvent<HTMLFormElement>) => save(e)}
@@ -246,31 +322,45 @@ export function HabitForm() {
               </div>
             )}
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="habit-times">Times</Label>
-                <input
-                  id="habit-times"
-                  type="number"
-                  min="1"
-                  value={form.freq_times}
-                  onChange={(e) => set('freq_times', e.target.value)}
-                  className="input-field mt-2"
-                />
+            {/* Repeat: schedule editor when the v7 migration is applied
+                (capable), the classic frequency fields otherwise — also
+                shown while the capability probe is pending. */}
+            {capable !== true && (
+              <>
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="habit-times">Times</Label>
+                    <input
+                      id="habit-times"
+                      type="number"
+                      min="1"
+                      value={form.freq_times}
+                      onChange={(e) => set('freq_times', e.target.value)}
+                      className="input-field mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="habit-days">Per days</Label>
+                    <input
+                      id="habit-days"
+                      type="number"
+                      min="1"
+                      value={form.freq_days}
+                      onChange={(e) => set('freq_days', e.target.value)}
+                      className="input-field mt-2"
+                    />
+                  </div>
+                </div>
+                <p className="text-caption mt-2 text-fg-muted">
+                  e.g., 2 times per 7 days = twice a week
+                </p>
+              </>
+            )}
+            {capable === true && (
+              <div className="mt-5">
+                <ScheduleEditor form={form} setField={set} variant="desktop" legacyHabit={legacyHabit} />
               </div>
-              <div>
-                <Label htmlFor="habit-days">Per days</Label>
-                <input
-                  id="habit-days"
-                  type="number"
-                  min="1"
-                  value={form.freq_days}
-                  onChange={(e) => set('freq_days', e.target.value)}
-                  className="input-field mt-2"
-                />
-              </div>
-            </div>
-            <p className="text-caption mt-2 text-fg-muted">e.g., 2 times per 7 days = twice a week</p>
+            )}
           </form>
 
           <div className="glass-card fade-up rounded-card p-6" style={{ animationDelay: '40ms' }}>

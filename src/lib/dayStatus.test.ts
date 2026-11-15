@@ -127,7 +127,7 @@ const MONDAYS_ONLY: ScheduleEpoch[] = [
     id: 'e1',
     effective_from: '2026-11-09',
     schedule_type: 'weekdays',
-    scheduled_days: 1, // Monday only
+    scheduled_days: 2, // Monday only (MONDAY = 2)
     interval_days: null,
     weekly_target: null,
   },

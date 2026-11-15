@@ -4,6 +4,7 @@ import { useHabitsContext } from '../contexts/HabitsContext'
 import { useVacationsContext } from '../contexts/VacationsContext'
 import { useLogicalToday } from '../hooks/useLogicalToday'
 import { useEntries } from '../hooks/useEntries'
+import { useScheduleHistory } from '../hooks/useScheduleHistory'
 import { vacationDatesInRange } from '../lib/vacation'
 import {
   calculateMonthlyWeeklyBreakdown,
@@ -37,6 +38,12 @@ export function PerformanceReview() {
     error: entriesError,
   } = useEntries(habitIds, 800)
 
+  // Schedule epochs (Stage 4C): the user's habit_schedule_history rows, RLS-
+  // scoped. With them, off-days are neutral, weekly-target habits are counted
+  // per closed week, and past periods follow the schedule that governed each
+  // date. No epochs (pre-migration probe) = legacy behaviour.
+  const { epochsByHabit, loading: scheduleLoading, error: scheduleError } = useScheduleHistory()
+
   const [periodType, setPeriodType] = useState<PeriodType>('weekly')
   const [offset, setOffset] = useState<number>(0)
 
@@ -68,8 +75,9 @@ export function PerformanceReview() {
       period: currentRange,
       today,
       vacations,
+      epochsByHabit,
     })
-  }, [habits, entriesByHabit, currentRange, today, vacations])
+  }, [habits, entriesByHabit, currentRange, today, vacations, epochsByHabit])
 
   // Calculate breakdowns for monthly/yearly
   const monthlyBreakdown = useMemo(() => {
@@ -81,8 +89,9 @@ export function PerformanceReview() {
       monthEnd: currentRange.end,
       today,
       vacations,
+      epochsByHabit,
     })
-  }, [periodType, habits, entriesByHabit, currentRange, today, vacations])
+  }, [periodType, habits, entriesByHabit, currentRange, today, vacations, epochsByHabit])
 
   const yearlyBreakdown = useMemo(() => {
     if (periodType !== 'yearly') return []
@@ -92,16 +101,17 @@ export function PerformanceReview() {
       year: Number(currentRange.start.slice(0, 4)),
       today,
       vacations,
+      epochsByHabit,
     })
-  }, [periodType, habits, entriesByHabit, currentRange, today, vacations])
+  }, [periodType, habits, entriesByHabit, currentRange, today, vacations, epochsByHabit])
 
   // Generate deterministic actionable suggestions
   const insights = useMemo(() => {
     return generateActionableInsights({ summary: review, periodType })
   }, [review, periodType])
 
-  const isLoading = habitsLoading || entriesLoading
-  const error = habitsError || entriesError
+  const isLoading = habitsLoading || entriesLoading || scheduleLoading
+  const error = habitsError || entriesError || scheduleError
 
   const periodUnitName =
     periodType === 'weekly' ? 'week' : periodType === 'monthly' ? 'month' : 'year'

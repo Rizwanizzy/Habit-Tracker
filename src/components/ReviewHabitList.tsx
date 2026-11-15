@@ -61,7 +61,7 @@ export function ReviewHabitList({ habits, bestPerformers, needsAttention }: Prop
                 Needs Attention
               </span>
               <span className="text-[11px] text-fg-muted truncate">
-                {needsAttention.length > 0 ? 'Missed days or declining pace' : 'All habits on track'}
+                {needsAttention.length > 0 ? 'Missed opportunities or declining pace' : 'All habits on track'}
               </span>
             </div>
           </div>
@@ -149,7 +149,8 @@ export function ReviewHabitList({ habits, bestPerformers, needsAttention }: Prop
                       {item.habit.name}
                     </span>
                     <span className="text-[11px] text-fg-muted truncate">
-                      {item.doneDays} of {item.eligibleDays} days completed
+                      {item.doneDays} of {item.eligibleDays} {item.weekBased ? 'weeks' : 'days'}{' '}
+                      completed
                       {item.missedDays > 0 && ` (${item.missedDays} missed)`}
                     </span>
                   </div>

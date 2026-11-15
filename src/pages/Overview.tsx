@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useHabitsContext } from '../contexts/HabitsContext'
 import { useEntries } from '../hooks/useEntries'
+import { useScheduleHistory } from '../hooks/useScheduleHistory'
 import { scoreSeries } from '../lib/score'
 import { addDays } from '../lib/dates'
 import { vacationDatesInRange } from '../lib/vacation'
@@ -31,6 +32,12 @@ export function Overview() {
   const ids = habits.map((h) => h.id)
   const { entriesByHabit, loading: entriesLoading, error: entriesError } = useEntries(ids, 400)
 
+  // Schedule epochs (Stage 4B): the user's habit_schedule_history rows, RLS-
+  // scoped. With them, off-days are neutral, weekly-target habits are
+  // evaluated per closed week, and past performance follows the schedule that
+  // governed each date. No epochs (pre-migration probe) = legacy behaviour.
+  const { epochsByHabit, loading: scheduleLoading, error: scheduleError } = useScheduleHistory()
+
   const today = useLogicalToday()
   const { periods } = useVacationsContext()
   const [range, setRange] = useState<RangeKey>('90')
@@ -43,24 +50,28 @@ export function Overview() {
 
   /** Per-habit score or completion series for the selected range, plus the
    *  equal-length window just before it (for the average delta chip). Vacation
-   *  dates cover both windows (max span = 2× the range, entries window 400). */
+   *  dates cover both windows (max span = 2× the range, entries window 400).
+   *  Both metrics are epoch-aware (Stage 4B): the score law steps per
+   *  scheduled opportunity / closed weekly-target week, the completion series
+   *  treats off-days as neutral and weekly targets per closed week. */
   const per = useMemo(() => {
     const days = Number(range)
     const start = addDays(today, -(days - 1))
     const vacations = vacationDatesInRange(periods, addDays(start, -days), today)
     return habits.map((habit) => {
       const entries = entriesByHabit[habit.id] ?? []
+      const epochs = epochsByHabit[habit.id]
       const series =
         metric === 'score'
-          ? scoreSeries(habit, entries, start, today, vacations)
-          : completionSeries(habit, entries, start, today, vacations)
+          ? scoreSeries(habit, entries, start, today, vacations, epochs)
+          : completionSeries(habit, entries, start, today, vacations, epochs)
       const prev =
         metric === 'score'
-          ? scoreSeries(habit, entries, addDays(start, -days), addDays(start, -1), vacations)
-          : completionSeries(habit, entries, addDays(start, -days), addDays(start, -1), vacations)
+          ? scoreSeries(habit, entries, addDays(start, -days), addDays(start, -1), vacations, epochs)
+          : completionSeries(habit, entries, addDays(start, -days), addDays(start, -1), vacations, epochs)
       return { habit, series, prev }
     })
-  }, [habits, entriesByHabit, range, today, periods, metric])
+  }, [habits, entriesByHabit, range, today, periods, metric, epochsByHabit])
 
   const stats = useMemo(() => {
     const finals = per.map((p) => ({ habit: p.habit, score: p.series.at(-1)?.score ?? 0 }))
@@ -152,7 +163,7 @@ export function Overview() {
     return [...rows.values()].sort((a, b) => (a.date < b.date ? -1 : 1))
   }, [stats.per])
 
-  if (loading || entriesLoading) {
+  if (loading || entriesLoading || scheduleLoading) {
     return (
       <div className="glass-card grid min-h-32 place-items-center rounded-card p-10" role="status">
         <span className="text-body text-fg-muted">Loading…</span>
@@ -160,8 +171,8 @@ export function Overview() {
     )
   }
 
-  if (error ?? entriesError) {
-    const msg = error ?? entriesError
+  if (error ?? entriesError ?? scheduleError) {
+    const msg = error ?? entriesError ?? scheduleError
     return (
       <div className="glass-card rounded-card p-6 text-center" role="alert">
         <p className="text-body text-danger">{msg}</p>

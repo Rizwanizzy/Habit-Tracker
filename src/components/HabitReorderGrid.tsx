@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
   DndContext,
@@ -18,13 +18,73 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import { moveHabit } from '../lib/order'
-import { currentStreak, isDone, type Entry, type Habit } from '../lib/score'
+import { currentStreak, isDone, weeklyTargetProgress, type Entry, type Habit } from '../lib/score'
+import { dayStatus } from '../lib/dayStatus'
+import { isTransitionWeek, opportunityScope, shouldShowHabitOnDate, type ScheduleEpoch } from '../lib/schedule'
 import { parseLocalDate } from '../lib/dates'
 import { HabitTile } from './HabitTile'
 import { SortableHabitTile } from './SortableHabitTile'
 
 /** Short date label for the "Skip <day>" menu item on backfilled dates. */
 const SHORT_DATE_FMT = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short' })
+
+/** Tile state for one habit on the selected date (Stage 4A schedule rules).
+ *  The day is classified through dayStatus — with epochs, an off-day is
+ *  'unscheduled' (neutral: muted tile, "Not scheduled" caption, never a
+ *  failure; a done check-in still wins) — and a weekly-target habit carries
+ *  its weekly progress instead of a daily obligation, INCLUDING its first
+ *  partial (transition) week ("0/4 this partial week"). The streak is
+ *  epoch-aware (off-days don't break it; weekly targets count weeks). */
+function tileState(
+  habit: Habit,
+  list: Entry[],
+  selectedDate: string,
+  today: string,
+  vacations: readonly string[],
+  epochs: readonly ScheduleEpoch[] | undefined,
+) {
+  const entry = list.find((e) => e.date === selectedDate)
+  const entrySkipped = entry?.status === 'skipped'
+  const done = entry != null && isDone(habit, entry)
+  const status = dayStatus({
+    habit,
+    date: selectedDate,
+    entry,
+    today,
+    vacations,
+    schedule: epochs,
+  })
+  // Weekly progress (Stage 4A fix): a weekly_target epoch scopes its week as
+  // 'week' even in the transition (partial) start week, so a habit created
+  // mid-week shows "0/4 this partial week" instead of a misleading
+  // "Not scheduled". The day status stays 'unscheduled' (neutral) underneath —
+  // scoring is untouched — so only the DISPLAY switches to weekly progress.
+  const weeklyRaw =
+    epochs !== undefined && epochs.length > 0 && opportunityScope(epochs, selectedDate) === 'week'
+      ? weeklyTargetProgress(habit, list, selectedDate, epochs)
+      : null
+  const weekly =
+    weeklyRaw !== null && epochs !== undefined && isTransitionWeek(epochs, selectedDate)
+      ? { ...weeklyRaw, partial: true }
+      : weeklyRaw
+  // Neutral day (muted tile + caption). Skipped/vacation keep precedence over
+  // the weekly display; an unscheduled day is only muted when the habit is
+  // NOT week-scoped (ordinary weekdays/interval off-days stay "Not scheduled").
+  const neutral =
+    !done &&
+    (status === 'skipped' || status === 'vacation' || (status === 'unscheduled' && weekly === null))
+  const neutralLabel =
+    status === 'vacation' ? 'Vacation' : status === 'unscheduled' ? 'Not scheduled' : 'Skipped'
+  return {
+    entry,
+    entrySkipped,
+    done,
+    neutral,
+    neutralLabel,
+    weekly,
+    streak: currentStreak(habit, list, today, vacations, epochs),
+  }
+}
 
 interface Props {
   /** Ordered active habits (already in habit order from the shared list). */
@@ -36,10 +96,18 @@ interface Props {
    *  vacation day mutes tiles (neutral) with a "Vacation" caption, but
    *  check-ins still work (done wins). */
   vacations?: readonly string[]
+  /** Schedule epochs per habit (Stage 4A): an off-day is 'unscheduled' —
+   *  a muted tile with a "Not scheduled" caption, never a failure — and a
+   *  weekly-target habit shows weekly progress ("2/3 this week"). */
+  epochsByHabit?: Record<string, ScheduleEpoch[]>
   /** Tiles per row the user picked (1–6, persisted on the Today page). */
   perRow: number
   /** Jiggle mode state, owned by the page (the header reacts to it). */
   reorderMode: boolean
+  /** View mode: 'scheduled' (default) uses Stage 4E filtering; 'all' shows
+   *  every active habit. Only affects tile visibility — drag order and rings
+   *  are unaffected. */
+  viewMode: 'scheduled' | 'all'
   enterReorderMode: () => void
   /** Tap/click outside a tile (or Escape on the page) exits the mode. */
   exitReorderMode: () => void
@@ -61,8 +129,10 @@ export function HabitReorderGrid({
   selectedDate,
   today,
   vacations = [],
+  epochsByHabit,
   perRow,
   reorderMode,
+  viewMode,
   enterReorderMode,
   exitReorderMode,
   reorderHabits,
@@ -170,6 +240,16 @@ export function HabitReorderGrid({
     onNotice('success', 'Order saved')
   }
 
+  // Filter habits for visibility on the selected date (Stage 4E)
+  // In 'all' mode, show all active habits; in 'scheduled' mode, apply scheduling filter.
+  const visibleHabits = useMemo(() => {
+    if (viewMode === 'all') return habits
+    return habits.filter((habit) => {
+      const list = entriesByHabit[habit.id] ?? []
+      return shouldShowHabitOnDate(habit, list, selectedDate, today, vacations, epochsByHabit?.[habit.id]) === 'visible'
+    })
+  }, [habits, entriesByHabit, selectedDate, today, vacations, epochsByHabit, viewMode])
+
   return (
     <DndContext
       sensors={sensors}
@@ -182,7 +262,7 @@ export function HabitReorderGrid({
       onDragEnd={(e) => void handleDragEnd(e)}
       onDragCancel={() => setActiveId(null)}
     >
-      <SortableContext items={habits.map((h) => h.id)} strategy={rectSortingStrategy}>
+      <SortableContext items={visibleHabits.map((h) => h.id)} strategy={rectSortingStrategy}>
         <ul
           aria-label="Habits"
           className={`tile-grid grid ${reorderMode ? 'reorder-grid' : ''}`}
@@ -194,26 +274,21 @@ export function HabitReorderGrid({
             } as CSSProperties
           }
         >
-          {habits.map((habit, i) => {
+          {visibleHabits.map((habit, i) => {
             const list = entriesByHabit[habit.id] ?? []
-            const entry = list.find((e) => e.date === selectedDate)
-            const entrySkipped = entry?.status === 'skipped'
-            const done = entry != null && isDone(habit, entry)
-            // Vacation-day neutrality (done wins): a muted tile with a
-            // "Vacation" caption; the "more" menu still works on row state.
-            const vacationDay = vacations.includes(selectedDate)
-            const neutral = (entrySkipped || vacationDay) && !done
+            const st = tileState(habit, list, selectedDate, today, vacations, epochsByHabit?.[habit.id])
             return (
               <SortableHabitTile
                 key={habit.id}
                 habit={habit}
-                done={done}
-                skipped={neutral}
-                skippedRow={entrySkipped}
-                skippedLabel={entrySkipped ? 'Skipped' : 'Vacation'}
-                streak={currentStreak(habit, list, today, vacations)}
+                done={st.done}
+                skipped={st.neutral}
+                skippedRow={st.entrySkipped}
+                skippedLabel={st.neutralLabel}
+                weekly={st.weekly}
+                streak={st.streak}
                 // A skipped row's value (0) is never a real value.
-                value={entry && !entrySkipped ? entry.value : null}
+                value={st.entry && !st.entrySkipped ? st.entry.value : null}
                 dayLabel={selectedDate === today ? 'today' : SHORT_DATE_FMT.format(parseLocalDate(selectedDate))}
                 index={i}
                 reorderMode={reorderMode}
@@ -240,10 +315,7 @@ export function HabitReorderGrid({
           const habit = habits[index]
           if (!habit) return null
           const list = entriesByHabit[habit.id] ?? []
-          const entry = list.find((e) => e.date === selectedDate)
-          const entrySkipped = entry?.status === 'skipped'
-          const overlayDone = entry != null && isDone(habit, entry)
-          const overlayNeutral = (entrySkipped || vacations.includes(selectedDate)) && !overlayDone
+          const st = tileState(habit, list, selectedDate, today, vacations, epochsByHabit?.[habit.id])
           // Only set width/height when measured (undefined would cancel
           // dnd-kit's rect width and shrink-to-fit the overlay — see
           // handleDragStart).
@@ -263,13 +335,14 @@ export function HabitReorderGrid({
               <div className={`tile-dragged tile-cell h-full w-full`}>
                 <HabitTile
                   habit={habit}
-                  done={overlayDone}
-                  skipped={overlayNeutral}
-                  skippedRow={entrySkipped}
-                  skippedLabel={entrySkipped ? 'Skipped' : 'Vacation'}
-                  streak={currentStreak(habit, list, today, vacations)}
+                  done={st.done}
+                  skipped={st.neutral}
+                  skippedRow={st.entrySkipped}
+                  skippedLabel={st.neutralLabel}
+                  weekly={st.weekly}
+                  streak={st.streak}
                   // A skipped row's value (0) is never a real value.
-                  value={entry && !entrySkipped ? entry.value : null}
+                  value={st.entry && !st.entrySkipped ? st.entry.value : null}
                   dayLabel={selectedDate === today ? 'today' : SHORT_DATE_FMT.format(parseLocalDate(selectedDate))}
                   index={index}
                   overlay

@@ -4,8 +4,10 @@ import { ColorPickerCircle } from './ColorPickerCircle'
 import { EmojiPickerField } from './EmojiPickerField'
 import { HabitPreview } from './HabitPreview'
 import { RangeSwitch } from './RangeSwitch'
+import { ScheduleEditor } from './ScheduleEditor'
 import { WheelPicker } from './WheelPicker'
 import { rangeFor } from '../lib/wheel'
+import { draftScheduleLabel } from '../lib/habitForm'
 import type { FormEvent } from 'react'
 import type { FormState } from '../types/habit-form'
 import { IconChevronLeft } from './icons'
@@ -26,6 +28,12 @@ interface Props {
   busy: boolean
   form: FormState
   formError: string | null
+  /** Schedule capability probe: true = v7 migration applied (schedule
+   *  editor), false/null = pre-migration DB or pending (classic wheels). */
+  capable: boolean | null
+  /** True for the whole unsaved edit session when the loaded habit is legacy;
+   *  keeps the Custom pill mapped to the frozen legacy mode. */
+  legacyHabit?: boolean
   setColor: (hex: string) => void
   setField: <K extends keyof FormState>(key: K, value: FormState[K]) => void
   onSubmit: (e: FormEvent<HTMLFormElement>) => void
@@ -46,6 +54,8 @@ export function HabitFormMobile({
   busy,
   form,
   formError,
+  capable,
+  legacyHabit = false,
   setColor,
   setField,
   onSubmit,
@@ -170,11 +180,14 @@ export function HabitFormMobile({
           </div>
         </div>
 
-        {/* d · REPEAT: label + live summary, then the two centered wheels. */}
+        {/* d · REPEAT: label + live summary, then the schedule editor
+            (schedule-capable) or the two centered wheels (pre-migration). */}
         <div className="border-t border-border pb-3 pt-2">
           <div className="flex min-h-14 items-center justify-between gap-3">
             <span className="text-[15px] text-fg">Repeat</span>
-            <span className="text-body text-fg-secondary">{repeatSummary(timesNum, daysNum)}</span>
+            <span className="text-body text-fg-secondary">
+              {capable === true ? draftScheduleLabel(form) : repeatSummary(timesNum, daysNum)}
+            </span>
           </div>
 
           {formError && (
@@ -183,31 +196,35 @@ export function HabitFormMobile({
             </p>
           )}
 
-          <div className="flex items-start justify-center gap-4 pt-1">
-            <div className="flex flex-col items-center">
-              <WheelPicker
-                label="Times"
-                value={timesNum}
-                min={1}
-                max={timesMaxRef.current}
-                onChange={(v) => setField('freq_times', String(v))}
-                className="rounded-input"
-              />
-              <span className="text-caption mt-1 text-fg-muted">times</span>
+          {capable !== true ? (
+            <div className="flex items-start justify-center gap-4 pt-1">
+              <div className="flex flex-col items-center">
+                <WheelPicker
+                  label="Times"
+                  value={timesNum}
+                  min={1}
+                  max={timesMaxRef.current}
+                  onChange={(v) => setField('freq_times', String(v))}
+                  className="rounded-input"
+                />
+                <span className="text-caption mt-1 text-fg-muted">times</span>
+              </div>
+              <span className="text-body pt-10 text-fg-secondary">every</span>
+              <div className="flex flex-col items-center">
+                <WheelPicker
+                  label="Days"
+                  value={daysNum}
+                  min={1}
+                  max={daysMaxRef.current}
+                  onChange={(v) => setField('freq_days', String(v))}
+                  className="rounded-input"
+                />
+                <span className="text-caption mt-1 text-fg-muted">days</span>
+              </div>
             </div>
-            <span className="text-body pt-10 text-fg-secondary">every</span>
-            <div className="flex flex-col items-center">
-              <WheelPicker
-                label="Days"
-                value={daysNum}
-                min={1}
-                max={daysMaxRef.current}
-                onChange={(v) => setField('freq_days', String(v))}
-                className="rounded-input"
-              />
-              <span className="text-caption mt-1 text-fg-muted">days</span>
-            </div>
-          </div>
+          ) : (
+            <ScheduleEditor form={form} setField={setField} variant="phone" legacyHabit={legacyHabit} />
+          )}
         </div>
       </div>
 

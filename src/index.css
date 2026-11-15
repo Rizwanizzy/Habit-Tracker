@@ -540,13 +540,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Phone densities (per-row stepper now applies on mobile too).
    ≤140px columns (3–4 on a phone): the name row gives the streak chip its
-   space back, and the numeric value text would just clip — both go. */
+   space back, and the numeric value text would just clip — both go.
+   Also hide the header streak chip (tile-streak-header) on narrow tiles. */
 @container (max-width: 139.9px) {
   .tile-cell .habit-tile {
     padding: 12px;
   }
   .tile-cell .tile-streak,
-  .tile-cell .tile-value {
+  .tile-cell .tile-value,
+  .tile-cell .tile-streak-header {
     display: none;
   }
 }

@@ -4,7 +4,7 @@
 > understanding of this project — concept, stack, architecture, data model, features, and
 > conventions. It describes **what is true right now**; the per-pass history lives in
 > `CHANGELOG.md`. **Update this file after every completed task** (AGENTS.md rule 11).
-> Last updated: 2026-11-13
+> Last updated: 2026-11-15
 
 ## 1. What this project is
 
@@ -117,6 +117,9 @@ src/
     useNotificationPermission.ts Web Push capabilities + permission + local test notification trigger
     useNotificationSettings.ts reminder prefs + device subscriptions (useVacations pattern:
                                  optimistic w/ rollback, errors exposed, endpoint upsert)
+    useScheduleHistory.ts Stage 4A schedule epochs per habit from habit_schedule_history
+                         (RLS SELECT-only, capability-probe gated, `schedule-reload`
+                         window event; exposes epochsByHabit/loading/error)
   lib/                  pure logic + their *.test.ts (24 test files, 350 tests)
     review.ts           Performance Review analysis engine (getCompletedWeekRange, getCompletedMonthRange,
                         getCompletedYearRange, calculatePeriodReview, calculateMonthlyWeeklyBreakdown,
@@ -130,16 +133,23 @@ src/
                         weekly_target steps 1−0.95^M per CLOSED Mon–Sun week (achieved =
                         done ≥ M; current/partial/transition weeks carry), legacy uses
                         the frozen snapshot 1−0.95^(M/N) over all days. Streak/completion
-                        fns untouched until the wiring stage
-    overview.ts         completionSeries (daily cumulative completion % adhering to neutral days),
+                        fns untouched until the wiring stage. Stage 4A: currentStreak/
+                        bestStreak also take a trailing optional `epochs` (off-days
+                        neutral; weekly_target weeks are the streak unit — Monday's
+                        schedule governs the week, open weeks pending until closed,
+                        M reached = done wins); weeklyTargetProgress(habit, entries,
+                        date, epochs?) → {done, target} | null for the Mon–Sun week
+    overview.ts         completionSeries (daily cumulative completion % adhering to neutral days;
+                        Stage 4B: trailing optional `epochs` — off-days neutral, weekly_target
+                        scored per closed week mirroring the Stage 2 law),
                         getTop5HabitIds (Overview ranking + tie breaker), resolveFilterMode
     dayStatus.ts        the one source of truth for "is this day counted":
                         before-start/future → done → skipped → vacation → unscheduled → missed
                         ('unscheduled' is neutral and appears only when the caller supplies
                         schedule epochs — omitted/empty context = exact legacy behaviour)
-    schedule.ts         Habit Scheduling Stage 1 pure foundation (CHANGELOG 117; DB migration
-                        pending, no UI wiring yet): ScheduleType/ScheduleConfig/ScheduleEpoch
-                        types, weekday-bit mask helpers (Mon=1 … Sun=64, 1–127), weekdayBit,
+    schedule.ts         Habit Scheduling pure foundation + Stage 3 wiring helpers:
+                        ScheduleType/ScheduleConfig/ScheduleEpoch types, weekday-bit mask
+                        helpers (Mon=1 … Sun=64, 1–127), weekdayBit,
                         isValidWeekdayMask/isValidInterval/isValidWeeklyTarget, validateSchedule
                         (error list), resolveEpoch (latest effective_from ≤ date, same-day
                         final-wins in append order, never mutates), sortEpochs, isScheduledOn
@@ -147,12 +157,32 @@ src/
                         weekly_target with Tue–Sun transition weeks neutral/legacy = all days),
                         weekStart/weekEnd (Monday–Sunday only; Review's Sun–Sat cadence
                         untouched), weeklyTargetContext, isTransitionEpoch, transitionWeekStart,
-                        isTransitionWeek
+                        isTransitionWeek; Stage 3 helpers: ScheduleMode (types + 'legacy'),
+                        weekdayMaskCount (popcount), freqMirrorFor (DB freq pair per mode —
+                        the habits_freq_mirror_ck contract), scheduleLabel (human text,
+                        legacy shows frozen freq); Stage 4A: opportunityScope
+                        (epochs, date → 'day' | 'week' | null — week = weekly
+                        target week incl. its first partial transition week,
+                        null = ungoverned / weekdays-interval off-days)
+    habitForm.ts        Stage 3 pure form×schedule glue: draftSchedule (FormState →
+                        ScheduleConfig, legacy/'' → null), sameSchedule, scheduleChanged
+                        (RPC gating — staying on legacy is NOT a change), loadedSchedule
+                        FromRow/formScheduleFromRow, creationScheduleFields (per-mode
+                        CREATE payload: custom = typed freq; daily = freq 1/1 + no
+                        schedule_type, bit-identical to pre-Stage-3; other modes = own
+                        column + freq mirror), draftScheduleLabel (phone summary)
+    scheduleSupport.ts  Stage 3 capability probe: scheduleColumnsAvailable() — one
+                        session-cached schedule_type select; PGRST204/42703/message
+                        mention = migration not applied → pre-scheduling form; other
+                        errors rethrown
     dates.ts            local YYYY-MM-DD (Asia/Kolkata): toLogicalDateString, logicalToday,
                         msUntilNextDayStart, DAY_START_HOURS — never toISOString().slice(0,10)
     clock.ts            now() — reads localStorage['dev-now'] in dev (time travel), real clock in prod
     color.ts            readableColor(hex, theme) ≥3:1, tint() → color-mix strings
-    completion.ts       dayCompletion, monthCalendar/yearCalendar (10-month rolling), intensityPct
+    completion.ts       dayCompletion, monthCalendar/yearCalendar (10-month rolling), intensityPct;
+                        Stage 4A: dayCompletion/completionForDates take a trailing optional
+                        scheduleByHabit (off-days neutral, weekly-target habits week-scoped
+                        out of the day denominator)
     rings.ts            ring layout math (≤7 rings; >7 shares outer rings, inner full rings)
     order.ts            sortHabits/moveHabit/diffOrder — habit ordering engine
     emoji.ts            emoji validation (≤24 code points) + processing helpers
@@ -426,8 +456,161 @@ creates every table above including the post-release `entries.status`, `profiles
      never count as completions). Streak/completionRate/Review/callers untouched
      (later wiring stage). Tests: `scoreSchedule.test.ts` (18) — 350 tests in 24 files;
      build clean, lint 0 errors. **DB migration still NOT run; no UI wiring.**
-   - Pending: migration execution on Supabase (user-run, v7-corrected package), then
-     epoch RPC wiring, form modes, score/streak/Review/Overview epoch wiring,
+   - **Stage 3 — frontend wiring (Complete, 2026-11-14):** the habit form now speaks
+      schedules end-to-end, with the pre-migration DB still working exactly as before:
+      - **Capability probe:** `scheduleColumnsAvailable()` (session-cached) selects
+        `schedule_type`; a missing-column error = migration not applied → the classic
+        Times/Per-days form and plain INSERT/UPDATE (no §7 guards exist pre-migration).
+      - **Form modes (desktop + phone, shared `ScheduleEditor` + `WeekdayPicker`):**
+        Always exactly five pills — Every day / Specific days (7 chips) / Every
+        N days / Weekly goal (M×/wk) / Custom (editable `custom`). A genuinely
+        legacy habit highlights Custom (`selectorModeFor`) while its internal
+        mode stays `legacy`. A stable origin flag (`legacyHabit`, set on load)
+        makes choosing Custom return to that frozen `legacy` mode for the whole
+        unsaved session (`modeAfterSelection`), even after temporarily picking
+        another mode; the flag clears only after a modern schedule save
+        succeeds. Picking Daily/Days/N days/Weekly replaces the legacy schedule.
+        Create: custom
+        keeps the typed freq (DB normalize reclassifies); daily sends freq 1/1 +
+        no schedule_type (bit-identical to pre-Stage-3); other modes send their
+        own column + the freq mirror (`creationScheduleFields`).
+      - **Legacy phone layout (2026-11-15):** the repeat selector stays the
+        original single-row `RangeSwitch` with the same five pills. The
+        Times/Days row reuses the editable Custom wheel layout and positioning,
+        but each `WheelPicker` is `readOnly`: only the selected value is shown
+        (no adjacent numbers, scrolling, dragging, keyboard editing, or value
+        changes). `LEGACY_FIXED_EXPLANATION` sits directly below with `mt-2`.
+        Read-only behavior and the save/RPC flow are unchanged; editable Custom
+        is untouched.
+      - **Edit flow:** loaded snapshot vs draft via `scheduleChanged`; changed →
+        `updateHabitSchedule` RPC (`append_habit_schedule_epoch`) FIRST, then a
+        details-only `updateHabit` (no schedule/freq columns — §7b-safe). Unchanged →
+        details-only update only. **Legacy habits show their frozen freq read-only;
+        switching modes + save upgrades via RPC explicitly, never silently.**
+      - **RPC errors** surface via formError; the form keeps every value (retry-safe,
+        same-day final-wins). An RPC success + details failure is a documented partial
+        state (schedule changed, details stale) that a retry completes.
+      - **HabitDetail** shows "Repeat · {scheduleLabel}" (legacy = frozen freq text).
+      - Types: `FormState` schedule fields, `HabitInput` optional schedule columns
+        (creation only), `Habit` optional schedule columns (type-only), `HabitRow`
+        passthrough in `useHabits` (null schedule_type normalized to undefined).
+      - Tests: schedule.test.ts (mask popcount, freq mirror, labels) and new
+        habitForm.test.ts — 381 tests in 25 files; build clean; lint 0 errors
+        (47 pre-existing warnings, unchanged).
+   - **Stage 4A — Today dashboard integration (Complete, 2026-11-14):** the Today
+     page now resolves each habit's schedule for the selected logical date via
+     the habit's epoch history (v7 migration applied on staging; pre-migration
+     DBs keep exact legacy behaviour through the capability probe):
+     - **Epoch loading:** new `src/hooks/useScheduleHistory.ts` — one SELECT of
+       all `habit_schedule_history` rows (RLS own-rows, SELECT-only; epochs are
+       written only by the append RPC), grouped per habit via `sortEpochs`,
+       gated by `scheduleColumnsAvailable()` (probe false → empty map, no
+       fetch). Exposes `epochsByHabit/loading/error`; errors surface in the
+       Today page error state (never swallowed); refetches on the
+       `schedule-reload` window event, which `HabitForm` dispatches after an
+       RPC epoch save and after a capable creation.
+     - **Scope helper:** `opportunityScope(epochs, date)` in schedule.ts →
+       `'day' | 'week' | null` (null = unscheduled/ungoverned; 'week' =
+       weekly_target active week).
+     - **Streaks (score.ts):** `currentStreak`/`bestStreak` gained a trailing
+       optional `epochs` param (omitted/empty = legacy walk bit-identical).
+       Day-granularity for daily/weekdays/interval/legacy (off-days are
+       'unscheduled' → neutral, neither count nor break; done-on-off-day still
+       wins); WEEK granularity for weekly_target — the schedule active on a
+       week's Monday governs the whole week (ratified Stage 2 rule), an
+       achieved week counts as one unit, a closed unachieved week breaks, an
+       open (unclosed) week is pending unless M is already reached (done wins);
+       transition weeks are neutral (their dones still win as day-dones).
+       New `weeklyTargetProgress(habit, entries, date, epochs?)` →
+       `{ done, target } | null` for the Mon–Sun week of the date (falls back
+       to the habit row's schedule columns when no epochs).
+     - **Today wiring:** `dayStatuses` pass epochs (off-days neutral);
+       week-scoped habits are excluded from BOTH `doneToday` and `totalToday`
+       (progress is per week, never per calendar day); `overallStreak` uses
+       epoch-aware `currentStreak`; epochs go to ProgressRings (week-scoped
+       habits leave the day totals, their arcs fill with `min(1, done/M)`,
+       tooltip "n/M this week"), CompletionCard (off-days drop out of day
+       denominators, week-scoped habits excluded — via a trailing optional
+       `scheduleByHabit` param on `dayCompletion`/`completionForDates`), and
+       HabitReorderGrid (pure module-scope `tileState()` helper: off-day tiles
+       muted with "Not scheduled", weekly tiles show "n/M this week" caption
+       via the new HabitTile/SortableHabitTile `weekly` prop, epoch-aware
+       streaks; the DragOverlay copy shares `tileState`).
+     - Check-ins/skip/vacation preserved: done wins everywhere; skip menu,
+       undo-skip and vacation neutrality unchanged.
+     - Tests: +20 (schedule.test.ts opportunityScope; scoreSchedule.test.ts
+       scheduled streaks — weekdays/interval off-days, epoch changes,
+       weekly_target week granularity incl. transition weeks and window edges,
+       legacy/empty-epochs bit-identity, weeklyTargetProgress) — 401 tests in
+       25 files; build clean; lint 0 errors (48 warnings — baseline 47 + the
+       new hook's same-category set-state-in-effect).
+     - **4A fix (2026-11-14) — weekly habit created mid-week:** a weekly_target
+       epoch now scopes its week as 'week' in `opportunityScope` even during
+       its first partial (transition) start week, so a habit created Saturday
+       shows "0/4 this partial week" (tile caption + ring tooltip, `partial`
+       flag via `isTransitionWeek`) instead of a misleading "Not scheduled";
+       it stays out of the daily done/total (day-completion pre-exclusion and
+       Today's `weekScoped` both key off 'week'). Display-only: `dayStatus`
+       keeps partial-week days 'unscheduled' (neutral) and score.ts keeps the
+       transition week neutral (never a failed weekly streak) — ordinary
+       weekdays/interval off-days are still null → "Not scheduled". Tests +5
+       (partial-week progress, dayStatus neutrality, next-full-week progress,
+       partial week never fails the streak) — 406 tests in 25 files.
+   - **Stage 4B — Overview integration (Complete, 2026-11-14):** the Overview
+     page is now schedule-aware, reusing the existing helpers (no duplicated
+     scheduling logic):
+     - **Wiring:** `useScheduleHistory()` (same hook as Today — probe-gated,
+       `schedule-reload` aware) feeds `epochsByHabit` into BOTH metrics of
+       the per-habit series: `scoreSeries(..., epochs)` (the Stage 2 law:
+       per-scheduled-opportunity steps, weekly_target steps per closed week)
+       and `completionSeries(..., epochs)`. Schedule loading/error merge into
+       the page's gates. Prev-window series (delta chip) get the same epochs.
+     - **completionSeries (`overview.ts`):** gained a trailing optional
+       `epochs` param (omitted/empty = legacy walk bit-identical). Mirrors the
+       scoring law exactly: daily/weekdays/interval/legacy dates count per day
+       with off-days neutral ('unscheduled'; done-on-off-day still wins);
+       weekly_target = one opportunity per CLOSED Mon–Sun week (achieved = done
+       ≥ M via the now-exported `weeklyTargetAchieved`), the week containing
+       endDate and transition/partial window-edge weeks carry. Historical
+       epochs are honoured per date via `resolveEpoch`, so past performance
+       follows the schedule that governed it.
+     - Avg/Best/Needs-attention tiles, Top-5 ranking and chart lines all read
+       the epoch-aware series — no separate summary logic touched.
+     - Tests: +11 in overview.test.ts (daily/empty/legacy bit-identity,
+       weekdays off-days neutral + done-wins, interval anchors, mid-range
+       daily→weekdays change, weekly_target closed weeks / skipped rows /
+       vacation dones / transition carry / window-edge partial / created-
+       mid-week) — 417 tests in 25 files; build clean; lint 0 errors
+       (48 warnings, unchanged).
+   - **Pre-production integrity fix (2026-11-15):** same-day schedule edits
+     no longer coalesce over a `legacy` epoch. The unique
+     `(habit_id, effective_from)` constraint prevents a legacy snapshot and a
+     new epoch from coexisting, so `20261115_fix_legacy_same_day_overwrite.sql`
+     replaces the 7-argument RPC body and raises `P0001` when the existing
+     same-day epoch is `legacy`; non-legacy same-day coalescing is unchanged.
+     `supabase/tests/20261115_legacy_same_day_overwrite.sql` is a
+     rollback-wrapped behavioral regression test, and
+     `src/lib/scheduleHistoryMigration.test.ts` statically guards the SQL
+     ordering. **Migration not applied by this repository change.**
+   - **Production base v7 migration prepared (2026-11-15):**
+     `supabase/migrations/20261113_schedule_base_v7.sql` upgrades a
+     pre-scheduling database without touching existing habits, users,
+     check-ins, or IDs. It deliberately aborts if any scheduling object
+     already exists (so staging cannot be overwritten), adds the four habit
+     schedule columns and the history table/index/RLS, classifies every
+     `1/1` habit as `daily` and every other pair as `legacy` without changing
+     `freq_times`/`freq_days`, and seeds exactly one initial epoch per habit
+     at its logical `created_at` date using Asia/Kolkata +
+     `day_start_hour`. The `5/1` and `1/2` legacy snapshots are preserved
+     exactly, and the v7 constraints intentionally do not apply the later
+     Custom `times <= days` bound. It creates the three v7 triggers
+     (`habits_normalize_schedule`, `habits_guard_schedule_columns`,
+     `habits_seed_schedule_history`) and the original 5-parameter RPC that
+     `20261114` replaces. Apply `20261113` → `20261114` → `20261115` as one
+     sequence; `supabase/tests/20261113_schedule_base_v7.sql` and
+     `src/lib/scheduleBaseMigration.test.ts` cover classification and the
+     frozen legacy frequencies. **No SQL was executed by this change.**
+   - Pending: HabitDetail stats/heatmap epoch wiring, Review epoch wiring,
      backup epoch restore (Stage 5).
 4. Optional polish: count-up numerals on stat tiles; periodic backup reminders.
 5. Optional (paid): Supabase Pro custom auth domain to brand the OAuth account chooser.
