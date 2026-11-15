@@ -334,8 +334,13 @@ creates every table above including the post-release `entries.status`, `profiles
   rolling 10-month year heatmap on desktop / 5 months on mobile); habit tile grid with
   TileDensity stepper (1–6 per row, container-query compaction), one-tap check ring with
   burst animation, TileMoreMenu (edit / skip / undo skip — skipped tiles muted with a
-  "Skipped" caption), long-press jiggle reorder (dnd-kit + portal overlay), >7-habits note.
-  Mobile: compact two-row header, landscape hero summary card, floating dock with FAB.
+  "Skipped" caption), long-press jiggle reorder (dnd-kit + portal overlay), and a >7-habits
+  note. On desktop the note sits in the left column as two intentional lines ("Fewer habits
+  are easier to stick to." starts on line 2) while the Scheduled / All Habits toggle and
+  Per row stepper stay grouped, right-aligned, and vertically centered on the same row;
+  the note is never truncated and wraps naturally when space is tight.
+  Mobile: compact two-row header, landscape hero summary card, view toggle below the
+  summary, floating dock with FAB.
 - **Overview** — RangeSwitch 30/90/365; StatTile row (avg score + delta chip, best habit,
   needs attention — both drill into `/habits/:id`); ScoreLineChart card with habit toggle
   chips, habit-color lines with static halo glow `<Line>`, glass tooltip, Top 5 / All / None

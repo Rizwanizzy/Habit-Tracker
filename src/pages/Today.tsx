@@ -582,13 +582,15 @@ export function Today() {
       </header>
 
       {/* Desktop >7 habits note LEFT | Scheduled/All toggle + Per row RIGHT (matching-height pills) */}
-      <div className="mb-3 mt-1 hidden lg:flex flex-wrap items-center justify-between gap-3 lg:mt-0">
+      <div className="mb-3 mt-1 hidden lg:flex lg:flex-nowrap items-center justify-between gap-3 lg:mt-0">
         {/* LEFT: Dynamic description */}
-        <div className="flex items-center min-w-0">
+        <div className="flex flex-1 items-center min-w-0">
           {habits.length > 7 && (
-            <p className="text-caption max-w-[70%] text-fg-muted whitespace-nowrap truncate">
+            <p className="text-caption max-w-full text-fg-muted">
               You have {habits.length} active habits. Rings are shared from here on (up to 4 habits
-              per ring). Fewer habits are easier to stick to.
+              per ring).
+              <br />
+              Fewer habits are easier to stick to.
               {ringLayout.hiddenCount > 0 &&
                 ` +${ringLayout.hiddenCount} more habits are not shown in the rings.`}
             </p>
