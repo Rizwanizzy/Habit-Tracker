@@ -10,7 +10,7 @@ The app supports 7 distinct appearance options:
 4. **Sepia:** Warm parchment cream `#F5EEE6` reading palette with espresso `#2D2015` text, warm beige surfaces, and restrained amber/orange accent `#C26522`.
 5. **OLED / Midnight Black:** Pure `#000000` black for OLED/AMOLED efficiency, near-black `#121216` surfaces, clean borders, and subdued glowing orbs.
 6. **Solarized:** Classic Ethan Schoonover palette; user selects once, auto-resolving via OS to `solarized-light` (`#FDF6E3` base, `#073642` text, `#268BD2`/`#2AA198` accents) or `solarized-dark` (`#002B36` base, `#FDF6E3` text, `#2AA198` teal accent).
-7. **High Contrast:** Accessibility-focused theme (WCAG 2.2 AAA ready) with `#000000` base, `#FFFFFF` text and 2px borders, `#00E5FF` electric cyan accent, and bright focus rings.
+7. **High Contrast:** Accessibility-focused theme (WCAG 2.2 AAA ready) with `#000000` base, `#FFFFFF` text, subtle neutral 1px borders, `#00E5FF` electric cyan accent, and bright focus rings.
 
 | Token | Dark (Default) | Light | Sepia | OLED | Solarized (L / D) | High Contrast |
 |---|---|---|---|---|---|---|
@@ -18,7 +18,7 @@ The app supports 7 distinct appearance options:
 | surface | rgba(255,255,255,.05) | linear-gradient(145deg, rgba(255,255,255,.62), rgba(255,255,255,.34)) | rgba(254,250,244,.88) | rgba(18,18,22,.92) | rgba(238,232,213,.88) / rgba(7,54,66,.88) | #0A0A0C |
 | surface-2 | rgba(255,255,255,.08) | rgba(255,255,255,.40) | #EAE0D0 | rgba(28,28,34,.92) | #E0D7C0 / #0E4C5B | #18181C |
 | surface-solid | #131A27 | #F3F7FC | #FCF8F0 | #101014 | #EEE8D5 / #073642 | #000000 |
-| border | rgba(255,255,255,.10) | hairlines rgba(15,23,42,.08) / rims rgba(255,255,255,.75) | rgba(74,52,34,.14) | rgba(255,255,255,.12) | rgba(88,110,117,.18) / rgba(147,161,161,.18) | #FFFFFF (2px) |
+| border | rgba(255,255,255,.10) | hairlines rgba(15,23,42,.08) / rims rgba(255,255,255,.75) | rgba(74,52,34,.14) | rgba(255,255,255,.12) | rgba(88,110,117,.18) / rgba(147,161,161,.18) | rgba(255,255,255,.32) (1px) |
 | text-primary | #F4F6FB | #0F172A | #2D2015 | #F5F5F7 | #073642 / #FDF6E3 | #FFFFFF |
 | text-secondary | #A3ACC2 | #475569 | #675545 | #A1A1AA | #586E75 / #93A1A1 | #E5E5E5 |
 | text-muted | #6B7490 | #64748B | #8E7A68 | #71717A | #839496 / #657B83 | #CCCCCC |

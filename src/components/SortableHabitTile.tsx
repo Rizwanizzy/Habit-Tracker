@@ -18,6 +18,8 @@ interface Props {
    *  week" in the first transition week), forwarded to the tile. */
   weekly?: { done: number; target: number; partial?: boolean } | null
   streak: number
+  /** Whether the Today tile's streak chip is rendered (per-row + viewport). */
+  showStreakBadge?: boolean
   value: number | null
   /** Label for the skip menu item: "today" or the selected date, short. */
   dayLabel?: string

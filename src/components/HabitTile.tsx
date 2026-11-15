@@ -1,6 +1,7 @@
 import { useEffect, useState, type AnimationEvent, type CSSProperties, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { readableColor, tint } from '../lib/color'
+import { habitTileVars } from '../lib/habitTileTheme'
 import { normalizeEmoji } from '../lib/emoji'
 import { useThemeName } from '../hooks/useThemeName'
 import { IconCheck, IconFlame, IconX } from './icons'
@@ -22,6 +23,8 @@ interface Props {
    *  transition week) — instead of treating every calendar day as mandatory. */
   weekly?: { done: number; target: number; partial?: boolean } | null
   streak: number
+  /** Whether the streak chip is rendered (dense mobile columns unmount it). */
+  showStreakBadge?: boolean
   /** Entry value at the displayed date (numeric habits); always null when skipped. */
   value: number | null
   /** Label for the skip menu item: "today" or the selected date, short. */
@@ -77,6 +80,7 @@ export function HabitTile({
   skippedRow,
   weekly = null,
   streak,
+  showStreakBadge = true,
   value,
   dayLabel = 'today',
   index,
@@ -133,18 +137,8 @@ export function HabitTile({
         skipped ? 'saturate-50 opacity-80' : ''
       } ${menuOpen && !overlay ? 'z-10' : ''}`}
       style={cssVars({
-        // Light palettes mix the habit toward white (pastel); dark palettes keep the
-        // transparent tints. '--tile-glow' feeds the light-only tile shadow.
-        '--tile-bg':
-          theme === 'light' || theme === 'sepia' || theme === 'solarized-light'
-            ? `linear-gradient(145deg, color-mix(in srgb, ${c} 20%, white), color-mix(in srgb, ${c} 7%, white))`
-            : `linear-gradient(145deg, ${tint(c, 22)}, ${tint(c, 6)})`,
-        '--tile-border':
-          theme === 'light' || theme === 'sepia' || theme === 'solarized-light'
-            ? `color-mix(in srgb, ${c} 35%, white)`
-            : tint(c, 35),
-        '--tile-border-hover': tint(c, 70),
-        '--tile-glow': `color-mix(in srgb, ${c} 55%, transparent)`,
+        // Shared Today-tile color treatment (also reused by Settings cards).
+        ...habitTileVars(c, theme),
         animationDelay: stagger,
       })}
     >
@@ -159,7 +153,10 @@ export function HabitTile({
       >
         <span className="sr-only">View {habit.name} overview</span>
       </Link>
-      {/* Header row: emoji/check ring LEFT, streak + three-dot menu RIGHT */}
+      {/* Header row: emoji/check ring LEFT; streak + three-dot menu RIGHT.
+          The right cluster is anchored to the tile corner so both controls keep
+          the iPhone-style placement and the menu's inset never depends on the
+          streak value or tile density. */}
       <div className="flex items-start justify-between gap-2 min-w-0">
         {/* 44px circular check: pending = 2px habit ring; done = fill + glow + white check;
             skipped = dashed muted neutral ring (a check-in on a skipped day upserts done).
@@ -230,32 +227,34 @@ export function HabitTile({
             </span>
           )}
         </button>
+      </div>
 
-        {/* Right header controls: streak + three-dot menu */}
-        <div className="flex items-center gap-1.5 shrink-0 min-w-0">
-          {/* Streak indicator — hidden on narrow mobile tiles (3-4 per row) via container query */}
+      {/* Streak + three-dot menu: one corner cluster, badge always beside the
+          menu (never hidden just to make the menu fit). Dense mobile columns
+          are the one exception: the badge unmounts there, and the menu stays
+          anchored to the same right inset. */}
+      <div className="tile-header-actions absolute right-2 top-2 z-20 flex items-center gap-1.5">
+        {showStreakBadge && (
           <span
             className="tile-streak-header inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-border bg-surface px-2.5 py-1"
             title={`Current streak: ${streak}`}
             aria-label={`Current streak: ${streak}`}
           >
-            <span className="grid place-items-center" style={{ color: readableColor(c, theme) }}>
+            <span className="grid shrink-0 place-items-center" style={{ color: readableColor(c, theme) }}>
               <IconFlame className="size-3.5" />
             </span>
-            <span className="text-caption tabular-nums">{streak}</span>
+            <span className="tile-streak-count text-caption tabular-nums truncate">{streak}</span>
           </span>
-
-          {/* Three-dot overflow menu */}
-          <TileMoreMenu
-            habitId={habit.id}
-            habitName={habit.name ?? 'habit'}
-            dayLabel={dayLabel}
-            skipped={skippedRow ?? skipped}
-            disabled={reorderMode}
-            onSkipToggle={onSkipToggle}
-            onOpenChange={setMenuOpen}
-          />
-        </div>
+        )}
+        <TileMoreMenu
+          habitId={habit.id}
+          habitName={habit.name ?? 'habit'}
+          dayLabel={dayLabel}
+          skipped={skippedRow ?? skipped}
+          disabled={reorderMode}
+          onSkipToggle={onSkipToggle}
+          onOpenChange={setMenuOpen}
+        />
       </div>
 
       {/* Title row: single line, truncate with ellipsis */}

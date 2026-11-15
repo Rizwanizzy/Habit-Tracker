@@ -10,6 +10,8 @@ import { ManageTileMobile } from '../components/ManageTileMobile'
 import { IconPencil, IconArchive, IconUnarchive } from '../components/icons'
 import type { Habit } from '../lib/score'
 import { normalizeEmoji } from '../lib/emoji'
+import { habitTileSurfaceStyle } from '../lib/habitTileTheme'
+import { useThemeName } from '../hooks/useThemeName'
 
 function ManageRow({
   habit,
@@ -21,26 +23,30 @@ function ManageRow({
   onToggleArchive: (h: Habit) => void
 }) {
   const navigate = useNavigate()
+  const theme = useThemeName()
   const archived = habit.archived === true
   const emoji = normalizeEmoji(habit.emoji)
+  const color = habit.color ?? '#3B82F6'
   return (
-    <li className="manage-cell relative flex min-h-[64px] items-center gap-3 rounded-input border border-border bg-surface-raised px-3 py-2">
+    <li
+      className={`manage-cell relative flex min-h-[64px] items-center gap-3 rounded-input border border-border bg-surface-raised px-3 py-2 ${
+        archived ? 'opacity-[.85]' : ''
+      }`}
+      style={habitTileSurfaceStyle(color, theme, archived)}
+    >
       {emoji ? (
         <span
           aria-hidden="true"
           className="grid size-7 shrink-0 place-items-center rounded-full text-base leading-none"
           style={{
-            border: `2px solid ${habit.color ?? '#3B82F6'}`,
-            backgroundColor: `color-mix(in srgb, ${habit.color ?? '#3B82F6'} 14%, transparent)`,
+            border: `2px solid ${color}`,
+            backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)`,
           }}
         >
           {emoji}
         </span>
       ) : (
-        <span
-          className="size-3 shrink-0 rounded-full"
-          style={{ backgroundColor: habit.color ?? '#3B82F6' }}
-        />
+        <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: color }} />
       )}
       <span className="manage-name min-w-0 flex-1 break-words text-body font-medium text-fg leading-snug" style={{ maxWidth: 'calc(100% - 120px)' }}>
         {habit.name}

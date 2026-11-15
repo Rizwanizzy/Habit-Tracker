@@ -2,6 +2,8 @@ import { normalizeEmoji } from '../lib/emoji'
 import { IconArchive, IconUnarchive, IconPencil } from './icons'
 import type { Habit } from '../lib/score'
 import { useNavigate } from 'react-router-dom'
+import { habitTileSurfaceStyle } from '../lib/habitTileTheme'
+import { useThemeName } from '../hooks/useThemeName'
 
 /** Phone (below-lg) habit tile for the Settings "Habits" card: a compact
  *  two-line tile — the emoji circle (habit-color ring, or a plain color dot)
@@ -21,6 +23,7 @@ export function ManageTileMobile({
   onToggleArchive: (h: Habit) => void
 }) {
   const navigate = useNavigate()
+  const theme = useThemeName()
   const emoji = normalizeEmoji(habit.emoji)
   const color = habit.color ?? '#3B82F6'
   return (
@@ -28,6 +31,7 @@ export function ManageTileMobile({
       className={`flex min-h-[84px] min-w-0 flex-col justify-between gap-1.5 rounded-tile border border-border bg-surface-raised p-2.5 lg:hidden ${
         archived ? 'opacity-[.85]' : ''
       }`}
+      style={habitTileSurfaceStyle(color, theme, archived)}
     >
       <div className="flex items-center justify-between gap-2">
         {emoji ? (

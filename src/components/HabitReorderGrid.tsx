@@ -22,6 +22,7 @@ import { currentStreak, isDone, weeklyTargetProgress, type Entry, type Habit } f
 import { dayStatus } from '../lib/dayStatus'
 import { isTransitionWeek, opportunityScope, shouldShowHabitOnDate, type ScheduleEpoch } from '../lib/schedule'
 import { parseLocalDate } from '../lib/dates'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { HabitTile } from './HabitTile'
 import { SortableHabitTile } from './SortableHabitTile'
 
@@ -146,6 +147,13 @@ export function HabitReorderGrid({
   /** Swallow-click window: set to Date.now() + 150 on every drop, checked by
    *  each SortableHabitTile's capture-phase click handler. */
   const swallowClickUntil = useRef(0)
+
+  // Streak badge visibility follows the SAME per-row state as the grid, but
+  // only on non-desktop layouts: dense 3+ columns are too narrow to host the
+  // badge beside the pinned menu, so it unmounts there. Desktop keeps it at
+  // every density.
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const showStreakBadge = isDesktop || perRow <= 2
 
   // Exit affordance (user request): while in reorder mode, a pointerdown
   // outside a tile exits the mode — on touch and mouse alike. Pointerdown
@@ -287,6 +295,7 @@ export function HabitReorderGrid({
                 skippedLabel={st.neutralLabel}
                 weekly={st.weekly}
                 streak={st.streak}
+                showStreakBadge={showStreakBadge}
                 // A skipped row's value (0) is never a real value.
                 value={st.entry && !st.entrySkipped ? st.entry.value : null}
                 dayLabel={selectedDate === today ? 'today' : SHORT_DATE_FMT.format(parseLocalDate(selectedDate))}
@@ -341,6 +350,7 @@ export function HabitReorderGrid({
                   skippedLabel={st.neutralLabel}
                   weekly={st.weekly}
                   streak={st.streak}
+                  showStreakBadge={showStreakBadge}
                   // A skipped row's value (0) is never a real value.
                   value={st.entry && !st.entrySkipped ? st.entry.value : null}
                   dayLabel={selectedDate === today ? 'today' : SHORT_DATE_FMT.format(parseLocalDate(selectedDate))}

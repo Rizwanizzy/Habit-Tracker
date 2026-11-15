@@ -173,7 +173,7 @@
   --surface: #0a0a0c;
   --surface-2: #18181c;
   --surface-solid: #000000;
-  --border: #ffffff;
+  --border: rgba(255, 255, 255, 0.32);
   --text-primary: #ffffff;
   --text-secondary: #e5e5e5;
   --text-muted: #cccccc;
@@ -185,8 +185,8 @@
   --chart-grid: rgba(255, 255, 255, 0.25);
   --chart-axis: #ffffff;
   --bg-aurora: none;
-  --shadow-glass: 0 0 0 1px #ffffff;
-  --shadow-pill: 0 0 0 1px #ffffff;
+  --shadow-glass: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-pill: 0 0 0 1px rgba(255, 255, 255, 0.06);
   --inset-top: none;
 }
 
@@ -539,22 +539,60 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* Phone densities (per-row stepper now applies on mobile too).
-   ≤140px columns (3–4 on a phone): the name row gives the streak chip its
-   space back, and the numeric value text would just clip — both go.
-   Also hide the header streak chip (tile-streak-header) on narrow tiles. */
-@container (max-width: 139.9px) {
+   ≤160px columns (two-up on a phone): compact the corner controls just enough
+   that the streak badge stays visible beside the pinned menu. */
+@container (max-width: 159.9px) {
   .tile-cell .habit-tile {
-    padding: 12px;
+    padding: 10px;
   }
-  .tile-cell .tile-streak,
-  .tile-cell .tile-value,
+  .tile-cell .tile-check,
+  .tile-cell .tile-more {
+    width: 36px;
+    height: 36px;
+  }
+  .tile-cell .tile-name {
+    font-size: 12px;
+    line-height: 1.2;
+  }
   .tile-cell .tile-streak-header {
+    gap: 2px;
+    padding: 1px 4px;
+    border-width: 1px;
+  }
+  .tile-cell .tile-streak-header svg {
+    width: 12px;
+    height: 12px;
+  }
+  .tile-cell .tile-streak-count {
+    font-size: 10px;
+    line-height: 1;
+  }
+  .tile-cell .tile-header-actions {
+    gap: 4px;
+  }
+  /* Hit pads: 36px controls get 4px invisible padding all round → 44px. */
+  .tile-cell .tile-check::after,
+  .tile-cell .tile-more::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+  }
+}
+
+/* Phone densities (per-row stepper now applies on mobile too).
+   ≤140px columns (3–4 on a phone): the numeric value text would just clip —
+   it goes, but the corner streak badge stays with the pinned menu. */
+@container (max-width: 139.9px) {
+  .tile-cell .tile-streak,
+  .tile-cell .tile-value {
     display: none;
   }
 }
 
-/* ≤110px columns: card and controls shrink so the check/emoji + name fit. */
-@container (max-width: 109.9px) {
+/* 3-up phone columns: shrink the whole corner cluster so the badge still has
+   a clear gap from the check ring. */
+@container (max-width: 119.9px) {
   .tile-cell .habit-tile {
     min-height: 0;
     padding: 8px;
@@ -579,6 +617,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .tile-cell .tile-check-badge svg {
     width: 7px;
     height: 7px;
+  }
+  .tile-cell .tile-streak-header {
+    gap: 1px;
+    padding: 0 3px;
+    border-width: 1px;
+  }
+  .tile-cell .tile-streak-header svg {
+    width: 10px;
+    height: 10px;
+  }
+  .tile-cell .tile-streak-count {
+    font-size: 9px;
+    line-height: 1;
+  }
+  .tile-cell .tile-header-actions {
+    right: 4px;
+    top: 4px;
+    gap: 2px;
   }
   /* Keep every shrunk control's target at ≥44px. */
   .tile-cell .tile-check::after,
@@ -606,6 +662,81 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
   .tile-cell .tile-emoji {
     font-size: 16px;
+  }
+}
+
+/* Android-only 20% streak-badge boost. The inverse of the established
+   `-webkit-touch-callout` feature query matches Android/Chromium without UA
+   sniffing; max-width + pointer:coarse keeps desktop windows unaffected.
+   Actual dimensions/padding change (no transform scale), and the badge stays
+   beside the pinned menu with the same right inset. */
+@supports not (-webkit-touch-callout: none) {
+  @media (max-width: 430px) and (pointer: coarse) {
+    .tile-cell .tile-streak-header {
+      gap: 5px;
+      padding: 5px 10px;
+      border-width: 1.2px;
+    }
+    .tile-cell .tile-streak-header svg {
+      width: 17px;
+      height: 17px;
+    }
+    .tile-cell .tile-streak-count {
+      font-size: 14px;
+      line-height: 17px;
+    }
+    .tile-cell .tile-header-actions {
+      gap: 4px;
+    }
+
+    /* Two-up Android columns: trade a little tile padding, never badge/menu
+       visibility, so the enlarged badge still clears the check ring. */
+    @container (max-width: 199.9px) {
+      .tile-cell .habit-tile {
+        padding-inline: 10px;
+      }
+    }
+
+    @container (max-width: 159.9px) {
+      .tile-cell .habit-tile {
+        padding-inline: 8px;
+      }
+      .tile-cell .tile-streak-header {
+        gap: 2px;
+        padding: 2px 5px;
+        border-width: 1.2px;
+      }
+      .tile-cell .tile-streak-header svg {
+        width: 14px;
+        height: 14px;
+      }
+      .tile-cell .tile-streak-count {
+        font-size: 12px;
+        line-height: 14px;
+      }
+      .tile-cell .tile-header-actions {
+        gap: 3px;
+      }
+    }
+
+    @container (max-width: 119.9px) {
+      .tile-cell .tile-streak-header {
+        gap: 1px;
+        padding: 0 4px;
+        border-width: 1.2px;
+      }
+      .tile-cell .tile-streak-header svg {
+        width: 12px;
+        height: 12px;
+      }
+      .tile-cell .tile-streak-count {
+        font-size: 11px;
+        line-height: 12px;
+      }
+      .tile-cell .tile-header-actions {
+        gap: 2px;
+      }
+    }
   }
 }
 
@@ -964,9 +1095,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 [data-theme="high-contrast"] .dialog-panel {
-  border: 2px solid #ffffff;
+  border: 1px solid var(--border);
   background: #000000;
-  box-shadow: 0 0 0 2px #000000, 0 0 0 4px #ffffff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .dialog-panel.dialog-in {
@@ -1270,18 +1401,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border: 1px solid var(--border);
 }
 
-/* High Contrast: solid opaque surfaces, 2px borders, visible focus */
+/* High Contrast: solid opaque surfaces with subtle 1px neutral borders.
+   Focus/selected/error states keep their strong cyan outlines. */
 [data-theme="high-contrast"] .glass-card,
 [data-theme="high-contrast"] .glass-pill {
   background-color: #000000;
-  border: 2px solid #ffffff;
+  border: 1px solid var(--border);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   box-shadow: none;
 }
 
 [data-theme="high-contrast"] .app-shell {
-  border: 2px solid #ffffff;
+  border: 1px solid var(--border);
   box-shadow: none;
 }
 
@@ -1289,7 +1421,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 [data-theme="high-contrast"] .bg-surface,
 [data-theme="high-contrast"] .input-field {
   background-color: #0a0a0c;
-  border: 1px solid #ffffff;
+  border: 1px solid var(--border);
 }
 
 [data-theme="high-contrast"] .input-field:focus {

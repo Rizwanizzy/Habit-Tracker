@@ -179,6 +179,7 @@ src/
                         msUntilNextDayStart, DAY_START_HOURS — never toISOString().slice(0,10)
     clock.ts            now() — reads localStorage['dev-now'] in dev (time travel), real clock in prod
     color.ts            readableColor(hex, theme) ≥3:1, tint() → color-mix strings
+    habitTileTheme.ts   Today-tile color vars (+ archived-muted variant) shared with Settings cards
     completion.ts       dayCompletion, monthCalendar/yearCalendar (10-month rolling), intensityPct;
                         Stage 4A: dayCompletion/completionForDates take a trailing optional
                         scheduleByHabit (off-days neutral, weekly-target habits week-scoped
@@ -334,11 +335,15 @@ creates every table above including the post-release `entries.status`, `profiles
   rolling 10-month year heatmap on desktop / 5 months on mobile); habit tile grid with
   TileDensity stepper (1–6 per row, container-query compaction), one-tap check ring with
   burst animation, TileMoreMenu (edit / skip / undo skip — skipped tiles muted with a
-  "Skipped" caption), long-press jiggle reorder (dnd-kit + portal overlay), and a >7-habits
-  note. On desktop the note sits in the left column as two intentional lines ("Fewer habits
-  are easier to stick to." starts on line 2) while the Scheduled / All Habits toggle and
-  Per row stepper stay grouped, right-aligned, and vertically centered on the same row;
-  the note is never truncated and wraps naturally when space is tight.
+  "Skipped" caption; the streak chip + trigger are one corner cluster pinned to the
+  tile's top-right inset — on phones the chip follows the SAME per-row state and
+  unmounts at 3+ tiles per row (desktop keeps it at every density), while Android gets a
+  feature-query + touch/width-scoped 20% badge boost without touching iPhone), long-press jiggle
+  reorder (dnd-kit + portal overlay), and a >7-habits note. On desktop the note sits in
+  the left column as two intentional lines
+  ("Fewer habits are easier to stick to." starts on line 2) while the Scheduled / All
+  Habits toggle and Per row stepper stay grouped, right-aligned, and vertically centered
+  on the same row; the note is never truncated and wraps naturally when space is tight.
   Mobile: compact two-row header, landscape hero summary card, view toggle below the
   summary, floating dock with FAB.
 - **Overview** — RangeSwitch 30/90/365; StatTile row (avg score + delta chip, best habit,
