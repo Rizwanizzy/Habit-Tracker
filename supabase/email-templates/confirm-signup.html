@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<!--
+  Habit Tracker — signup confirmation (6-digit email OTP) template.
+
+  Uses the Supabase Auth variable {{ .Token }} (the 6-digit code) — NOT
+  {{ .ConfirmationURL }}, so users verify inside the app instead of following
+  a link that opens a different browser.
+
+  REPOSITORY ARTIFACT ONLY: pasting this template into Supabase Dashboard
+  (Authentication → Emails → Templates → "Confirm signup") is a manual step
+  documented in supabase/email-templates/README.md. Committing this file does
+  not deploy it.
+
+  Expiry copy says 60 minutes — keep it in sync with
+  Authentication → Settings → "Email OTP expiry" (3600 seconds).
+-->
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <title>Your Habit Tracker verification code</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #eef2f7;">
+  <center style="width: 100%; background-color: #eef2f7;">
+    <!-- Preheader: hidden preview text -->
+    <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
+      Copy your 6-digit Habit Tracker verification code — it expires in 60 minutes.
+    </div>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #eef2f7;">
+      <tr>
+        <td align="center" style="padding: 24px 12px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 560px;">
+
+            <!-- Brand: text wordmark (no remote image — reliable in every client).
+                 When the custom domain is live, an <img src="https://<domain>/logo.png">
+                 can be added above with this wordmark kept as fallback. -->
+            <tr>
+              <td align="center" style="padding: 8px 0 20px 0;">
+                <span style="font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 700; color: #4f46e5;">Habit Tracker</span>
+              </td>
+            </tr>
+
+            <!-- Card -->
+            <tr>
+              <td bgcolor="#ffffff" style="background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr>
+                    <td style="padding: 36px 32px 8px 32px;">
+                      <h1 style="margin: 0; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 22px; line-height: 30px; font-weight: 700; color: #0f172a;">
+                        Verify your email
+                      </h1>
+                      <p style="margin: 12px 0 0 0; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 24px; color: #334155;">
+                        Enter this 6-digit code in Habit Tracker to confirm your email address.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- The code: prominent, selectable, no fake copy button -->
+                  <tr>
+                    <td align="center" style="padding: 24px 32px;">
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                        <tr>
+                          <td align="center" bgcolor="#f1f5f9" style="background-color: #f1f5f9; border-radius: 12px; padding: 18px 12px;">
+                            <span style="display: block; font-family: 'SF Mono', 'Cascadia Mono', Consolas, Menlo, monospace; font-size: 32px; line-height: 40px; letter-spacing: 10px; font-weight: 700; color: #0f172a; mso-line-height-rule: exactly;">{{ .Token }}</span>
+                          </td>
+                        </tr>
+                      </table>
+                      <p style="margin: 12px 0 0 0; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 20px; color: #64748b;">
+                        Select the code above and copy it into Habit Tracker.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="padding: 0 32px 32px 32px;">
+                      <p style="margin: 0; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 24px; color: #334155;">
+                        This code <strong style="color: #0f172a;">expires in 60 minutes</strong>. If it has expired, you can request a new code on the verification screen.
+                      </p>
+                      <p style="margin: 16px 0 0 0; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 22px; color: #64748b;">
+                        Never share this code — anyone with it can sign in to your account.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Out-of-band note -->
+            <tr>
+              <td style="padding: 20px 8px 4px 8px;">
+                <p style="margin: 0; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 20px; color: #64748b; text-align: center;">
+                  If you didn't create this account, you can safely ignore this email.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 4px 8px 24px 8px;">
+                <p style="margin: 0; font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12px; line-height: 18px; color: #94a3b8; text-align: center;">
+                  Sent by Habit Tracker · You received this email because someone signed up with this address.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </center>
+</body>
+</html>

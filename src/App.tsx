@@ -9,6 +9,7 @@ import { HabitDetail } from './pages/HabitDetail'
 import { Profile } from './pages/Profile'
 import { PerformanceReview } from './pages/PerformanceReview'
 import { Login } from './pages/Login'
+import { VerifyEmail } from './pages/VerifyEmail'
 import { Privacy } from './pages/Privacy'
 import { Landing } from './pages/Landing'
 import { ProfileProvider } from './contexts/ProfileContext'
@@ -22,6 +23,7 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/welcome" element={<Landing />} />
           <Route element={<RequireAuth />}>

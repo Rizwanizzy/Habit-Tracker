@@ -88,7 +88,7 @@ npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets
 src/
   main.tsx              entry — applies stored/system theme (<html class="dark">), registers the PWA SW
                         (registerSW from virtual:pwa-register — see vite-plugin-pwa), renders <App/>
-  App.tsx               routes: public /login, /welcome (Landing), /privacy (Privacy);
+  App.tsx               routes: public /login, /verify-email (OTP verification), /welcome (Landing), /privacy (Privacy);
                         inside RequireAuth+AppShell: / (Today), /overview, /review (Performance Review),
                         /profile, /settings, /habits/new, /habits/:id/edit, /habits/:id
   index.css             Tailwind v4 + Aurora-Glass tokens (@theme) + component recipes
@@ -120,7 +120,7 @@ src/
     useScheduleHistory.ts Stage 4A schedule epochs per habit from habit_schedule_history
                          (RLS SELECT-only, capability-probe gated, `schedule-reload`
                          window event; exposes epochsByHabit/loading/error)
-  lib/                  pure logic + their *.test.ts (24 test files, 350 tests)
+  lib/                  pure logic + their *.test.ts (31 test files, 511 tests)
     review.ts           Performance Review analysis engine (getCompletedWeekRange, getCompletedMonthRange,
                         getCompletedYearRange, calculatePeriodReview, calculateMonthlyWeeklyBreakdown,
                         calculateYearlyMonthlyBreakdown, generateActionableInsights)
@@ -192,6 +192,20 @@ src/
     id.ts               secure-context UUID fallback (crypto.randomUUID guard)
     profile.ts          Profile types + validators (name ≤80, DOB, phone, gender)
     avatar.ts           prepareAvatar: reject >2MB/non-image, 512px square, WebP blob
+    authEmail.ts        email/OTP pure helpers: normalizeEmail, isValidEmail, sanitizeOtp
+                        (digits only, leading zeros), isCompleteOtp, otpSlots,
+                        emailFromLocationState (safe router-state read)
+    authErrors.ts       Supabase Auth error classification + UI copy: authErrorKind
+                        (rate_limit/expired/invalid/duplicate_email/network/server/
+                        configuration), authErrorMessage(error, context), offlineAuthMessage
+    authOtp.ts          auth action wrappers (single-flight guard createSingleFlight):
+                        startEmailSignup (session → app; user-only → /verify-email;
+                        fake-user duplicate guard), startEmailSignin, startGoogleSignin,
+                        verifySignupOtp (verifyOtp type 'email', requires a real session),
+                        resendSignupOtp (resend type 'signup')
+    verifyEmailFlow.ts  session-only OTP flow state: sessionStorage {email, resendAfter}
+                        (never passwords/codes), 60s resend cooldown, read/save/clear +
+                        startResendCooldown
     backup.ts           JSON export shape (habits, entries incl. status, vacation periods,
                         whitelisted profile/settings fields)
     backupImport.ts     parseBackup/planImport — whitelisted, additive, idempotent
@@ -244,6 +258,10 @@ src/
                         breakdowns, insights, trajectory tables)
     ConfirmDialog.tsx   portal glass alertdialog (focus trap, Escape, scroll lock)
     RequireAuth.tsx     guard → /welcome when signed out (public landing for brand verification)
+    OtpInput.tsx        one real accessible input (autocomplete one-time-code, inputMode
+                        numeric, paste autofill) over a six-slot visual presentation
+    AuthErrorNotice.tsx shared auth error surface (role="alert", danger tint)
+    VerifyEmailRecovery.tsx  recovery form when /verify-email opens without a pending flow
     icons.tsx           all inline SVG icons
   pages/
     Today.tsx           bento: header + date pill, hero rings, completion card, tiles
@@ -254,7 +272,10 @@ src/
     HabitForm.tsx       create/edit habit (desktop ≥1024px layout + shared state → HabitFormMobile)
     Settings.tsx        Day/Habits/Vacation/Data/Account/Notification cards (phone reflow below 1024px)
     Profile.tsx         banner, details, journey, milestones
-    Login.tsx           email/password + Google pill (public)
+    Login.tsx           email/password + Google pill (public); signup → /verify-email
+    VerifyEmail.tsx     public /verify-email — 6-digit email OTP verification (real logo,
+                        accessible OTP input, resend w/ 60s countdown, reload recovery,
+                        already-authenticated redirect)
     Landing.tsx         public /welcome (brand-visible app name + feature cards)
     Privacy.tsx         public /privacy (required for OAuth publication)
 public/
@@ -266,7 +287,10 @@ public/
 
 Other repo files: `server.js` (static SPA server for `npm start`), `metadata.json`,
 `pwa-assets.config.js`, `index.html` (fonts, meta, google-site-verification tag),
-`supabase/schema.sql`, `DESIGN.md`, `AGENTS.md`, `CHANGELOG.md`, `PROJECT_CONTEXT.md`, `README.md`.
+`supabase/schema.sql`, `supabase/email-templates/` (confirm-signup.html OTP email template +
+README with dashboard config / Resend SMTP rollout checklists — repo artifact until manually
+pasted into the Supabase project), `DESIGN.md`, `AGENTS.md`, `CHANGELOG.md`,
+`PROJECT_CONTEXT.md`, `README.md`.
 
 ## 7. Data model (live Supabase DB)
 
@@ -392,9 +416,20 @@ creates every table above including the post-release `entries.status`, `profiles
   circular save/cancel buttons on phones; desktop edit opens the portal modal
   `ProfileEditModal`), JourneyCard (lifetime stats: longest streak, total check-ins,
   30-day consistency, days tracking), MilestonesCard (animated badge rings).
-- **Login / Landing / Privacy (public)** — glass login card with email/password +
-  Google brand pill; `/welcome` landing (logo, "Habit Tracker" h1, feature cards, sign-in +
-  privacy links — visible app name for Google verification); `/privacy` policy card.
+- **Login / VerifyEmail / Landing / Privacy (public)** — glass login card with
+  email/password + Google brand pill; **signup with confirmation enabled navigates to
+  `/verify-email`** (state-passed email, sessionStorage reload recovery, single-flight
+  submit): six-slot OTP input (one real input, `autocomplete="one-time-code"`, numeric
+  keyboard, paste support, leading zeros), verify via `verifyOtp type 'email'` requiring a
+  real session before redirecting to `/`, resend via `resend type 'signup'` with a 60 s
+  absolute-timestamp countdown (success message only after the API succeeds), recovery UI
+  when the flow state is missing, and Change email / Back to sign-in exits; error copy
+  covers invalid/expired/rate-limited/offline/config; already-authenticated visitors are
+  redirected into the app (no redirect loops). Legacy confirmation links stay valid.
+  The email template lives in `supabase/email-templates/` until manually pasted into the
+  Supabase Dashboard (see that folder's README). `/welcome` landing (logo, "Habit Tracker"
+  h1, feature cards, sign-in + privacy links — visible app name for Google verification);
+  `/privacy` policy card.
 - **PWA** — manifest (name Habit Tracker, short_name Habits, theme #070A12), generated
   service worker (precache 44 entries), auto-update, extended with `push-sw.js` for
   background push notifications, notification click deep linking, and focus reuse;

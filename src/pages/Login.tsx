@@ -1,6 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSupabase } from '../lib/supabase'
+import { normalizeEmail } from '../lib/authEmail'
+import { authErrorMessage } from '../lib/authErrors'
+import { startEmailSignin, startEmailSignup, startGoogleSignin } from '../lib/authOtp'
 
 export function Login() {
   const navigate = useNavigate()
@@ -77,8 +80,11 @@ export function Login() {
     setBusy(true)
     try {
       const sb = getSupabase()
-      const { error } = await sb.auth.signInWithPassword({ email, password })
-      if (error) throw error
+      const result = await startEmailSignin(sb, normalizeEmail(email), password)
+      if (!result.ok) {
+        setError(authErrorMessage(result.error, 'signin'))
+        return
+      }
       navigate('/', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed')
@@ -97,11 +103,11 @@ export function Login() {
     setOauthBusy(true)
     try {
       const sb = getSupabase()
-      const { error } = await sb.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${window.location.origin}/login` },
-      })
-      if (error) throw error
+      const result = await startGoogleSignin(sb, `${window.location.origin}/login`)
+      if (!result.ok) {
+        setError(authErrorMessage(result.error, 'google'))
+        return
+      }
       // The promise settles once the redirect has been kicked off; a browser
       // that blocks it would otherwise leave the form disabled forever.
     } catch (err) {
@@ -117,13 +123,20 @@ export function Login() {
     setBusy(true)
     try {
       const sb = getSupabase()
-      const { data, error } = await sb.auth.signUp({ email, password })
-      if (error) throw error
-      if (data.session) {
-        navigate('/', { replace: true })
-      } else {
-        setMessage('Account created. Check your email to confirm, then sign in.')
+      const normalized = normalizeEmail(email)
+      const result = await startEmailSignup(sb, normalized, password)
+      if (!result.ok) {
+        setError(authErrorMessage(result.error, 'signup'))
+        return
       }
+      if (!('destination' in result)) return
+      if (result.destination.kind === 'verify-email') {
+        navigate('/verify-email', {
+          state: { email: result.destination.email },
+        })
+        return
+      }
+      navigate('/', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign up failed')
     } finally {
