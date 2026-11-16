@@ -88,7 +88,8 @@ npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets
 src/
   main.tsx              entry — applies stored/system theme (<html class="dark">), registers the PWA SW
                         (registerSW from virtual:pwa-register — see vite-plugin-pwa), renders <App/>
-  App.tsx               routes: public /login, /verify-email (OTP verification), /welcome (Landing), /privacy (Privacy);
+  App.tsx               routes: public /login, /verify-email (OTP verification), /forgot-password +
+                        /reset-password (in-app password recovery), /welcome (Landing), /privacy (Privacy);
                         inside RequireAuth+AppShell: / (Today), /overview, /review (Performance Review),
                         /profile, /settings, /habits/new, /habits/:id/edit, /habits/:id
   index.css             Tailwind v4 + Aurora-Glass tokens (@theme) + component recipes
@@ -120,7 +121,7 @@ src/
     useScheduleHistory.ts Stage 4A schedule epochs per habit from habit_schedule_history
                          (RLS SELECT-only, capability-probe gated, `schedule-reload`
                          window event; exposes epochsByHabit/loading/error)
-  lib/                  pure logic + their *.test.ts (31 test files, 511 tests)
+  lib/                  pure logic + their *.test.ts (33 test files, 524 tests)
     review.ts           Performance Review analysis engine (getCompletedWeekRange, getCompletedMonthRange,
                         getCompletedYearRange, calculatePeriodReview, calculateMonthlyWeeklyBreakdown,
                         calculateYearlyMonthlyBreakdown, generateActionableInsights)
@@ -206,6 +207,17 @@ src/
     verifyEmailFlow.ts  session-only OTP flow state: sessionStorage {email, resendAfter}
                         (never passwords/codes), 60s resend cooldown, read/save/clear +
                         startResendCooldown
+    authRecovery.ts     password-recovery actions: requestRecoveryOtp (resetPasswordForEmail,
+                        no redirect link — generic anti-enumeration), verifyRecoveryOtp
+                        (verifyOtp type 'recovery', requires a real session),
+                        updateUserPassword (updateUser {password} on the recovery session,
+                        requires a real user), resendRecoveryOtp (ANOTHER recovery request —
+                        never resend type 'signup'), signOutRecoverySession (best-effort),
+                        validatePasswordPair (required + match only — the configured
+                        Supabase policy is the sole strength rule)
+    recoveryFlow.ts     session-only recovery flow state: sessionStorage
+                        {email, resendAfter, verified} (never passwords/codes), reuses
+                        verifyEmailFlow's 60s cooldown helpers, read/save/clear
     backup.ts           JSON export shape (habits, entries incl. status, vacation periods,
                         whitelisted profile/settings fields)
     backupImport.ts     parseBackup/planImport — whitelisted, additive, idempotent
@@ -262,7 +274,14 @@ src/
                         numeric, paste autofill) over a six-slot visual presentation
     AuthErrorNotice.tsx shared auth error surface (role="alert", danger tint)
     VerifyEmailRecovery.tsx  recovery form when /verify-email opens without a pending flow
-    icons.tsx           all inline SVG icons
+    NewPasswordForm.tsx new + confirm password fields with show/hide toggles (IconEye/
+                         IconEyeOff), pair validation via validatePasswordPair, server
+                         error surface — used by ResetPassword
+    RecoveryCodeStep.tsx self-contained recovery verify step (own OTP state, cooldown,
+                         resend = another recovery request, single-flight guards) — used
+                         by ResetPassword
+    RecoverySuccessCard.tsx final "Password updated" card (no other-device claims)
+    icons.tsx           all inline SVG icons (+ IconEye/IconEyeOff)
   pages/
     Today.tsx           bento: header + date pill, hero rings, completion card, tiles
     Overview.tsx        stat tiles + Score / Completion % chart with Top 5 / All / None filters & click-to-isolate
@@ -272,7 +291,18 @@ src/
     HabitForm.tsx       create/edit habit (desktop ≥1024px layout + shared state → HabitFormMobile)
     Settings.tsx        Day/Habits/Vacation/Data/Account/Notification cards (phone reflow below 1024px)
     Profile.tsx         banner, details, journey, milestones
-    Login.tsx           email/password + Google pill (public); signup → /verify-email
+    Login.tsx           email/password + Google pill (public); signup → /verify-email;
+                        "Forgot password?" link near the password field
+    ForgotPassword.tsx  public /forgot-password — step 1: request a recovery code
+                        (resetPasswordForEmail, generic success, single-flight, offline/
+                        rate-limit handling; rate-limited attempts arm the same cooldown)
+    ResetPassword.tsx   public /reset-password — steps 2–4: verify the 6-digit recovery
+                        code (OtpInput, type 'recovery', real-session required, 60s resend
+                        via ANOTHER recovery request), set new + confirm password
+                        (updateUser on the recovery session; weak_password → policy error;
+                        expired/missing session → restart recovery), then best-effort
+                        signOut + success screen. Deliberately NO authenticated-session
+                        redirect — the recovery session stays here until the reset ends.
     VerifyEmail.tsx     public /verify-email — 6-digit email OTP verification (real logo,
                         accessible OTP input, resend w/ 60s countdown, reload recovery,
                         already-authenticated redirect)
@@ -416,20 +446,35 @@ creates every table above including the post-release `entries.status`, `profiles
   circular save/cancel buttons on phones; desktop edit opens the portal modal
   `ProfileEditModal`), JourneyCard (lifetime stats: longest streak, total check-ins,
   30-day consistency, days tracking), MilestonesCard (animated badge rings).
-- **Login / VerifyEmail / Landing / Privacy (public)** — glass login card with
-  email/password + Google brand pill; **signup with confirmation enabled navigates to
-  `/verify-email`** (state-passed email, sessionStorage reload recovery, single-flight
-  submit): six-slot OTP input (one real input, `autocomplete="one-time-code"`, numeric
-  keyboard, paste support, leading zeros), verify via `verifyOtp type 'email'` requiring a
-  real session before redirecting to `/`, resend via `resend type 'signup'` with a 60 s
-  absolute-timestamp countdown (success message only after the API succeeds), recovery UI
-  when the flow state is missing, and Change email / Back to sign-in exits; error copy
-  covers invalid/expired/rate-limited/offline/config; already-authenticated visitors are
-  redirected into the app (no redirect loops). Legacy confirmation links stay valid.
-  The email template lives in `supabase/email-templates/` until manually pasted into the
-  Supabase Dashboard (see that folder's README). `/welcome` landing (logo, "Habit Tracker"
-  h1, feature cards, sign-in + privacy links — visible app name for Google verification);
-  `/privacy` policy card.
+- **Login / VerifyEmail / ForgotPassword / ResetPassword / Landing / Privacy (public)** —
+  glass login card with email/password + Google brand pill; **signup with confirmation
+  enabled navigates to `/verify-email`** (state-passed email, sessionStorage reload
+  recovery, single-flight submit): six-slot OTP input (one real input,
+  `autocomplete="one-time-code"`, numeric keyboard, paste support, leading zeros), verify
+  via `verifyOtp type 'email'` requiring a real session before redirecting to `/`, resend
+  via `resend type 'signup'` with a 60 s absolute-timestamp countdown (success message only
+  after the API succeeds), recovery UI when the flow state is missing, and Change email /
+  Back to sign-in exits; error copy covers invalid/expired/rate-limited/offline/config;
+  already-authenticated visitors are redirected into the app (no redirect loops). Legacy
+  confirmation links stay valid. **Password recovery is a 3-step in-app flow**: Login has a
+  "Forgot password?" link near the password field → `/forgot-password` requests a code via
+  `resetPasswordForEmail` with always-generic success wording (Supabase replies success for
+  unknown emails, so account existence is never revealed) → `/reset-password` verifies the
+  6-digit code with `verifyOtp type 'recovery'` (real recovery session required; resend =
+  another recovery request, NEVER `resend type 'signup'`, same 60 s cooldown) → new +
+  confirm password with show/hide controls submitted via `updateUser({ password })` on the
+  recovery session — the configured Supabase password policy is the only strength rule
+  (server `weak_password` errors map to readable copy) — then the recovery session is
+  signed out (best-effort) and a success screen returns the user to sign-in. Security
+  properties: passwords/codes never touch sessionStorage or custom endpoints; flow state
+  stores only `{email, resendAfter, verified}`; `/reset-password` performs NO
+  authenticated-session redirect so the recovery session can't leak into the dashboard
+  mid-flow; dead recovery sessions (expired/missing) surface a restart path instead of a
+  fake success; no claim about other devices being signed out (updateUser does not revoke
+  them). The email templates live in `supabase/email-templates/` until manually pasted
+  into the Supabase Dashboard (see that folder's README). `/welcome` landing (logo,
+  "Habit Tracker" h1, feature cards, sign-in + privacy links — visible app name for Google
+  verification); `/privacy` policy card.
 - **PWA** — manifest (name Habit Tracker, short_name Habits, theme #070A12), generated
   service worker (precache 44 entries), auto-update, extended with `push-sw.js` for
   background push notifications, notification click deep linking, and focus reuse;

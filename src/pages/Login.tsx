@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getSupabase } from '../lib/supabase'
 import { normalizeEmail } from '../lib/authEmail'
 import { authErrorMessage } from '../lib/authErrors'
@@ -190,6 +190,14 @@ export function Login() {
           className="input-field mt-2"
           placeholder="At least 6 characters"
         />
+        <div className="mt-2 text-right">
+          <Link
+            to="/forgot-password"
+            className="inline-block py-1 text-caption text-accent transition-colors duration-150 hover:text-accent/80 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
 
         {error && (
           <p role="alert" className="mt-4 rounded-input bg-danger/10 px-3 py-2 text-body text-danger">

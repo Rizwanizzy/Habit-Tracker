@@ -1,9 +1,14 @@
-# Email templates — `confirm-signup.html` (6-digit signup OTP)
+# Email templates — signup + password recovery (6-digit OTP emails)
 
-This folder holds the production-ready **signup confirmation email** for the
-email-OTP flow (`/verify-email`). The template lives **in the repository only**
-until it is manually pasted into the Supabase project — committing these files
-does **not** deploy or change any Supabase configuration.
+This folder holds the production-ready emails for the app's two in-app OTP flows:
+
+- **`confirm-signup.html`** — signup confirmation email (`/verify-email`)
+- **`recovery.html`** — password recovery email (`/forgot-password` → `/reset-password`)
+
+Both templates live **in the repository only** until they are manually pasted into
+the Supabase project — committing these files does **not** deploy or change any
+Supabase configuration. The frontend flows work regardless of which template is
+configured; see §1 and §2 for the per-template setup.
 
 ## 1. What changed in the signup flow
 
@@ -27,17 +32,25 @@ Configure in Supabase Dashboard → Authentication → Emails → Templates →
 {{ .Token }} is your Habit Tracker verification code
 ```
 
-## 3. HTML template
+And for password recovery — Authentication → Emails → Templates →
+**Reset password** → *Subject*:
+
+```
+{{ .Token }} is your Habit Tracker password recovery code
+```
+
+## 3. HTML templates
 
 Paste the full contents of [`confirm-signup.html`](./confirm-signup.html) into
-the *Message* body of the same template. It:
+the *Message* body of the **Confirm signup** template, and
+[`recovery.html`](./recovery.html) into the **Reset password** template. Both:
 
-- uses `{{ .Token }}` (the 6-digit OTP) — **not** `{{ .ConfirmationURL }}`;
-- shows the code large, selectable and copyable (no fake "Copy" button, no JS,
+- use `{{ .Token }}` (the 6-digit OTP) — **not** `{{ .ConfirmationURL }}`;
+- show the code large, selectable and copyable (no fake "Copy" button, no JS,
   no tracking pixels);
-- states a **60-minute** expiry and tells users not to share the code;
-- includes "If you didn't create this account, you can ignore this email";
-- is a table/inline-style layout that renders in Gmail, Outlook, Apple Mail and
+- state a **60-minute** expiry and tell users not to share the code;
+- include the "you can ignore this email" out-of-band note;
+- are table/inline-style layouts that render in Gmail, Outlook, Apple Mail and
   mobile clients; branding is a text wordmark (no remote image to break).
 
 ## 4. Supabase Dashboard configuration (staging → production)
@@ -51,10 +64,14 @@ One-time, manual steps in the **Supabase Dashboard**:
    - Subject: `{{ .Token }} is your Habit Tracker verification code`
    - Body: paste `confirm-signup.html` (save the current default first if you
      want a rollback copy).
+2b. **Authentication → Emails → Templates → Reset password**:
+   - Subject: `{{ .Token }} is your Habit Tracker password recovery code`
+   - Body: paste `recovery.html` (same rollback advice).
 3. **Authentication → Settings → Email OTP expiry**: set **3600 seconds**
-   (60 minutes). The template copy and the VerifyEmail page assume this value;
-   if you change the expiry, update both the template text and
-   `OTP_EXPIRY_MINUTES` in `src/pages/VerifyEmail.tsx`.
+   (60 minutes). The template copy and the VerifyEmail/ResetPassword pages
+   assume this value; if you change the expiry, update both template texts
+   and `OTP_EXPIRY_MINUTES` in `src/pages/VerifyEmail.tsx` (and the "60
+   minutes" line in `src/pages/ResetPassword.tsx`).
 4. **Authentication → Settings → Minimum interval between emails sent**: keep
    the default **60 seconds**. The client enforces the same 60-second cooldown,
    but the server value is the real limit.
@@ -78,6 +95,18 @@ code (error copy).
 | 4 | Confirm OTP expiry = 3600 s and email interval = 60 s | ⬜ manual |
 | 5 | Test signup on desktop + Android PWA + iOS PWA | ⬜ manual |
 | 6 | Deploy app (Cloudflare Pages) after template is live | ⬜ manual |
+
+Password recovery rides the same plan: paste `recovery.html` into **Reset
+password**, then QA the flow (below). Recovery never needs extra Supabase
+settings beyond the shared OTP expiry/interval above.
+
+**Recovery QA (after the template is pasted):**
+- Login → "Forgot password?" → enter email → generic success (no account enumeration).
+- Wrong code → "That code is incorrect…"; expired/used code → expired copy; Resend honors the 60 s cooldown.
+- Verified code → new + confirm password (show/hide), mismatch rejected, weak password shows the policy error.
+- Success → "Password updated" → signed out → sign in with the new password works.
+- Reload on `/reset-password` → resumes at the password step (sessionStorage + recovery session).
+- The app is NOT opened into the dashboard mid-recovery; `/reset-password` has no session redirect.
 
 **Deploy order matters:** paste the template **before** shipping the new app
 build. With the template still configured to send links, the new app still
@@ -107,9 +136,9 @@ Worker/database for codes.
       confirm the sender domain is your domain, not `@supabase-mail` fallback.
 - [ ] Re-check the template renders after the switch (Resend doesn't change
       template content — Supabase still injects `{{ .Token }}`).
-- [ ] Update the optional logo `<img>` in `confirm-signup.html` to
-      `https://<domain>/logo.png` once the domain serves it publicly
-      (keep the text wordmark fallback).
+- [ ] Update the optional logo `<img>` in `confirm-signup.html` and
+      `recovery.html` to `https://<domain>/logo.png` once the domain serves it
+      publicly (keep the text wordmark fallback).
 
 ## 7. Manual QA checklist
 

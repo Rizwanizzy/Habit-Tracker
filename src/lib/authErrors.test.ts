@@ -34,4 +34,31 @@ describe('auth error mapping', () => {
   it('keeps offline guidance explicit', () => {
     expect(offlineAuthMessage()).toContain('offline')
   })
+
+  it('maps recovery-request, recovery-verify and password-update failures', () => {
+    const rateLimited = authError('Over email send rate limit', 429, 'over_email_send_rate_limit')
+    expect(authErrorKind(rateLimited)).toBe('rate_limit')
+    expect(authErrorMessage(rateLimited, 'recovery-request')).toContain('Wait a minute')
+
+    const wrongCode = authError('Invalid OTP', 400, 'invalid_credentials')
+    expect(authErrorMessage(wrongCode, 'recovery-verify')).toContain('incorrect')
+
+    const expiredCode = authError('Email OTP expired', 403, 'otp_expired')
+    expect(authErrorMessage(expiredCode, 'recovery-verify')).toContain('expired')
+
+    // The configured Supabase password policy is the strength authority.
+    const weak = authError('Password is too weak', 422, 'weak_password')
+    expect(authErrorKind(weak)).toBe('weak_password')
+    expect(authErrorMessage(weak, 'password-update')).toContain('account requirements')
+
+    // A dead recovery session (expired/missing) asks the user to restart.
+    const deadSession = authError('Auth session missing!', 400, 'session_not_found')
+    expect(authErrorKind(deadSession)).toBe('expired')
+    expect(authErrorMessage(deadSession, 'password-update')).toContain('start again')
+
+    expect(authErrorKind(new TypeError('Failed to fetch'))).toBe('network')
+    expect(authErrorMessage(new TypeError('Failed to fetch'), 'recovery-request')).toContain(
+      'connection',
+    )
+  })
 })

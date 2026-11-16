@@ -10,6 +10,8 @@ import { Profile } from './pages/Profile'
 import { PerformanceReview } from './pages/PerformanceReview'
 import { Login } from './pages/Login'
 import { VerifyEmail } from './pages/VerifyEmail'
+import { ForgotPassword } from './pages/ForgotPassword'
+import { ResetPassword } from './pages/ResetPassword'
 import { Privacy } from './pages/Privacy'
 import { Landing } from './pages/Landing'
 import { ProfileProvider } from './contexts/ProfileContext'
@@ -24,6 +26,8 @@ export function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/welcome" element={<Landing />} />
           <Route element={<RequireAuth />}>
