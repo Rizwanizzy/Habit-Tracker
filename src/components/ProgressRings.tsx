@@ -7,8 +7,8 @@ import {
 } from 'react'
 import { tint } from '../lib/color'
 import { isDone, isEntryDone, weeklyTargetProgress, type Entry, type Habit } from '../lib/score'
-import { dayStatus, isNeutral } from '../lib/dayStatus'
 import { isTransitionWeek, opportunityScope, shouldShowHabitOnDate, type ScheduleEpoch } from '../lib/schedule'
+import { todayPair } from '../lib/todaySummary'
 import { layoutRings, ringGeometry, segmentArcs, arcRotateDeg } from '../lib/rings'
 import { RingTooltip } from './RingTooltip'
 
@@ -136,17 +136,14 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
     return list
   }, [layout, geo, numRings, byId])
 
-  // Center totals count ALL active habits — not just the ones on the rings
-  // and not only those within the 28-habit rings cap. A skipped habit is
-  // excluded from the total (neutral day, never a 0% miss); days before a
-  // habit's start keep counting as empty rings (old behavior). With epochs,
-  // an off-day is 'unscheduled' (neutral, same exclusion) and a weekly-target
-  // habit is week-scoped: it leaves the day's done/total pair entirely —
-  // its progress is per Monday–Sunday week and lives in its own arc.
-  const isWeekScoped = (habitId: string): boolean => {
-    const epochs = epochsByHabit?.[habitId]
-    return epochs !== undefined && epochs.length > 0 && opportunityScope(epochs, date) === 'week'
-  }
+  // Center totals come from the shared Today pair (src/lib/todaySummary.ts):
+  // ALL active habits count — weekly-target habits are included while their
+  // week is pending and on check-in/achievement days, and drop out once the
+  // weekly goal is achieved (done-wins; Scheduled-view eligibility). Neutral
+  // days (skipped/vacation/unscheduled) are excluded — never a 0% miss. The
+  // pair never reads the Scheduled/All-Habits toggle, so it always matches
+  // the Today hero by construction.
+  const pair = todayPair({ habits, entriesByHabit, date, vacations, epochsByHabit })
   /** Weekly progress for one habit on the date ({done, target}, flagged
    *  `partial` while the epoch's first transition week runs), or null. */
   const weeklyProgress = (
@@ -160,26 +157,13 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
     return isTransitionWeek(epochs, date) ? { ...wp, partial: true } : wp
   }
 
-  // For center totals, we consider ALL habits (not just visible ones) to match
-  // the daily denominator logic from Today.tsx
-  const allTotal = habits.filter(
-    (h) =>
-      !isWeekScoped(h.id) &&
-      !isNeutral(
-        dayStatus({
-          habit: h,
-          date,
-          entry: (entriesByHabit[h.id] ?? []).find((e) => e.date === date),
-          today: date,
-          vacations,
-          schedule: epochsByHabit?.[h.id],
-        }),
-      ),
-  ).length
-  const allDone = habits.filter(
-    (h) =>
-      !isWeekScoped(h.id) && isDone(h, (entriesByHabit[h.id] ?? []).find((e) => e.date === date)),
-  ).length
+  /** Arc-path predicate (Stage 4E, unchanged): whether a habit's week is
+   *  week-scoped on this date — drives the weekly tooltip text only. The
+   *  center pair above uses todayPair instead. */
+  const isWeekScoped = (habitId: string): boolean => {
+    const epochs = epochsByHabit?.[habitId]
+    return epochs !== undefined && epochs.length > 0 && opportunityScope(epochs, date) === 'week'
+  }
 
   function clearTip() {
     if (tipTimer.current !== null) window.clearTimeout(tipTimer.current)
@@ -237,7 +221,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
   const tipRow = tip ? rows.find((row) => row.habit.id === tip.id) : undefined
   // Numeral scales to the shrinking center: full size when roomy, smaller
   // for many-digit totals, smallest when 6–7 rings leave a 96px-ish hole.
-  const compact = allTotal > 9 || numRings > 3
+  const compact = pair.total > 9 || numRings > 3
   const numeralSize = numRings > 5 ? '1.35rem' : compact ? '1.5rem' : undefined
   const showCaption = numRings <= 5
 
@@ -248,7 +232,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
         className="w-full max-w-[240px]"
         style={{ touchAction: 'pan-y' }}
         role="img"
-        aria-label={`${allDone} of ${allTotal} habits done on ${date}`}
+        aria-label={`${pair.done} of ${pair.total} habits done on ${date}`}
         onPointerMove={onMove}
         onPointerDown={onDown}
         onPointerLeave={clearTip}
@@ -330,7 +314,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
           <p className="text-stat tabular-nums text-fg" style={numeralSize ? { fontSize: numeralSize } : undefined}>
             {paused ? <span className="text-body font-semibold">Paused</span> : (
               <>
-                {allDone} / {allTotal}
+                {pair.done} / {pair.total}
               </>
             )}
           </p>
@@ -343,7 +327,7 @@ export function ProgressRings({ habits, entriesByHabit, date, caption = 'done to
             {paused ? (
               <span className="text-[11px] font-semibold">Paused</span>
             ) : (
-              `${allTotal > 0 ? Math.round((allDone / allTotal) * 100) : 0}%`
+              `${pair.total > 0 ? Math.round((pair.done / pair.total) * 100) : 0}%`
             )}
           </p>
         </div>

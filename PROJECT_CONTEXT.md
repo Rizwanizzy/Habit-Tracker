@@ -121,7 +121,7 @@ src/
     useScheduleHistory.ts Stage 4A schedule epochs per habit from habit_schedule_history
                          (RLS SELECT-only, capability-probe gated, `schedule-reload`
                          window event; exposes epochsByHabit/loading/error)
-  lib/                  pure logic + their *.test.ts (33 test files, 524 tests)
+  lib/                  pure logic + their *.test.ts (34 test files, 541 tests)
     review.ts           Performance Review analysis engine (getCompletedWeekRange, getCompletedMonthRange,
                         getCompletedYearRange, calculatePeriodReview, calculateMonthlyWeeklyBreakdown,
                         calculateYearlyMonthlyBreakdown, generateActionableInsights)
@@ -185,6 +185,14 @@ src/
                         Stage 4A: dayCompletion/completionForDates take a trailing optional
                         scheduleByHabit (off-days neutral, weekly-target habits week-scoped
                         out of the day denominator)
+    todaySummary.ts     todayPair — the shared pure Today hero / ring-center completion
+                        pair (approved 2026-11-17): done-wins for every check-in incl.
+                        weekly-target habits (achievement-day + post-goal extras), neutral
+                        + before-start days excluded, pending weekly habits in the
+                        denominator while Scheduled-visible, post-achievement weekly days
+                        out; ignores the Scheduled/All toggle; + todayPairCaption. NOTE:
+                        deliberately diverges from dayCompletion/Overview/Review daily
+                        stats on weekly-activity days (temporary, documented)
     rings.ts            ring layout math (≤7 rings; >7 shares outer rings, inner full rings)
     order.ts            sortHabits/moveHabit/diffOrder — habit ordering engine
     emoji.ts            emoji validation (≤24 code points) + processing helpers
@@ -615,8 +623,24 @@ creates every table above including the post-release `entries.status`, `profiles
        `{ done, target } | null` for the Mon–Sun week of the date (falls back
        to the habit row's schedule columns when no epochs).
      - **Today wiring:** `dayStatuses` pass epochs (off-days neutral);
-       week-scoped habits are excluded from BOTH `doneToday` and `totalToday`
-       (progress is per week, never per calendar day); `overallStreak` uses
+       the hero/ring-center pair comes from the shared pure helper
+       `src/lib/todaySummary.ts` (`todayPair`, approved 2026-11-17): ALL
+       active habits count; a check-in on the selected date is ONE done
+       habit — weekly-target habits included, incl. the day their weekly
+       goal is achieved and extra post-goal check-ins (done-wins); neutral
+       days (skipped/vacation/unscheduled) are excluded from BOTH sides;
+       before-start days are excluded; a pending weekly habit sits in the
+       denominator while visible in the Scheduled view and drops out once
+       its Mon–Sun goal is achieved (shouldShowHabitOnDate rule). The pair
+       never reads the Scheduled/All-Habits toggle, and Today.tsx hero +
+       ProgressRings center consume the SAME helper so hero % and ring-
+       center % always match. Known deliberate divergence: dayCompletion/
+       CompletionCard Week-Month-Year bars and Overview/Review stats still
+       exclude week-scoped habits from daily denominators (completion.ts
+       untouched), so on days with weekly check-ins the Today pair reads
+       higher than the daily statistics — documented, temporary; unifying
+       requires explicit approval. Weekly habits' own arcs stay per week
+       (never per calendar day); `overallStreak` uses
        epoch-aware `currentStreak`; epochs go to ProgressRings (week-scoped
        habits leave the day totals, their arcs fill with `min(1, done/M)`,
        tooltip "n/M this week"), CompletionCard (off-days drop out of day

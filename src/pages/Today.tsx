@@ -4,15 +4,14 @@ import { extractError } from '../hooks/useHabits'
 import { useHabitsContext } from '../contexts/HabitsContext'
 import { useEntries } from '../hooks/useEntries'
 import { currentStreak, isDone, type Entry, type Habit } from '../lib/score'
-import { dayStatus, isNeutral } from '../lib/dayStatus'
 import { addDays, formatDayStart, parseLocalDate, toLocalDateString } from '../lib/dates'
 import { isVacationDay, vacationDatesInRange } from '../lib/vacation'
 import { useVacationsContext } from '../contexts/VacationsContext'
 import { now } from '../lib/clock'
 import { useLogicalToday } from '../hooks/useLogicalToday'
 import { useScheduleHistory } from '../hooks/useScheduleHistory'
-import { opportunityScope } from '../lib/schedule'
 import { useSettings } from '../contexts/SettingsContext'
+import { todayPair, todayPairCaption } from '../lib/todaySummary'
 import { layoutRings } from '../lib/rings'
 import { ThemeIconButton } from '../components/ThemeIconButton'
 import { ProgressRings } from '../components/ProgressRings'
@@ -262,45 +261,42 @@ export function Today() {
     [habits, entriesByHabit, today, vacationDays, epochsByHabit],
   )
 
-  // Hero counts go through dayStatus (the rule: every "is this day counted"
-  // question). A skipped habit is excluded from the total — never a 0% miss;
-  // with epochs, an off-day is 'unscheduled' (neutral, same exclusion).
-  const dayStatuses = useMemo(
+  // Hero pair comes from the shared todayPair helper (src/lib/todaySummary.ts):
+  // ALL active habits count — weekly-target habits included while their week
+  // is pending (and on check-in/achievement days), dropping out once the
+  // weekly goal is achieved; neutral days (skipped/vacation/unscheduled) and
+  // before-start days are excluded. Never a 0% miss. This deliberately does
+  // NOT read the Scheduled/All-Habits toggle: view switching cannot change
+  // the summary. (Overview/heatmap daily stats keep their week-scoped math —
+  // documented divergence.)
+  const pair = useMemo(
     () =>
-      habits.map((h) =>
-        dayStatus({
-          habit: h,
-          date: selectedDate,
-          entry: (entriesByHabit[h.id] ?? []).find((e) => e.date === selectedDate),
-          today: selectedDate,
-          vacations: vacationDays,
-          schedule: epochsByHabit[h.id],
-        }),
-      ),
+      todayPair({
+        habits,
+        entriesByHabit,
+        date: selectedDate,
+        vacations: vacationDays,
+        epochsByHabit,
+      }),
     [habits, entriesByHabit, selectedDate, vacationDays, epochsByHabit],
   )
+  const doneToday = pair.done
+  const totalToday = pair.total
+  const skippedToday = pair.neutralCount
 
-  // Weekly-target habits are WEEK-scoped (Stage 4A): they leave the daily
-  // done/total pair entirely — their progress is per Monday–Sunday week and
-  // shows in the tile caption and the rings — while their check-ins still
-  // count toward the week (done wins).
-  const weekScoped = useMemo(() => {
-    const set = new Set<string>()
-    for (const h of habits) {
-      const epochs = epochsByHabit[h.id]
-      if (epochs !== undefined && epochs.length > 0 && opportunityScope(epochs, selectedDate) === 'week') {
-        set.add(h.id)
-      }
-    }
-    return set
-  }, [habits, epochsByHabit, selectedDate])
-
-  const doneToday = habits.reduce(
-    (n, h, i) => (dayStatuses[i] === 'done' && !weekScoped.has(h.id) ? n + 1 : n),
-    0,
+  // Hero + ring-center share one caption; the qualifier makes the metric's
+  // meaning explicit when weekly-target habits contribute (label only — no
+  // extra UI section).
+  const doneCaption = todayPairCaption(
+    vacationToday && selectedDate === today
+      ? 'habits are paused'
+      : skippedToday === habits.length && habits.length > 0
+        ? 'all habits skipped'
+        : isPast
+          ? 'done that day'
+          : 'done today',
+    pair,
   )
-  const skippedToday = dayStatuses.filter(isNeutral).length
-  const totalToday = habits.length - skippedToday - weekScoped.size
 
   const motivational =
     habits.length === 0
@@ -685,15 +681,7 @@ export function Today() {
                   {doneToday} / {totalToday}
                 </p>
               )}
-              <p className="text-caption mt-1 text-fg-muted">
-                {vacationToday && selectedDate === today
-                  ? 'habits are paused'
-                  : skippedToday === habits.length && habits.length > 0
-                    ? 'all habits skipped'
-                    : isPast
-                      ? 'done that day'
-                      : 'done today'}
-              </p>
+              <p className="text-caption mt-1 text-fg-muted">{doneCaption}</p>
               {motivational && totalToday !== 0 && (
                 <p className="text-[14px] leading-snug text-fg-secondary line-clamp-2 mt-1.5">
                   {motivational}
@@ -717,7 +705,7 @@ export function Today() {
                 habits={habits}
                 entriesByHabit={entriesByHabit}
                 date={selectedDate}
-                caption={vacationToday ? 'habits are paused' : isPast ? 'done that day' : 'done today'}
+                caption={doneCaption}
                 paused={vacationToday && selectedDate === today}
                 vacations={vacationDays}
                 epochsByHabit={epochsByHabit}
