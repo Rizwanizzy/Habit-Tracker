@@ -288,7 +288,7 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [], 
         view !== 'week' ? (
           <IntensityLegend color={color} />
         ) : (
-          <div className="mt-2 sm:mt-2.5 h-3.5 shrink-0 opacity-0 pointer-events-none select-none lg:hidden" aria-hidden="true" />
+          <div className="mt-2.5 sm:mt-3 h-3.5 shrink-0 opacity-0 pointer-events-none select-none lg:hidden" aria-hidden="true" />
         )
       )}
     </section>
@@ -298,7 +298,7 @@ export function CompletionCard({ habits, entriesByHabit, today, vacations = [], 
 function IntensityLegend({ color }: { color: string }) {
   const steps = [0.15, 0.4, 0.65, 1].map((f) => intensityPct(f))
   return (
-    <div className="mt-2 sm:mt-2.5 flex items-center justify-end gap-1.5 shrink-0">
+    <div className="mt-2.5 sm:mt-3 flex items-center justify-end gap-1.5 shrink-0">
       <span className="text-caption text-fg-muted">Less</span>
       {steps.map((p) => (
         <span

@@ -676,6 +676,21 @@ creates every table above including the post-release `entries.status`, `profiles
        data fetching (365-day entries + 400-day vacation windows already
        cover any reachable week). dayStatus/schedule/todayPair/scoring/
        heatmap/Overview/Review untouched.
+     - **UI 2.0 Stage 1B — Today visual hierarchy & spacing (2026-11-17,
+       presentation-only):** hero — `break-words` on the mobile caption +
+       motivational line, desktop motivational clamped to 2 lines (matches
+       DESIGN "max 2 lines", prevents hero height growth), desktop streak
+       chip label unified to "Best streak" (was "longest streak"); desktop
+       vertical rhythm unified to 20px (vacation banner → week strip →
+       grid, `lg:mb-5`; Scheduled/All toggle row `mb-4` before the grid);
+       CompletionCard legend margins unified with the body views
+       (`mt-2.5 sm:mt-3`, week-view placeholder matches so view switching
+       doesn't shift the card); tile status captions ("Skipped", "3/4 this
+       week", "Not scheduled") render normal-case via a new
+       `.tile-status-caption` rule (declared after `.text-caption` so it
+       wins the cascade) — design-system uppercase captions elsewhere
+       (hero caption, chips, legend labels, weekday headers) unchanged.
+       No logic, calculations, geometry or behavior changes.
      - Check-ins/skip/vacation preserved: done wins everywhere; skip menu,
        undo-skip and vacation neutrality unchanged.
      - Tests: +20 (schedule.test.ts opportunityScope; scoreSchedule.test.ts

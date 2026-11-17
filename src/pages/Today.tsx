@@ -594,7 +594,7 @@ export function Today() {
       </header>
 
       {/* Desktop >7 habits note LEFT | Scheduled/All toggle + Per row RIGHT (matching-height pills) */}
-      <div className="mb-3 mt-1 hidden lg:flex lg:flex-nowrap items-center justify-between gap-3 lg:mt-0">
+      <div className="mb-4 mt-1 hidden lg:flex lg:flex-nowrap items-center justify-between gap-3 lg:mt-0">
         {/* LEFT: Dynamic description */}
         <div className="flex flex-1 items-center min-w-0">
           {habits.length > 7 && (
@@ -655,7 +655,7 @@ export function Today() {
 
       {vacationToday && (
         <div
-          className="glass-card fade-up mb-3 lg:mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card px-4 py-3.5 lg:px-5 lg:py-4"
+          className="glass-card fade-up mb-3 lg:mb-5 flex flex-wrap items-center justify-between gap-3 rounded-card px-4 py-3.5 lg:px-5 lg:py-4"
           style={{ animationDelay: '20ms' }}
           role="status"
         >
@@ -678,7 +678,7 @@ export function Today() {
       {/* Stage 1A (UI 2.0): interactive seven-day strip for the selected
           week (Mon–Sun). Tapping a day updates the same selectedDate state
           as the chevrons/date pill above; future days are disabled. */}
-      <div className="mb-3 lg:mb-4">
+      <div className="mb-3 lg:mb-5">
         <WeekStrip cells={weekStripCells} onSelect={setSelectedDate} />
       </div>
 
@@ -704,9 +704,9 @@ export function Today() {
                   {doneToday} / {totalToday}
                 </p>
               )}
-              <p className="text-caption mt-1 text-fg-muted">{doneCaption}</p>
+              <p className="text-caption mt-1 text-fg-muted break-words">{doneCaption}</p>
               {motivational && totalToday !== 0 && (
-                <p className="text-[14px] leading-snug text-fg-secondary line-clamp-2 mt-1.5">
+                <p className="text-[14px] leading-snug text-fg-secondary line-clamp-2 mt-1.5 break-words">
                   {motivational}
                 </p>
               )}
@@ -737,14 +737,14 @@ export function Today() {
 
             {/* Desktop Right stat block (hidden below lg) */}
             <div className="hidden lg:block min-w-0 flex-1 lg:order-2">
-              <p className="text-body text-fg-secondary">{motivational}</p>
+              <p className="text-body text-fg-secondary line-clamp-2 break-words">{motivational}</p>
               <span
                 className="mt-4 inline-flex items-center gap-2 rounded-pill border border-border bg-surface px-3"
                 style={{ height: 36 }}
                 title="Longest active streak"
               >
                 <IconFlame className="size-4 text-accent" />
-                <span className="text-caption text-fg-muted">longest streak</span>
+                <span className="text-caption text-fg-muted">Best streak</span>
                 <span className="text-caption tabular-nums text-fg">{overallStreak}</span>
               </span>
             </div>

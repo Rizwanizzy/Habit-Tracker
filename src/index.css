@@ -473,6 +473,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transform: translateY(-2px);
 }
 
+/* Tile status captions ("Skipped", "3/4 this week", "Not scheduled") are
+   multi-word phrases on small tiles — they read better in normal case
+   (UI 2.0 Stage 1B). Declared after .text-caption so the override wins the
+   cascade; size/weight/color still follow the caption token. */
+.tile-status-caption {
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
 /* User-controlled tile density (Today grid): the "Per row" stepper writes
    --tile-cols (1–6) inline on the <ul>; unlayered CSS beats Tailwind's
    layered utilities, so the grid columns follow the variable at EVERY width —
