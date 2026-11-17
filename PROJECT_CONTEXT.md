@@ -1,10 +1,10 @@
-# PROJECT_CONTEXT
+﻿# PROJECT_CONTEXT
 
 > Purpose of this file: give any developer, AI model, or application a complete, current
-> understanding of this project — concept, stack, architecture, data model, features, and
+> understanding of this project â€” concept, stack, architecture, data model, features, and
 > conventions. It describes **what is true right now**; the per-pass history lives in
 > `CHANGELOG.md`. **Update this file after every completed task** (AGENTS.md rule 11).
-> Last updated: 2026-11-17
+> Last updated: 2026-11-18
 
 ## 1. What this project is
 
@@ -24,37 +24,37 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 |------|------|
 | `AGENTS.md` | Rules for any AI/dev working on the repo. Read before every task. |
 | `DESIGN.md` | The design spec ("Aurora Glass": tokens, typography, components, motion). Read before any UI change. |
-| `supabase/schema.sql` | Database schema `README` for human setup (re-synced with the live DB — see §Data model). |
-| `CHANGELOG.md` | Numbered log of every completed pass (1–115). Append, never rewrite. |
+| `supabase/schema.sql` | Database schema `README` for human setup (re-synced with the live DB â€” see Â§Data model). |
+| `CHANGELOG.md` | Numbered log of every completed pass (1â€“115). Append, never rewrite. |
 | `README.md` | GitHub-facing overview (features, hosting, scripts, layout). Keep in sync. |
 
 ## 3. Stack (verified against `package.json`)
 
 - Vite **8.3.4**, React **19.3.1**, TypeScript **~6.0.3** (strict mode in `tsconfig.app.json`)
-- Tailwind CSS **4.3.3** via `@tailwindcss/vite` — `@import "tailwindcss"` in `src/index.css`,
+- Tailwind CSS **4.3.3** via `@tailwindcss/vite` â€” `@import "tailwindcss"` in `src/index.css`,
   tokens as CSS variables + `@theme`/`@theme inline`. **There is no `tailwind.config.js`.**
 - Supabase (Auth email/password + Google OAuth, Postgres, RLS) via `@supabase/supabase-js` ^2.118.0
 - React Router **7.18** (`BrowserRouter`)
 - Recharts **3.10** (line/area/bar charts on Overview + Habit detail)
-- `vite-plugin-pwa` **2.0.0** — installable PWA, `generateSW`, autoUpdate (precache 44 entries),
+- `vite-plugin-pwa` **2.0.0** â€” installable PWA, `generateSW`, autoUpdate (precache 44 entries),
   registered explicitly in `main.tsx` via `virtual:pwa-register`, and enabled in dev via
   `devOptions: { enabled: true }`,
   extended with `workbox.importScripts: ['push-sw.js']` for Web Push event handling
 - Vitest **5** for unit tests; **oxlint** for linting
-- `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` — drag-and-drop reordering
-- `emoji-picker-react` — full emoji picker, **lazy-loaded inside `EmojiPickerField.tsx` only**
+- `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` â€” drag-and-drop reordering
+- `emoji-picker-react` â€” full emoji picker, **lazy-loaded inside `EmojiPickerField.tsx` only**
   (keeps the picker in its own chunk)
-- `@vite-pwa/assets-generator` — one-off icon generation (`npm run icons`)
+- `@vite-pwa/assets-generator` â€” one-off icon generation (`npm run icons`)
 - Fonts: Space Grotesk (headings/numerals) + DM Sans (body) via Google Fonts in `index.html`
 - Heatmap is a **custom component** (`src/components/Heatmap.tsx`), not a library
 
 ## 4. Commands (verified against `package.json` / `vite.config.ts`)
 
 ```
-npm run dev     # dev server — vite --host 0.0.0.0 --port 3000 (NOT 5173)
+npm run dev     # dev server â€” vite --host 0.0.0.0 --port 3000 (NOT 5173)
 npm run build   # tsc -b && vite build
-npm start       # node server.js — plain static SPA server (Cloud Run deploy route, not used day-to-day)
-npm test        # vitest run — currently 291/291 tests in 22 files, all green
+npm start       # node server.js â€” plain static SPA server (Cloud Run deploy route, not used day-to-day)
+npm test        # vitest run â€” currently 604/604 tests in 36 files, all green
 npm run lint    # oxlint
 npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets.config.js)
 ```
@@ -67,8 +67,8 @@ npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets
 
 ## 5. Deployment
 
-- Production: **Cloudflare Pages — https://habbits-tracker.pages.dev** (migrated from Vercel
-  in Nov 2026; Pages auto-enables SPA mode, so deep links survive refresh — no `vercel.json`).
+- Production: **Cloudflare Pages â€” https://habbits-tracker.pages.dev** (migrated from Vercel
+  in Nov 2026; Pages auto-enables SPA mode, so deep links survive refresh â€” no `vercel.json`).
   Never auth against per-deployment/preview `*.pages.dev` URLs (they change every deploy).
 - Supabase Auth URL config: Site URL = the production origin; Redirect URLs include
   `<origin>/login` (+ `http://localhost:3000` for dev). Google OAuth client JS origins and
@@ -80,14 +80,14 @@ npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets
   in `public/` and the HTML-tag meta in `index.html`), then the usual loop: wait ~24 h and
   one clean "Verify again" resubmission.
 - Known permanent quirk: the Google **account chooser** always shows the OAuth redirect
-  domain (`…supabase.co`); only a Supabase Pro custom auth domain could change that.
+  domain (`â€¦supabase.co`); only a Supabase Pro custom auth domain could change that.
 
 ## 6. Architecture overview
 
 ```
 src/
-  main.tsx              entry — applies stored/system theme (<html class="dark">), registers the PWA SW
-                        (registerSW from virtual:pwa-register — see vite-plugin-pwa), renders <App/>
+  main.tsx              entry â€” applies stored/system theme (<html class="dark">), registers the PWA SW
+                        (registerSW from virtual:pwa-register â€” see vite-plugin-pwa), renders <App/>
   App.tsx               routes: public /login, /verify-email (OTP verification), /forgot-password +
                         /reset-password (in-app password recovery), /welcome (Landing), /privacy (Privacy);
                         inside RequireAuth+AppShell: / (Today), /overview, /review (Performance Review),
@@ -100,7 +100,7 @@ src/
   types/
     habit-form.ts       shared HabitForm state types (desktop page + phone layout)
   contexts/
-    HabitsContext.tsx   one shared habit list (RequireAuth scope) — every view reads it, never re-sorts
+    HabitsContext.tsx   one shared habit list (RequireAuth scope) â€” every view reads it, never re-sorts
     ProfileContext.tsx  shared profile state (Today header avatar, rail, Profile page)
     SettingsContext.tsx shared day-start hour setting
     VacationsContext.tsx shared vacation-period list
@@ -124,7 +124,7 @@ src/
     useScheduleHistory.ts Stage 4A schedule epochs per habit from habit_schedule_history
                          (RLS SELECT-only, capability-probe gated, `schedule-reload`
                          window event; exposes epochsByHabit/loading/error)
-  lib/                  pure logic + their *.test.ts (36 test files, 596 tests)
+  lib/                  pure logic + their *.test.ts (36 test files, 604 tests)
     review.ts           Performance Review analysis engine (getCompletedWeekRange, getCompletedMonthRange,
                         getCompletedYearRange, calculatePeriodReview, calculateMonthlyWeeklyBreakdown,
                         calculateYearlyMonthlyBreakdown, generateActionableInsights)
@@ -132,63 +132,63 @@ src/
                         every public fn takes a trailing optional `vacations = []`;
                         scoreRange/scoreSeries also take a trailing optional `epochs`
                         (Stage 2 scoring law, CHANGELOG 118): omitted/empty = original
-                        walk bit-identical; with epochs — daily/weekdays/interval step
-                        1−0.95^1 per scheduled opportunity (unscheduled days carry),
-                        weekly_target steps 1−0.95^M per CLOSED Mon–Sun week (achieved =
-                        done ≥ M; current/partial/transition weeks carry), legacy uses
-                        the frozen snapshot 1−0.95^(M/N) over all days. Streak/completion
+                        walk bit-identical; with epochs â€” daily/weekdays/interval step
+                        1âˆ’0.95^1 per scheduled opportunity (unscheduled days carry),
+                        weekly_target steps 1âˆ’0.95^M per CLOSED Monâ€“Sun week (achieved =
+                        done â‰¥ M; current/partial/transition weeks carry), legacy uses
+                        the frozen snapshot 1âˆ’0.95^(M/N) over all days. Streak/completion
                         fns untouched until the wiring stage. Stage 4A: currentStreak/
                         bestStreak also take a trailing optional `epochs` (off-days
-                        neutral; weekly_target weeks are the streak unit — Monday's
+                        neutral; weekly_target weeks are the streak unit â€” Monday's
                         schedule governs the week, open weeks pending until closed,
                         M reached = done wins); weeklyTargetProgress(habit, entries,
-                        date, epochs?) → {done, target} | null for the Mon–Sun week
+                        date, epochs?) â†’ {done, target} | null for the Monâ€“Sun week
     overview.ts         completionSeries (daily cumulative completion % adhering to neutral days;
-                        Stage 4B: trailing optional `epochs` — off-days neutral, weekly_target
+                        Stage 4B: trailing optional `epochs` â€” off-days neutral, weekly_target
                         scored per closed week mirroring the Stage 2 law),
                         getTop5HabitIds (Overview ranking + tie breaker), resolveFilterMode
     dayStatus.ts        the one source of truth for "is this day counted":
-                        before-start/future → done → skipped → vacation → unscheduled → missed
+                        before-start/future â†’ done â†’ skipped â†’ vacation â†’ unscheduled â†’ missed
                         ('unscheduled' is neutral and appears only when the caller supplies
-                        schedule epochs — omitted/empty context = exact legacy behaviour)
+                        schedule epochs â€” omitted/empty context = exact legacy behaviour)
     schedule.ts         Habit Scheduling pure foundation + Stage 3 wiring helpers:
                         ScheduleType/ScheduleConfig/ScheduleEpoch types, weekday-bit mask
-                        helpers (Mon=1 … Sun=64, 1–127), weekdayBit,
+                        helpers (Mon=1 â€¦ Sun=64, 1â€“127), weekdayBit,
                         isValidWeekdayMask/isValidInterval/isValidWeeklyTarget, validateSchedule
-                        (error list), resolveEpoch (latest effective_from ≤ date, same-day
+                        (error list), resolveEpoch (latest effective_from â‰¤ date, same-day
                         final-wins in append order, never mutates), sortEpochs, isScheduledOn
                         (daily/weekdays/interval anchored to the epoch's own effective_from/
-                        weekly_target with Tue–Sun transition weeks neutral/legacy = all days),
-                        weekStart/weekEnd (Monday–Sunday only; Review's Sun–Sat cadence
+                        weekly_target with Tueâ€“Sun transition weeks neutral/legacy = all days),
+                        weekStart/weekEnd (Mondayâ€“Sunday only; Review's Sunâ€“Sat cadence
                         untouched), weeklyTargetContext, isTransitionEpoch, transitionWeekStart,
                         isTransitionWeek; Stage 3 helpers: ScheduleMode (types + 'legacy'),
-                        weekdayMaskCount (popcount), freqMirrorFor (DB freq pair per mode —
+                        weekdayMaskCount (popcount), freqMirrorFor (DB freq pair per mode â€”
                         the habits_freq_mirror_ck contract), scheduleLabel (human text,
                         legacy shows frozen freq); Stage 4A: opportunityScope
-                        (epochs, date → 'day' | 'week' | null — week = weekly
+                        (epochs, date â†’ 'day' | 'week' | null â€” week = weekly
                         target week incl. its first partial transition week,
                         null = ungoverned / weekdays-interval off-days)
-    habitForm.ts        Stage 3 pure form×schedule glue: draftSchedule (FormState →
-                        ScheduleConfig, legacy/'' → null), sameSchedule, scheduleChanged
-                        (RPC gating — staying on legacy is NOT a change), loadedSchedule
+    habitForm.ts        Stage 3 pure formÃ—schedule glue: draftSchedule (FormState â†’
+                        ScheduleConfig, legacy/'' â†’ null), sameSchedule, scheduleChanged
+                        (RPC gating â€” staying on legacy is NOT a change), loadedSchedule
                         FromRow/formScheduleFromRow, creationScheduleFields (per-mode
                         CREATE payload: custom = typed freq; daily = freq 1/1 + no
                         schedule_type, bit-identical to pre-Stage-3; other modes = own
                         column + freq mirror), draftScheduleLabel (phone summary)
-    scheduleSupport.ts  Stage 3 capability probe: scheduleColumnsAvailable() — one
+    scheduleSupport.ts  Stage 3 capability probe: scheduleColumnsAvailable() â€” one
                         session-cached schedule_type select; PGRST204/42703/message
-                        mention = migration not applied → pre-scheduling form; other
+                        mention = migration not applied â†’ pre-scheduling form; other
                         errors rethrown
     dates.ts            local YYYY-MM-DD (Asia/Kolkata): toLogicalDateString, logicalToday,
-                        msUntilNextDayStart, DAY_START_HOURS — never toISOString().slice(0,10)
-    clock.ts            now() — reads localStorage['dev-now'] in dev (time travel), real clock in prod
-    color.ts            readableColor(hex, theme) ≥3:1, tint() → color-mix strings
+                        msUntilNextDayStart, DAY_START_HOURS â€” never toISOString().slice(0,10)
+    clock.ts            now() â€” reads localStorage['dev-now'] in dev (time travel), real clock in prod
+    color.ts            readableColor(hex, theme) â‰¥3:1, tint() â†’ color-mix strings
     habitTileTheme.ts   Today-tile color vars (+ archived-muted variant) shared with Settings cards
     completion.ts       dayCompletion, monthCalendar/yearCalendar (10-month rolling), intensityPct;
                         Stage 4A: dayCompletion/completionForDates take a trailing optional
                         scheduleByHabit (off-days neutral, weekly-target habits week-scoped
                         out of the day denominator)
-    todaySummary.ts     todayPair — the shared pure Today hero / ring-center completion
+    todaySummary.ts     todayPair â€” the shared pure Today hero / ring-center completion
                         pair (approved 2026-11-17): done-wins for every check-in incl.
                         weekly-target habits (achievement-day + post-goal extras), neutral
                         + before-start days excluded, pending weekly habits in the
@@ -196,39 +196,39 @@ src/
                         out; ignores the Scheduled/All toggle. NOTE:
                         deliberately diverges from dayCompletion/Overview/Review daily
                         stats on weekly-activity days (temporary, documented)
-    weekStrip.ts        UI 2.0 Stage 1A: buildWeekStrip — 7 Mon–Sun cells for the
+    weekStrip.ts        UI 2.0 Stage 1A: buildWeekStrip â€” 7 Monâ€“Sun cells for the
                         selected date's week (weekStart anchor); each cell's indicator
                         REUSES todayPair (same weekly semantics as the hero); future
                         days carry no values; paused = vacation day with nothing
                         achieved; neutral = nothing eligible (all skipped/unscheduled/
                         before-start); + weekStripLabel (deterministic EN abbreviations)
-    habitMatrix.ts      UI 2.0 Stage 2: buildHabitMatrix — weekly matrix data (rows =
-                        active habits in order × selected date's Mon–Sun week); cell
-                        states via dayStatus ('missed' → "pending", never "missed"
-                        — weekly unchecked weekdays are not daily obligations); Scheduled
-                        filtering = shouldShowHabitOnDate visible on ≥1 non-future date of
+    habitMatrix.ts      UI 2.0 Stage 2: buildHabitMatrix â€” weekly matrix data (rows =
+                        active habits in order Ã— selected date's Monâ€“Sun week); cell
+                        states via dayStatus ('missed' â†’ "pending", never "missed"
+                        â€” weekly unchecked weekdays are not daily obligations); Scheduled
+                        filtering = shouldShowHabitOnDate visible on â‰¥1 non-future date of
                         the week, evaluated as-of-each-day (no historical future leakage);
                         future cells carry no values; matrixCellAction = which EXISTING
                         Today handler a cell routes to (toggle / edit-value / unskip;
                         vacation, unscheduled, before-start and future cells are null =
                         read-only); numeric done rows carry `value` for the editor
                         prefill; numericCellProgress = numeric fill math
-                        (value/target clamped 0–100, compact ≤5-char "3/9" chip label,
-                        missing/invalid → no progress, negatives clamp, actual numbers
-                        preserved); numericCellDisplayValue = DISPLAY fallback —
+                        (value/target clamped 0â€“100, compact â‰¤5-char "3/9" chip label,
+                        missing/invalid â†’ no progress, negatives clamp, actual numbers
+                        preserved); numericCellDisplayValue = DISPLAY fallback â€”
                         untouched pending numerics read "0/target" exactly like a
                         recorded zero, nothing persisted, other states unchanged;
                         revealColumnScroll = minimum-distance scrollLeft to
                         reveal the selected column (sticky column counts as obstruction,
                         clamped to range, null when visible);
                         + matrixCellLabel/matrixDateLabel/matrixCaption (deterministic EN)
-    rings.ts            ring layout math (≤7 rings; >7 shares outer rings, inner full rings)
-    order.ts            sortHabits/moveHabit/diffOrder — habit ordering engine
-    emoji.ts            emoji validation (≤24 code points) + processing helpers
+    rings.ts            ring layout math (â‰¤7 rings; >7 shares outer rings, inner full rings)
+    order.ts            sortHabits/moveHabit/diffOrder â€” habit ordering engine
+    emoji.ts            emoji validation (â‰¤24 code points) + processing helpers
     wheel.ts            wheel-picker snap math
     haptics.ts          navigator.vibrate tick (no-op on iOS)
     id.ts               secure-context UUID fallback (crypto.randomUUID guard)
-    profile.ts          Profile types + validators (name ≤80, DOB, phone, gender)
+    profile.ts          Profile types + validators (name â‰¤80, DOB, phone, gender)
     avatar.ts           prepareAvatar: reject >2MB/non-image, 512px square, WebP blob
     authEmail.ts        email/OTP pure helpers: normalizeEmail, isValidEmail, sanitizeOtp
                         (digits only, leading zeros), isCompleteOtp, otpSlots,
@@ -237,7 +237,7 @@ src/
                         (rate_limit/expired/invalid/duplicate_email/network/server/
                         configuration), authErrorMessage(error, context), offlineAuthMessage
     authOtp.ts          auth action wrappers (single-flight guard createSingleFlight):
-                        startEmailSignup (session → app; user-only → /verify-email;
+                        startEmailSignup (session â†’ app; user-only â†’ /verify-email;
                         fake-user duplicate guard), startEmailSignin, startGoogleSignin,
                         verifySignupOtp (verifyOtp type 'email', requires a real session),
                         resendSignupOtp (resend type 'signup')
@@ -245,19 +245,19 @@ src/
                         (never passwords/codes), 60s resend cooldown, read/save/clear +
                         startResendCooldown
     authRecovery.ts     password-recovery actions: requestRecoveryOtp (resetPasswordForEmail,
-                        no redirect link — generic anti-enumeration), verifyRecoveryOtp
+                        no redirect link â€” generic anti-enumeration), verifyRecoveryOtp
                         (verifyOtp type 'recovery', requires a real session),
                         updateUserPassword (updateUser {password} on the recovery session,
-                        requires a real user), resendRecoveryOtp (ANOTHER recovery request —
+                        requires a real user), resendRecoveryOtp (ANOTHER recovery request â€”
                         never resend type 'signup'), signOutRecoverySession (best-effort),
-                        validatePasswordPair (required + match only — the configured
+                        validatePasswordPair (required + match only â€” the configured
                         Supabase policy is the sole strength rule)
     recoveryFlow.ts     session-only recovery flow state: sessionStorage
                         {email, resendAfter, verified} (never passwords/codes), reuses
                         verifyEmailFlow's 60s cooldown helpers, read/save/clear
     backup.ts           JSON export shape (habits, entries incl. status, vacation periods,
                         whitelisted profile/settings fields)
-    backupImport.ts     parseBackup/planImport — whitelisted, additive, idempotent
+    backupImport.ts     parseBackup/planImport â€” whitelisted, additive, idempotent
     vacation.ts         isVacationDay, validatePeriod, sortPeriods, vacationDatesInRange
     notifications.ts    Web Push capability detection, permission requests, VAPID key conversion,
                         service worker local test notification dispatch
@@ -267,15 +267,15 @@ src/
     milestones.ts       milestone badges (7/21/66/100-day, 25/100/500/1000 check-ins)
     supabase.ts         lazy getSupabase() singleton from VITE_ env vars
   components/
-    AppShell.tsx        floating shell: desktop icon rail (logo→Today, Overview, Settings;
-                        avatar→Profile) / mobile glass dock (Today, Overview | FAB | Profile, Settings)
+    AppShell.tsx        floating shell: desktop icon rail (logoâ†’Today, Overview, Settings;
+                        avatarâ†’Profile) / mobile glass dock (Today, Overview | FAB | Profile, Settings)
     HabitTile.tsx       one-tap check ring, numeric progress bar + inline editor, streak chip,
                         stretched link to detail, TileMoreMenu (edit + skip/undo)
     TileMoreMenu.tsx    top-right three-dot popover (Edit habit / Skip or Undo skip)
     SortableHabitTile.tsx + HabitReorderGrid.tsx   jiggle reorder (dnd-kit, portal DragOverlay)
     TileDensity.tsx     "Per row" stepper (localStorage['tile-columns'])
     ProgressRings.tsx   hero rings (rings.ts geometry, morphs on reorder)
-    WeekStrip.tsx       UI 2.0 Stage 1A: interactive Mon–Sun strip above the hero
+    WeekStrip.tsx       UI 2.0 Stage 1A: interactive Monâ€“Sun strip above the hero
                         (thin renderer over lib/weekStrip.ts; taps set the same
                         selectedDate as the chevrons/date pill; roving-tabindex
                         arrows + Home/End, future days disabled, tokens only)
@@ -283,15 +283,15 @@ src/
                         habit-tinted 32px chips; numeric cells render a bottom-to-top
                         habit-color fill with the value/target label as a CENTERED
                         foreground overlay (9px semibold tabular-nums, theme-aware
-                        text-fg + bg-base halo — never the habit color; shown at 0%,
+                        text-fg + bg-base halo â€” never the habit color; shown at 0%,
                         partial, completion and over-target; long values fall back to
                         tooltip/aria and keep the check/dot glyph; untouched pending
-                        numerics DISPLAY "0/target" (numericCellDisplayValue —
+                        numerics DISPLAY "0/target" (numericCellDisplayValue â€”
                         identical to a recorded zero, nothing persisted, editor still
                         prefills empty); TWO-PANE layout (visual-integration fix
                         after four paint attempts): fixed habit-name pane
                         (.matrix-names, OUTSIDE the horizontal scroller) paints
-                        NOTHING — glass card shows through, identical to the date
+                        NOTHING â€” glass card shows through, identical to the date
                         columns, continuity by construction; scrolled cells and
                         numeric labels structurally cannot reach it (no sticky,
                         no occlusion, no guessed colors); hairline border-right
@@ -300,15 +300,15 @@ src/
                         pane width to revealColumnScroll as sticky-zone width; selected column auto-revealed on selection change /
                         matrix mount (revealColumnScroll, smooth unless reduced
                         motion); done cells toggle via the existing Today handlers,
-                        numeric cells open an inline value editor → logValue, skipped
+                        numeric cells open an inline value editor â†’ logValue, skipped
                         cells unskip, vacation/unscheduled/before-start/future
                         read-only; selected/today column highlights, empty state).
                         Name-width stepper (UI 2.0 refinement): the existing
                         density pill is reused in Matrix mode as "Habit names"
-                        (level 1–4, Tiles keeps "Per row" 1–6 independently).
+                        (level 1â€“4, Tiles keeps "Per row" 1â€“6 independently).
                         Level 1 = production pane; each level adds one date-column
-                        width (300px/7 ≈ 43px) via `matrixNamePaneStyle(level)`
-                        (pure, habitMatrix.ts) — responsive max-width guarantees
+                        width (300px/7 â‰ˆ 43px) via `matrixNamePaneStyle(level)`
+                        (pure, habitMatrix.ts) â€” responsive max-width guarantees
                         at least one full date column at 320px; auto-reveal
                         recomputes on width changes. "Habits" header in the
                         names pane's thead aligns with weekday row, no height
@@ -322,7 +322,7 @@ src/
     RingTooltip.tsx     ring hover tooltip
     CompletionCard.tsx + CompletionMonth.tsx + CompletionYear.tsx + CompletionHistoryChart.tsx
                         week/month/year completion views + habit-detail bar chart
-    Heatmap.tsx         custom calendar heatmap (tap-cycles empty → done → skipped),
+    Heatmap.tsx         custom calendar heatmap (tap-cycles empty â†’ done â†’ skipped),
                         responsive week count via ResizeObserver (min/max clamped),
                         compact two-row legend on mobile
     ScoreLineChart.tsx  Overview multi-line chart (Score / Completion %, halo glow lines, interactive click-to-isolate)
@@ -339,55 +339,55 @@ src/
     NotificationCard.tsx Settings Reminders card (compact): header chip On/Off/Blocked/
                          Unavailable, one-line permission states, granted renders ReminderSettings
     ReminderSettings.tsx Vacation-style switch row + dimmed/disabled time visual layer
-                         (native time input at opacity-0, DateField overlay — no .date-field)
+                         (native time input at opacity-0, DateField overlay â€” no .date-field)
                          + send-test/device pill footer (danger-tinted Remove device)
     VacationCard.tsx    vacation periods list + start/end form (.date-field inputs)
     BackupCard.tsx + ImportPreviewDialog.tsx  data export/import + additive preview
     ManageTileMobile.tsx phone Settings habit tiles (lg:hidden)
     ProfileBanner.tsx, ProfileDetails.tsx, ProfileDetailsDisplay.tsx, ProfileDetailsEdit.tsx,
-    ProfileEditModal.tsx, VerifiedBadge.tsx     profile page pieces (desktop modal edit ≥1024px)
+    ProfileEditModal.tsx, VerifiedBadge.tsx     profile page pieces (desktop modal edit â‰¥1024px)
     JourneyCard.tsx (lifetime stats), MilestonesCard.tsx (badges)
     ReviewHeroCard.tsx, ReviewPeriodNav.tsx, ReviewInsightsCard.tsx,
     ReviewBreakdownCard.tsx, ReviewHabitList.tsx, ReviewHabitRow.tsx
                         Performance Review page pieces (period navigator, hero rate card,
                         breakdowns, insights, trajectory tables)
     ConfirmDialog.tsx   portal glass alertdialog (focus trap, Escape, scroll lock)
-    RequireAuth.tsx     guard → /welcome when signed out (public landing for brand verification)
+    RequireAuth.tsx     guard â†’ /welcome when signed out (public landing for brand verification)
     OtpInput.tsx        one real accessible input (autocomplete one-time-code, inputMode
                         numeric, paste autofill) over a six-slot visual presentation
     AuthErrorNotice.tsx shared auth error surface (role="alert", danger tint)
     VerifyEmailRecovery.tsx  recovery form when /verify-email opens without a pending flow
     NewPasswordForm.tsx new + confirm password fields with show/hide toggles (IconEye/
                          IconEyeOff), pair validation via validatePasswordPair, server
-                         error surface — used by ResetPassword
+                         error surface â€” used by ResetPassword
     RecoveryCodeStep.tsx self-contained recovery verify step (own OTP state, cooldown,
-                         resend = another recovery request, single-flight guards) — used
+                         resend = another recovery request, single-flight guards) â€” used
                          by ResetPassword
     RecoverySuccessCard.tsx final "Password updated" card (no other-device claims)
     icons.tsx           all inline SVG icons (+ IconEye/IconEyeOff)
   pages/
     Today.tsx           bento: header + date pill, hero rings, completion card, tiles
     Overview.tsx        stat tiles + Score / Completion % chart with Top 5 / All / None filters & click-to-isolate
-    PerformanceReview.tsx  /review — weekly/monthly/yearly retrospective (hero rate card, breakdowns,
+    PerformanceReview.tsx  /review â€” weekly/monthly/yearly retrospective (hero rate card, breakdowns,
                         insights, habit trajectory tables)
     HabitDetail.tsx     stats, score chart, responsive calendar heatmap (ResponsiveObserver
                         week count, compact mobile legend), skip cycling, accessibility labels
-    HabitForm.tsx       create/edit habit (desktop ≥1024px layout + shared state → HabitFormMobile)
+    HabitForm.tsx       create/edit habit (desktop â‰¥1024px layout + shared state â†’ HabitFormMobile)
     Settings.tsx        Day/Habits/Vacation/Data/Account/Notification cards (phone reflow below 1024px)
     Profile.tsx         banner, details, journey, milestones
-    Login.tsx           email/password + Google pill (public); signup → /verify-email;
+    Login.tsx           email/password + Google pill (public); signup â†’ /verify-email;
                         "Forgot password?" link near the password field
-    ForgotPassword.tsx  public /forgot-password — step 1: request a recovery code
+    ForgotPassword.tsx  public /forgot-password â€” step 1: request a recovery code
                         (resetPasswordForEmail, generic success, single-flight, offline/
                         rate-limit handling; rate-limited attempts arm the same cooldown)
-    ResetPassword.tsx   public /reset-password — steps 2–4: verify the 6-digit recovery
+    ResetPassword.tsx   public /reset-password â€” steps 2â€“4: verify the 6-digit recovery
                         code (OtpInput, type 'recovery', real-session required, 60s resend
                         via ANOTHER recovery request), set new + confirm password
-                        (updateUser on the recovery session; weak_password → policy error;
-                        expired/missing session → restart recovery), then best-effort
+                        (updateUser on the recovery session; weak_password â†’ policy error;
+                        expired/missing session â†’ restart recovery), then best-effort
                         signOut + success screen. Deliberately NO authenticated-session
-                        redirect — the recovery session stays here until the reset ends.
-    VerifyEmail.tsx     public /verify-email — 6-digit email OTP verification (real logo,
+                        redirect â€” the recovery session stays here until the reset ends.
+    VerifyEmail.tsx     public /verify-email â€” 6-digit email OTP verification (real logo,
                         accessible OTP input, resend w/ 60s countdown, reload recovery,
                         already-authenticated redirect)
     Landing.tsx         public /welcome (brand-visible app name + feature cards)
@@ -402,29 +402,29 @@ public/
 Other repo files: `server.js` (static SPA server for `npm start`), `metadata.json`,
 `pwa-assets.config.js`, `index.html` (fonts, meta, google-site-verification tag),
 `supabase/schema.sql`, `supabase/email-templates/` (confirm-signup.html OTP email template +
-README with dashboard config / Resend SMTP rollout checklists — repo artifact until manually
+README with dashboard config / Resend SMTP rollout checklists â€” repo artifact until manually
 pasted into the Supabase project), `DESIGN.md`, `AGENTS.md`, `CHANGELOG.md`,
 `PROJECT_CONTEXT.md`, `README.md`.
 
 ## 7. Data model (live Supabase DB)
 
 - **habits**: `id uuid pk`, `user_id uuid`, `name text`, `type text` ('boolean'|'numeric'),
-  `target numeric >0`, `unit text`, `freq_times int ≥1`, `freq_days int ≥1`, `color text`
-  (hex, default '#3B82F6'), `emoji text` (null, or 1–24 code points; retry-widened check),
+  `target numeric >0`, `unit text`, `freq_times int â‰¥1`, `freq_days int â‰¥1`, `color text`
+  (hex, default '#3B82F6'), `emoji text` (null, or 1â€“24 code points; retry-widened check),
   `sort_order int`, `archived bool`, `created_at timestamptz`.
-- **entries**: `id uuid pk`, `user_id`, `habit_id`, `date date`, `value numeric ≥0 NOT NULL`
-  (skipped rows store 0 — never infer anything from `value` when `status='skipped'`),
+- **entries**: `id uuid pk`, `user_id`, `habit_id`, `date date`, `value numeric â‰¥0 NOT NULL`
+  (skipped rows store 0 â€” never infer anything from `value` when `status='skipped'`),
   `status text` ('done' default | 'skipped'), unique `(habit_id, date)`.
 - **vacation_periods**: `id uuid`, `user_id`, `start_date date`, `end_date date null`
   (null = ongoing), `created_at`. A vacation day is neutral for every habit (done still wins).
 - **user_settings**: `user_id pk`, `day_start_hour smallint 0..6, default 0`, `updated_at`.
-- **profiles**: `user_id pk (= auth.users.id)`, `full_name`, `bio` (≤140 code points,
+- **profiles**: `user_id pk (= auth.users.id)`, `full_name`, `bio` (â‰¤140 code points,
   motivation line), `date_of_birth`, `gender`, `nationality`, `country`, `address`, `phone`,
   `avatar_path`, `updated_at`. Email is read from the auth session, never stored here.
 - **notification_settings** (Pass 2): `user_id pk`, `reminder_enabled bool false`,
   `reminder_time time '20:00:00'`, `timezone text 'Asia/Kolkata'`, created/updated_at.
 - **push_subscriptions** (Pass 2): `id uuid pk`, `user_id`, `endpoint unique` (device
-  re-subscription upserts), `p256dh`, `auth` (RFC 8291 public key material only — never VAPID
+  re-subscription upserts), `p256dh`, `auth` (RFC 8291 public key material only â€” never VAPID
   private keys), `device_label`, `user_agent`, created/updated_at/`last_seen_at`.
 - **storage bucket `avatars`**: private, 2 MB, jpeg/png/webp, files at `<user_id>/avatar.webp`;
   displayed via `createSignedUrl` (1 h, refreshed 5 min before expiry).
@@ -443,14 +443,14 @@ creates every table above including the post-release `entries.status`, `profiles
    `user_settings.day_start_hour`. All time goes through `lib/clock.ts` `now()` (dev time-travel)
    and helpers in `lib/dates.ts`. Never `toISOString().slice(0,10)`.
 3. Score/streak/completion logic lives only in `src/lib/score.ts` (+ `dayStatus.ts`,
-   `completion.ts`) as pure, tested functions — never import React/Supabase there. Numeric
-   done = `value ≥ target`. Stats count only from the habit's `created_at`.
+   `completion.ts`) as pure, tested functions â€” never import React/Supabase there. Numeric
+   done = `value â‰¥ target`. Stats count only from the habit's `created_at`.
 4. Skipped, vacation and unscheduled days are **neutral** (rules 9 + 10): no EMA step, streaks neither
    count nor break, excluded from completion denominators, but a done check-in still wins
    during vacation. All "is this day counted" questions go through `src/lib/dayStatus.ts`
    with the concrete vacation dates (`vacationDatesInRange`). `unscheduled` appears only
    when the caller supplies schedule epochs (Stage 1 pure foundation; DB migration pending).
-5. Check-ins are one-tap optimistic with rollback, and **per-habit remote queues** — never a
+5. Check-ins are one-tap optimistic with rollback, and **per-habit remote queues** â€” never a
    page-wide busy flag (drop-tap bug, CHANGELOG 27).
 6. Habit order: `sort_order` asc, ties by `created_at`, is the single source of truth
    (`lib/order.ts`); every listing view reads the shared ordered list and never re-sorts.
@@ -464,17 +464,17 @@ creates every table above including the post-release `entries.status`, `profiles
 10. After every task: run `npm test` + `npm run build`, update `PROJECT_CONTEXT.md`,
     append to `CHANGELOG.md`, keep `README.md` current.
 
-## 9. Current state — features by page
+## 9. Current state â€” features by page
 
-- **Today** — header (greeting + avatar, date pill with ‹ › + calendar input, backfill,
-  ThemeIconButton, "Counting as …" caption when the logical day ≠ calendar day); hero card
+- **Today** â€” header (greeting + avatar, date pill with â€¹ â€º + calendar input, backfill,
+  ThemeIconButton, "Counting as â€¦" caption when the logical day â‰  calendar day); hero card
   with ProgressRings (center done/total, motivational line, longest-streak chip); Completion
   card (Week | Month | Year views, one user-chosen color from a stored palette, month grid,
   rolling 10-month year heatmap on desktop / 5 months on mobile); habit tile grid with
-  TileDensity stepper (1–6 per row, container-query compaction), one-tap check ring with
-  burst animation, TileMoreMenu (edit / skip / undo skip — skipped tiles muted with a
+  TileDensity stepper (1â€“6 per row, container-query compaction), one-tap check ring with
+  burst animation, TileMoreMenu (edit / skip / undo skip â€” skipped tiles muted with a
   "Skipped" caption; the streak chip + trigger are one corner cluster pinned to the
-  tile's top-right inset — on phones the chip follows the SAME per-row state and
+  tile's top-right inset â€” on phones the chip follows the SAME per-row state and
   unmounts at 3+ tiles per row (desktop keeps it at every density), while Android gets a
   feature-query + touch/width-scoped 20% badge boost without touching iPhone), long-press jiggle
   reorder (dnd-kit + portal overlay), and a >7-habits note. On desktop the note sits in
@@ -484,39 +484,39 @@ creates every table above including the post-release `entries.status`, `profiles
   on the same row; the note is never truncated and wraps naturally when space is tight.
   Mobile: compact two-row header, landscape hero summary card, view toggle below the
   summary, floating dock with FAB.
-- **Overview** — RangeSwitch 30/90/365; StatTile row (avg score + delta chip, best habit,
-  needs attention — both drill into `/habits/:id`); ScoreLineChart card with habit toggle
+- **Overview** â€” RangeSwitch 30/90/365; StatTile row (avg score + delta chip, best habit,
+  needs attention â€” both drill into `/habits/:id`); ScoreLineChart card with habit toggle
   chips, habit-color lines with static halo glow `<Line>`, glass tooltip, Top 5 / All / None
   filter mode (`lib/overview.ts` getTop5HabitIds ranking + tie breaker) and
   click-to-isolate a single habit's line.
-- **Performance Review** (`/review`) — retrospective habit performance analysis across Weekly
-  (Sun–Sat), Monthly, and Yearly cadences; ReviewPeriodNav with cadence switch and spacious
-  period navigator card (‹ / ›, title, sublabel, Latest shortcut); Hero completion rate card,
+- **Performance Review** (`/review`) â€” retrospective habit performance analysis across Weekly
+  (Sunâ€“Sat), Monthly, and Yearly cadences; ReviewPeriodNav with cadence switch and spacious
+  period navigator card (â€¹ / â€º, title, sublabel, Latest shortcut); Hero completion rate card,
   monthly/yearly progress breakdowns, deterministic actionable insight recommendations, and
   habit trajectory tables (Improving, Consistent, Declining, Needs Attention). Accessible via
   4th dock item on mobile and 2nd rail item on desktop; the trajectory filter pills use the
   accent-gradient selected treatment, and the page adds no extra bottom padding (AppShell's
   dock clearance is the single source of the last-section-to-dock gap).
-- **Habit detail** — glass header (back/edit + color dot), StatTiles (current/best streak,
+- **Habit detail** â€” glass header (back/edit + color dot), StatTiles (current/best streak,
   30-day completion), score AreaChart (30/90), CompletionHistoryChart bars
   (week/month), custom Heatmap (14px cells, skip-cell outlines, tap-cycle
-  empty → done → skipped, Skipped/Vacation legend), loading/error/not-found states.
-- **Habit form** — one shared form state: desktop two-column card (name, type, target/unit,
+  empty â†’ done â†’ skipped, Skipped/Vacation legend), loading/error/not-found states.
+- **Habit form** â€” one shared form state: desktop two-column card (name, type, target/unit,
   frequency, ColorPicker + live tile preview) and a phone layout below 1024px (52px name
   input with 52px emoji trigger, emoji picker, Type row, color circle popover, numeric wheel
   picker + unit, repeat alarm-clock wheel pickers, 12px dock gap on iPhone Safari).
-- **Settings** — Day card (`DayStartCard` glass listbox), Reminders card (`NotificationCard`
-  compact spec: 36px bell + title, ONE `aria-live` chip — "On" success tint / "Off" neutral /
-  "Blocked" danger / "Unavailable" neutral —, iOS Safari standalone guidance, and each state
+- **Settings** â€” Day card (`DayStartCard` glass listbox), Reminders card (`NotificationCard`
+  compact spec: 36px bell + title, ONE `aria-live` chip â€” "On" success tint / "Off" neutral /
+  "Blocked" danger / "Unavailable" neutral â€”, iOS Safari standalone guidance, and each state
   capped to one short line + one pill: "Enable notifications" (default, 44px accent), one
-  13px notice for denied/unsupported; once granted, `ReminderSettings` — "Daily reminder"
+  13px notice for denied/unsupported; once granted, `ReminderSettings` â€” "Daily reminder"
   Vacation-style switch row, "Time" row whose field (visual layer with IconClock + short
-  12-hour label over a native time input at opacity-0 — DateField overlay pattern, not
+  12-hour label over a native time input at opacity-0 â€” DateField overlay pattern, not
   `.date-field`, since its appearance:none breaks Chromium's picker) dims and locks
-  (pointer-events-none + disabled) while off, and a pill footer — "Send test" ghost (bell icon) + "Remove device" (danger-tinted pocket pill, visible border for touch) when registered, else one
+  (pointer-events-none + disabled) while off, and a pill footer â€” "Send test" ghost (bell icon) + "Remove device" (danger-tinted pocket pill, visible border for touch) when registered, else one
   "Enable on this device" accent pill; settings/dev rows save to `notification_settings`,
-  device registration into `push_subscriptions`), desktop grid: left column Day → Vacation →
-  Reminders, right column Data → Habits (Data moved right, user request; wrappers are
+  device registration into `push_subscriptions`), desktop grid: left column Day â†’ Vacation â†’
+  Reminders, right column Data â†’ Habits (Data moved right, user request; wrappers are
   `display: contents` on phones so the 2-col outer grid keeps Day | Data in row 1), Habits card (two-column tile grid on phones with emoji ring
   + one-tap archive; archived section), Vacation card (period list, start/end with native date
   inputs, deletes behind ConfirmDialog), Data card (JSON export incl. profile/settings options;
@@ -524,13 +524,13 @@ creates every table above including the post-release `entries.status`, `profiles
   stacked fallback; desktop = one-line caption "Back up or restore habits and check-ins
   (no photos).", Include-profile checkbox row, then Export & Import pills side by side in one
   row at their original natural width), Account card (email read-only, View profile link).
-- **Profile** — grid banner + 96/120px avatar (camera popover: change/remove via
+- **Profile** â€” grid banner + 96/120px avatar (camera popover: change/remove via
   ConfirmDialog; 512px WebP compression), name + VerifiedBadge when email confirmed,
-  bio (≤140) with inline editor, personal details card (display + phone inline edit with
+  bio (â‰¤140) with inline editor, personal details card (display + phone inline edit with
   circular save/cancel buttons on phones; desktop edit opens the portal modal
   `ProfileEditModal`), JourneyCard (lifetime stats: longest streak, total check-ins,
   30-day consistency, days tracking), MilestonesCard (animated badge rings).
-- **Login / VerifyEmail / ForgotPassword / ResetPassword / Landing / Privacy (public)** —
+- **Login / VerifyEmail / ForgotPassword / ResetPassword / Landing / Privacy (public)** â€”
   glass login card with email/password + Google brand pill; **signup with confirmation
   enabled navigates to `/verify-email`** (state-passed email, sessionStorage reload
   recovery, single-flight submit): six-slot OTP input (one real input,
@@ -541,14 +541,14 @@ creates every table above including the post-release `entries.status`, `profiles
   Back to sign-in exits; error copy covers invalid/expired/rate-limited/offline/config;
   already-authenticated visitors are redirected into the app (no redirect loops). Legacy
   confirmation links stay valid. **Password recovery is a 3-step in-app flow**: Login has a
-  "Forgot password?" link near the password field → `/forgot-password` requests a code via
+  "Forgot password?" link near the password field â†’ `/forgot-password` requests a code via
   `resetPasswordForEmail` with always-generic success wording (Supabase replies success for
-  unknown emails, so account existence is never revealed) → `/reset-password` verifies the
+  unknown emails, so account existence is never revealed) â†’ `/reset-password` verifies the
   6-digit code with `verifyOtp type 'recovery'` (real recovery session required; resend =
-  another recovery request, NEVER `resend type 'signup'`, same 60 s cooldown) → new +
+  another recovery request, NEVER `resend type 'signup'`, same 60 s cooldown) â†’ new +
   confirm password with show/hide controls submitted via `updateUser({ password })` on the
-  recovery session — the configured Supabase password policy is the only strength rule
-  (server `weak_password` errors map to readable copy) — then the recovery session is
+  recovery session â€” the configured Supabase password policy is the only strength rule
+  (server `weak_password` errors map to readable copy) â€” then the recovery session is
   signed out (best-effort) and a success screen returns the user to sign-in. Security
   properties: passwords/codes never touch sessionStorage or custom endpoints; flow state
   stores only `{email, resendAfter, verified}`; `/reset-password` performs NO
@@ -557,30 +557,30 @@ creates every table above including the post-release `entries.status`, `profiles
   fake success; no claim about other devices being signed out (updateUser does not revoke
   them). The email templates live in `supabase/email-templates/` until manually pasted
   into the Supabase Dashboard (see that folder's README). `/welcome` landing (logo,
-  "Habit Tracker" h1, feature cards, sign-in + privacy links — visible app name for Google
+  "Habit Tracker" h1, feature cards, sign-in + privacy links â€” visible app name for Google
   verification); `/privacy` policy card.
-- **PWA** — manifest (name Habit Tracker, short_name Habits, theme #070A12), generated
+- **PWA** â€” manifest (name Habit Tracker, short_name Habits, theme #070A12), generated
   service worker (precache 44 entries), auto-update, extended with `push-sw.js` for
   background push notifications, notification click deep linking, and focus reuse;
   app icons and favicons via `npm run icons`.
 
 ## 10. Known gaps
 
-1. **Google branding verification pending on the new Pages domain** — meta-tag + HTML-file
+1. **Google branding verification pending on the new Pages domain** â€” meta-tag + HTML-file
    methods registered (a new Search Console property is needed for
-   `habbits-tracker.pages.dev` after the Vercel→Cloudflare move); awaiting the ~24 h window
+   `habbits-tracker.pages.dev` after the Vercelâ†’Cloudflare move); awaiting the ~24 h window
    then one "Verify again"; until it clears, the consent screen may still show no app
-   name/logo (Data-access verification is not needed — openid/email/profile scopes only).
-2. **No account linking** — signing in with Google on the same Gmail as the password account
+   name/logo (Data-access verification is not needed â€” openid/email/profile scopes only).
+2. **No account linking** â€” signing in with Google on the same Gmail as the password account
    creates a separate identity/account; habits stay behind the original sign-in.
-3. **Count-up numerals** — the only remaining DESIGN.md motion detail (big numerals don't
+3. **Count-up numerals** â€” the only remaining DESIGN.md motion detail (big numerals don't
    count up yet).
-4. **Haptics no-op on iOS** — `navigator.vibrate` is unavailable on iOS Safari; ticks only
+4. **Haptics no-op on iOS** â€” `navigator.vibrate` is unavailable on iOS Safari; ticks only
    fire on Android.
-5. **iOS Safari Push requirement** — on iOS 16.4+, Web Push API is disabled in regular Safari tabs
+5. **iOS Safari Push requirement** â€” on iOS 16.4+, Web Push API is disabled in regular Safari tabs
    and requires installing the app to the Home Screen (`display-mode: standalone`). The Settings
    Notification card provides clear instructions when iOS non-standalone is detected.
-6. (Log hygiene: progress-log numbering skips 46 — nothing was lost, the number was simply
+6. (Log hygiene: progress-log numbering skips 46 â€” nothing was lost, the number was simply
    never used.)
 
 ## 11. Roadmap
@@ -588,56 +588,56 @@ creates every table above including the post-release `entries.status`, `profiles
 1. Finish Google branding verification on the new Pages domain (resubmit once after the
    24 h window; test the consent screen in an incognito session).
 2. **Web Push Daily Habit Reminders:**
-   - **Pass 1 (Complete):** Web Push Foundation — capability detection, permission flow,
+   - **Pass 1 (Complete):** Web Push Foundation â€” capability detection, permission flow,
      `push-sw.js` extension, settings diagnostic UI, and VAPID/Cloudflare Workers investigation.
    - **Pass 2 (Complete, 2026-11-07):** `notification_settings` + `push_subscriptions` tables
      live and folded into `supabase/schema.sql`; VAPID public key wired via
-     `VITE_VAPID_PUBLIC_KEY` (in `.env.local` and the Cloudflare Pages env); app-side done —
+     `VITE_VAPID_PUBLIC_KEY` (in `.env.local` and the Cloudflare Pages env); app-side done â€”
      `useNotificationSettings` hook (settings upsert on `user_id`, device upsert on
      `endpoint`), `ReminderSettings` UI (reminder switch + time + device registration),
      `src/lib/reminders.ts` pure helpers with tests.
    - **Pass 3 (Complete, deployed 2026-11-08):** Cloudflare Worker `habit-tracker-reminders`
      cron dispatcher (zero external cost, native Web Crypto RFC 8291 aes128gcm, validated
-     against the RFC Appendix-B vector) — secrets `VAPID_PRIVATE_KEY`,
+     against the RFC Appendix-B vector) â€” secrets `VAPID_PRIVATE_KEY`,
      `SUPABASE_SERVICE_ROLE_KEY`, `TEST_TOKEN` set via `wrangler secret put`; public vars
      `SUPABASE_URL` / `VAPID_PUBLIC_KEY` / `VAPID_SUBJECT` in `worker/wrangler.toml`; cron
      `*/15 * * * *`; `/send-test?token=` route; verified end-to-end on production.
 3. **Habit Scheduling upgrade (approved v7-corrected architecture):**
-   - **Stage 1 (Complete, 2026-11-13):** pure foundation — `src/lib/schedule.ts`
-     (`ScheduleType`/`ScheduleConfig`/`ScheduleEpoch`, weekday-bit masks Mon=1…Sun=64,
-     `validateSchedule`, `resolveEpoch`, `isScheduledOn`, Mon–Sun `weekStart`/`weekEnd`,
+   - **Stage 1 (Complete, 2026-11-13):** pure foundation â€” `src/lib/schedule.ts`
+     (`ScheduleType`/`ScheduleConfig`/`ScheduleEpoch`, weekday-bit masks Mon=1â€¦Sun=64,
+     `validateSchedule`, `resolveEpoch`, `isScheduledOn`, Monâ€“Sun `weekStart`/`weekEnd`,
      `weeklyTargetContext`, transition-week helpers; legacy epochs stay all-days-eligible)
      and `dayStatus` `unscheduled` neutral status (optional `schedule` epochs input,
-     precedence future → done → skipped → before-start → vacation → unscheduled → missed;
+     precedence future â†’ done â†’ skipped â†’ before-start â†’ vacation â†’ unscheduled â†’ missed;
      no/empty context = exact legacy behaviour). Tests: `schedule.test.ts` + extended
      `dayStatus.test.ts`. **The DB migration is NOT yet run; no UI, forms or Supabase
      code changed.**
-   - **Stage 2 — scoring law (Complete, 2026-11-13):** only `src/lib/score.ts` + new
+   - **Stage 2 â€” scoring law (Complete, 2026-11-13):** only `src/lib/score.ts` + new
      `src/lib/scoreSchedule.test.ts`. `scoreRange`/`scoreSeries` gained a trailing
      optional `epochs` param (additive API; omitted/empty = original walk bit-identical,
-     existing callers unchanged — no caller passes epochs yet). Law implemented:
+     existing callers unchanged â€” no caller passes epochs yet). Law implemented:
      daily/weekdays/interval = one EMA step per scheduled opportunity (`alphaFor(k) =
-     1−0.95^k`, k=1; unscheduled days carry; done-on-unscheduled still wins);
-     weekly_target = one step per closed Mon–Sun week (`1−0.95^M`, achieved = done ≥ M
+     1âˆ’0.95^k`, k=1; unscheduled days carry; done-on-unscheduled still wins);
+     weekly_target = one step per closed Monâ€“Sun week (`1âˆ’0.95^M`, achieved = done â‰¥ M
      via `isEntryDone`; the week containing endDate is never scored, partial window-edge
      weeks skipped, `isTransitionWeek` weeks carry); legacy = frozen-snapshot
-     `1−0.95^(M/N)` daily, bit-identical to the no-epochs walk. Float-precision catch:
+     `1âˆ’0.95^(M/N)` daily, bit-identical to the no-epochs walk. Float-precision catch:
      daily alpha is `alphaFor(1)`, not the bare 0.05 literal (different doubles).
      Approved decisions (ratified by the user 2026-11-13): mid-week switch OUT of
-     weekly scores that week under the schedule active on its Monday — later
+     weekly scores that week under the schedule active on its Monday â€” later
      completions in that week still count toward the original weekly target;
      skipped/vacation days inside a weekly week do NOT reduce M (neutral days
      never count as completions). Streak/completionRate/Review/callers untouched
-     (later wiring stage). Tests: `scoreSchedule.test.ts` (18) — 350 tests in 24 files;
+     (later wiring stage). Tests: `scoreSchedule.test.ts` (18) â€” 350 tests in 24 files;
      build clean, lint 0 errors. **DB migration still NOT run; no UI wiring.**
-   - **Stage 3 — frontend wiring (Complete, 2026-11-14):** the habit form now speaks
+   - **Stage 3 â€” frontend wiring (Complete, 2026-11-14):** the habit form now speaks
       schedules end-to-end, with the pre-migration DB still working exactly as before:
       - **Capability probe:** `scheduleColumnsAvailable()` (session-cached) selects
-        `schedule_type`; a missing-column error = migration not applied → the classic
-        Times/Per-days form and plain INSERT/UPDATE (no §7 guards exist pre-migration).
+        `schedule_type`; a missing-column error = migration not applied â†’ the classic
+        Times/Per-days form and plain INSERT/UPDATE (no Â§7 guards exist pre-migration).
       - **Form modes (desktop + phone, shared `ScheduleEditor` + `WeekdayPicker`):**
-        Always exactly five pills — Every day / Specific days (7 chips) / Every
-        N days / Weekly goal (M×/wk) / Custom (editable `custom`). A genuinely
+        Always exactly five pills â€” Every day / Specific days (7 chips) / Every
+        N days / Weekly goal (MÃ—/wk) / Custom (editable `custom`). A genuinely
         legacy habit highlights Custom (`selectorModeFor`) while its internal
         mode stays `legacy`. A stable origin flag (`legacyHabit`, set on load)
         makes choosing Custom return to that frozen `legacy` mode for the whole
@@ -656,83 +656,83 @@ creates every table above including the post-release `entries.status`, `profiles
         changes). `LEGACY_FIXED_EXPLANATION` sits directly below with `mt-2`.
         Read-only behavior and the save/RPC flow are unchanged; editable Custom
         is untouched.
-      - **Edit flow:** loaded snapshot vs draft via `scheduleChanged`; changed →
+      - **Edit flow:** loaded snapshot vs draft via `scheduleChanged`; changed â†’
         `updateHabitSchedule` RPC (`append_habit_schedule_epoch`) FIRST, then a
-        details-only `updateHabit` (no schedule/freq columns — §7b-safe). Unchanged →
+        details-only `updateHabit` (no schedule/freq columns â€” Â§7b-safe). Unchanged â†’
         details-only update only. **Legacy habits show their frozen freq read-only;
         switching modes + save upgrades via RPC explicitly, never silently.**
       - **RPC errors** surface via formError; the form keeps every value (retry-safe,
         same-day final-wins). An RPC success + details failure is a documented partial
         state (schedule changed, details stale) that a retry completes.
-      - **HabitDetail** shows "Repeat · {scheduleLabel}" (legacy = frozen freq text).
+      - **HabitDetail** shows "Repeat Â· {scheduleLabel}" (legacy = frozen freq text).
       - Types: `FormState` schedule fields, `HabitInput` optional schedule columns
         (creation only), `Habit` optional schedule columns (type-only), `HabitRow`
         passthrough in `useHabits` (null schedule_type normalized to undefined).
       - Tests: schedule.test.ts (mask popcount, freq mirror, labels) and new
-        habitForm.test.ts — 381 tests in 25 files; build clean; lint 0 errors
+        habitForm.test.ts â€” 381 tests in 25 files; build clean; lint 0 errors
         (47 pre-existing warnings, unchanged).
-   - **Stage 4A — Today dashboard integration (Complete, 2026-11-14):** the Today
+   - **Stage 4A â€” Today dashboard integration (Complete, 2026-11-14):** the Today
      page now resolves each habit's schedule for the selected logical date via
      the habit's epoch history (v7 migration applied on staging; pre-migration
      DBs keep exact legacy behaviour through the capability probe):
-     - **Epoch loading:** new `src/hooks/useScheduleHistory.ts` — one SELECT of
+     - **Epoch loading:** new `src/hooks/useScheduleHistory.ts` â€” one SELECT of
        all `habit_schedule_history` rows (RLS own-rows, SELECT-only; epochs are
        written only by the append RPC), grouped per habit via `sortEpochs`,
-       gated by `scheduleColumnsAvailable()` (probe false → empty map, no
+       gated by `scheduleColumnsAvailable()` (probe false â†’ empty map, no
        fetch). Exposes `epochsByHabit/loading/error`; errors surface in the
        Today page error state (never swallowed); refetches on the
        `schedule-reload` window event, which `HabitForm` dispatches after an
        RPC epoch save and after a capable creation.
-     - **Scope helper:** `opportunityScope(epochs, date)` in schedule.ts →
+     - **Scope helper:** `opportunityScope(epochs, date)` in schedule.ts â†’
        `'day' | 'week' | null` (null = unscheduled/ungoverned; 'week' =
        weekly_target active week).
      - **Streaks (score.ts):** `currentStreak`/`bestStreak` gained a trailing
        optional `epochs` param (omitted/empty = legacy walk bit-identical).
        Day-granularity for daily/weekdays/interval/legacy (off-days are
-       'unscheduled' → neutral, neither count nor break; done-on-off-day still
-       wins); WEEK granularity for weekly_target — the schedule active on a
+       'unscheduled' â†’ neutral, neither count nor break; done-on-off-day still
+       wins); WEEK granularity for weekly_target â€” the schedule active on a
        week's Monday governs the whole week (ratified Stage 2 rule), an
        achieved week counts as one unit, a closed unachieved week breaks, an
        open (unclosed) week is pending unless M is already reached (done wins);
        transition weeks are neutral (their dones still win as day-dones).
-       New `weeklyTargetProgress(habit, entries, date, epochs?)` →
-       `{ done, target } | null` for the Mon–Sun week of the date (falls back
+       New `weeklyTargetProgress(habit, entries, date, epochs?)` â†’
+       `{ done, target } | null` for the Monâ€“Sun week of the date (falls back
        to the habit row's schedule columns when no epochs).
      - **Today wiring:** `dayStatuses` pass epochs (off-days neutral);
        the hero/ring-center pair comes from the shared pure helper
        `src/lib/todaySummary.ts` (`todayPair`, approved 2026-11-17): ALL
        active habits count; a check-in on the selected date is ONE done
-       habit — weekly-target habits included, incl. the day their weekly
+       habit â€” weekly-target habits included, incl. the day their weekly
        goal is achieved and extra post-goal check-ins (done-wins); neutral
        days (skipped/vacation/unscheduled) are excluded from BOTH sides;
        before-start days are excluded; a pending weekly habit sits in the
        denominator while visible in the Scheduled view and drops out once
-       its Mon–Sun goal is achieved (shouldShowHabitOnDate rule). The pair
+       its Monâ€“Sun goal is achieved (shouldShowHabitOnDate rule). The pair
        never reads the Scheduled/All-Habits toggle, and Today.tsx hero +
        ProgressRings center consume the SAME helper so hero % and ring-
        center % always match. Known deliberate divergence: dayCompletion/
        CompletionCard Week-Month-Year bars and Overview/Review stats still
        exclude week-scoped habits from daily denominators (completion.ts
        untouched), so on days with weekly check-ins the Today pair reads
-       higher than the daily statistics — documented, temporary; unifying
+       higher than the daily statistics â€” documented, temporary; unifying
        requires explicit approval. Weekly habits' own arcs stay per week
        (never per calendar day); `overallStreak` uses
        epoch-aware `currentStreak`; epochs go to ProgressRings (week-scoped
        habits leave the day totals, their arcs fill with `min(1, done/M)`,
        tooltip "n/M this week"), CompletionCard (off-days drop out of day
-       denominators, week-scoped habits excluded — via a trailing optional
+       denominators, week-scoped habits excluded â€” via a trailing optional
        `scheduleByHabit` param on `dayCompletion`/`completionForDates`), and
        HabitReorderGrid (pure module-scope `tileState()` helper: off-day tiles
        muted with "Not scheduled", weekly tiles show "n/M this week" caption
        via the new HabitTile/SortableHabitTile `weekly` prop, epoch-aware
        streaks; the DragOverlay copy shares `tileState`).
-     - **UI 2.0 Stage 1A — Today week strip (2026-11-17):** new
+     - **UI 2.0 Stage 1A â€” Today week strip (2026-11-17):** new
        `src/lib/weekStrip.ts` + `src/components/WeekStrip.tsx`; a compact
-       interactive Mon–Sun strip sits between the vacation banner and the
+       interactive Monâ€“Sun strip sits between the vacation banner and the
        bento grid (both viewports). Each cell's completion indicator calls
        the SAME `todayPair` per day (identical weekly semantics, no competing
        calculation); the week follows `selectedDate` via `weekStart`, so the
-       existing chevrons/date pill move it — no duplicate navigation. Future
+       existing chevrons/date pill move it â€” no duplicate navigation. Future
        days (date > logical today) are disabled placeholders with no
        completion values; vacation days render paused (moon badge) unless a
        check-in landed (done wins); all-neutral days (all skipped /
@@ -742,32 +742,32 @@ creates every table above including the post-release `entries.status`, `profiles
        data fetching (365-day entries + 400-day vacation windows already
        cover any reachable week). dayStatus/schedule/todayPair/scoring/
        heatmap/Overview/Review untouched.
-     - **UI 2.0 Stage 2 — Tiles/Matrix + ring explainer (2026-11-17):**
+     - **UI 2.0 Stage 2 â€” Tiles/Matrix + ring explainer (2026-11-17):**
        (a) `src/lib/habitMatrix.ts` + `src/components/HabitMatrix.tsx`: a
        Tiles/Matrix segmented switch above the habit grid (persisted
        `localStorage['today-grid-mode']`, Tiles default; mobile = left pill
        next to Scheduled/All, desktop = first pill in the right-aligned
        control row). Matrix is an INTERACTIVE weekly checklist: rows = active
-       habits in user order, columns = the selected date's Mon–Sun week;
+       habits in user order, columns = the selected date's Monâ€“Sun week;
        every cell classified by dayStatus ('missed' shown as "pending" so
        weekly unchecked weekdays are not daily obligations), Scheduled rows
-       = shouldShowHabitOnDate visible on ≥1 non-future date (as-of-day, no
+       = shouldShowHabitOnDate visible on â‰¥1 non-future date (as-of-day, no
        leakage); future columns dimmed with no values; selected column
        tinted, today header accent + aria-current; switching modes never
        mutates entries/stats and exits reorder mode. Stage 2 refinement
-       (same day): Aurora-Glass cell redesign (32px rounded chips — done =
+       (same day): Aurora-Glass cell redesign (32px rounded chips â€” done =
        solid habit color + readableColor check + soft habit shadow, pending =
        habit color-mix tint + hairline ring + partial-progress dot for
        numerics, skipped = dashed habit tint, others token-based; hairline
        row dividers) and the sticky-column fix: the sticky habit-name layer
        now uses the OPAQUE --surface-solid (popover-solid recipe, all 7
-       themes) with corner(z-30) > row-header(z-20) > cells z-order — no
+       themes) with corner(z-30) > row-header(z-20) > cells z-order â€” no
        backdrop-blur-only, nothing bleeds through, and the selected-column
        tint cannot paint over names. Interactivity REUSES the existing
        pipeline: Today's toggle/logValue/skip gained an optional trailing
-       `date` param (default selectedDate — Tiles unchanged; applyLocal's
+       `date` param (default selectedDate â€” Tiles unchanged; applyLocal's
        optimistic update + rollback + per-habit remote queue untouched) and
-       are passed to the matrix; per matrixCellAction: boolean done↔pending
+       are passed to the matrix; per matrixCellAction: boolean doneâ†”pending
        toggles (repeated click undoes), numeric pending/done cells open an
        inline ValueEditor (prefilled from cell.value; empty input commits
        nothing; never auto-completes; commits via logValue), skipped cells
@@ -775,10 +775,10 @@ creates every table above including the post-release `entries.status`, `profiles
        read-only. Matrix edits flow through shared entriesByHabit so hero,
        ring center/arcs, week strip and Tiles stay in sync. Name-width
        stepper (refinement): the density pill is reused in Matrix mode as
-       "Habit names" (level 1–4, independent of Tiles "Per row" 1–6);
+       "Habit names" (level 1â€“4, independent of Tiles "Per row" 1â€“6);
        `matrixNamePaneStyle(level)` (pure, habitMatrix.ts) derives the
-       increment from the existing 300px/7 date column — level 1 = production
-       pane, each step adds ~43px, responsive max-width guarantees ≥1 full
+       increment from the existing 300px/7 date column â€” level 1 = production
+       pane, each step adds ~43px, responsive max-width guarantees â‰¥1 full
        date column at 320px; auto-reveal recomputes on width changes. "Habits"
        header in names pane thead aligns with weekday row. (b) Ring
        explanation cleanup: the persistent ">7 habits / shared rings"
@@ -788,36 +788,36 @@ creates every table above including the post-release `entries.status`, `profiles
        hidden-count line when >28 habits hide). Ring geometry/arcs/colors/
        tooltips untouched. (b2) Ring explainer fixes: the icon originally
        sat at the rings container's top-right corner, where the ring arc
-       passes through ANY box (at the 45° diagonal it reaches ~25px into a
+       passes through ANY box (at the 45Â° diagonal it reaches ~25px into a
        28px corner box). An in-flow icon row above the rings fixed the
-       overlap but grew the card — rejected against the production
+       overlap but grew the card â€” rejected against the production
        reference, so the FINAL fix is a card-anchored overlay (`absolute
        top-2 right-2` on the section, 8px inset) in the card's existing
        top-right empty space: production card height/padding/ring
        position/ring size fully restored, glyph clears the arc's shoulder
-       by ≥7px even in the worst case (rings flush with content top on
+       by â‰¥7px even in the worst case (rings flush with content top on
        vacation/"All caught up" days) and the 14px hover/focus circle
        never touches the arc (closest approach 16.4px); desktop rings sit
        left with the stat block vertically centered, leaving the
        top-right free. The popover's bottom was painted UNDER the heatmap
        card: both bento cards create stacking contexts (backdrop-filter)
        and the hero is the EARLIER sibling, so the popover's internal
-       z-30 can never beat later-sibling paint order — while open,
+       z-30 can never beat later-sibling paint order â€” while open,
        `.glass-card:has(.ring-explainer-open)` (index.css) lifts the hero
        card itself above its siblings, scoped to the open state.
        No protected files modified; no new dependencies.
-       Final refinement (same day): (c) sticky-column tone — after four
+       Final refinement (same day): (c) sticky-column tone â€” after four
        failed paint attempts (flat #1a2132 "navy", flat #191b25, a shared
        whole-table surface that made the Matrix a dark panel, and a
        card-composite reproduction with background-attachment:fixed), the
        root cause is structural: position:sticky name cells must paint an
        OPAQUE backing (translucent/blur backings let scrolled cells bleed
        through) and NO opaque tone can reliably match the card's live
-       render — the glass card computes its tone by runtime backdrop-filter
+       render â€” the glass card computes its tone by runtime backdrop-filter
        sampling, and background-attachment:fixed rasterizes at element
        scale inside composited scrollers (the aurora painted at cell scale
        in the reproduction, reading as a distinctly dark strip). Structural
-       fix: TWO-PANE layout — a fixed habit-name pane (div.matrix-names)
+       fix: TWO-PANE layout â€” a fixed habit-name pane (div.matrix-names)
        OUTSIDE the horizontal scroller paints NOTHING (glass card shows
        through, identical to the date columns; continuity by construction;
        scrolled cells structurally cannot reach it), the scrolling table
@@ -826,73 +826,86 @@ creates every table above including the post-release `entries.status`, `profiles
        both panes so dividers align, per-cell isolation:isolate kept, no
        sticky/occlusion/z-order needed; auto-reveal feeds the pane width to
        revealColumnScroll (frozen math) as the sticky-zone width; cells
-       prefix the habit name in their aria-labels (two tables → no shared
-       row headers); (d) numeric progress in cells —
+       prefix the habit name in their aria-labels (two tables â†’ no shared
+       row headers); (d) numeric progress in cells â€”
        numeric
        chips render a bottom-to-top habit-color fill (value/target clamped
-       0–100 via numericCellProgress) with the value/target label as a
+       0â€“100 via numericCellProgress) with the value/target label as a
        CENTERED foreground overlay (exact chip center, z-20 above the fill;
-       9px semibold tabular-nums in theme-aware text-fg — never the habit
-       color — with a soft bg-base text-shadow halo for readability over
+       9px semibold tabular-nums in theme-aware text-fg â€” never the habit
+       color â€” with a soft bg-base text-shadow halo for readability over
        tint/fill in all themes; label shows at 0%, partial, completion
        ("9/9" replaces the checkmark when it fits) and over-target
        ("12/9"); >5-char labels are omitted, exact numbers in tooltip/aria,
        and the check/dot glyph yields whenever the label shows; zero =
        honest "0/9", missing/invalid = no fill; booleans unchanged);
-       (d2) 0/target display fallback — untouched pending numerics render
+       (d2) 0/target display fallback â€” untouched pending numerics render
        "0/target" via numericCellDisplayValue exactly like a recorded zero
        (pure display: no entry created, nothing marked done, the value
        editor still prefills empty from the stored value); skipped/
        vacation/unscheduled/future/before-start appearances unchanged; (e)
-       selected-date auto-reveal — useEffect keyed only on the selected
+       selected-date auto-reveal â€” useEffect keyed only on the selected
        date applies revealColumnScroll (minimum distance, sticky-aware,
        clamped) with smooth scrolling unless prefers-reduced-motion; entry
        updates and manual scrolling never trigger it.
-     - **iOS Safari zoom fix (2026-11-18) — editable keyboard-entry inputs:**
+     - **iOS Safari zoom fix (2026-11-18) â€” editable keyboard-entry inputs:**
        iOS Safari auto-zooms when focusing `<input>`/`<textarea>` with
        computed font-size < 16px. Added `.input-no-zoom` utility
        (src/index.css) forcing 16px minimum on mobile while inheriting
-       design sizes on desktop (≥1024px). Applied to: Matrix inline
+       design sizes on desktop (â‰¥1024px). Applied to: Matrix inline
        numeric editor (HabitMatrix.tsx), HabitFormMobile unit field,
        ProfileDetailsEdit textarea + all text inputs (full name,
        nationality, country, phone, address). Wheel pickers, date/time
-       pickers, dropdowns, steppers untouched — they don't invoke the
+       pickers, dropdowns, steppers untouched â€” they don't invoke the
        keyboard. Tests: 601 passed, build clean, lint 0 errors.
-     - **High Contrast iPhone horizontal alignment fix (2026-11-18):**
-       On physical iPhone, switching to High Contrast theme caused
-       horizontal misalignment (content shifted left). Root cause:
-       `background-attachment: fixed` on body with `--bg-aurora: none`
-       creates a 0×0 fixed layer iOS sizes incorrectly; app-shell border
-       + overflow-hidden shifts viewport with safe-area insets. Fix:
-       iOS-only (`@supports (-webkit-touch-callout: none)`) overrides for
-       high-contrast: `body { background-attachment: scroll }`,
-       `.app-shell { width: 100%; max-width: 100%; box-sizing: border-box;
-       overflow-x: hidden }`, `.mobile-dock` clamped to safe-area insets.
-       Other themes unchanged. Physical iPhone verification pending.
-     - **UI 2.0 Stage 1B — Today visual hierarchy & spacing (2026-11-17,
-       presentation-only):** hero — `break-words` on the mobile caption +
+     - **High Contrast Matrix horizontal overflow fix (2026-11-18):**
+       High Contrast made the mobile dock too wide on iPhone Safari
+        (+27px overflow - content shifted left) and Android Chrome
+        (+69px overflow - matrix clipped names, unused space on right).
+        Root cause: [data-theme="high-contrast"] .glass-card,
+        .glass-pill { backdrop-filter: none } made Chrome miscalculate
+        the width of the position: fixed; left: 16px; right: 16px
+        mobile dock - the opaque black background already makes backdrop
+        filter visually irrelevant, so removing it made the dock render
+        at its correct width in both themes. Also removed the matching
+        HC-only .app-shell width/overflow overrides and the
+        .mobile-dock safe-area left/right/max-width overrides
+        inside @supports (-webkit-touch-callout: none) (they deviated
+        from Dark's layout). High Contrast now shares the exact same
+        layout as Dark: identical container dimensions, scrolling,
+        dock sizing, and focus-ring treatment (focus-visible:ring-2
+        ring-accent shared box-shadow-based rings, zero layout impact,
+        cyan color via the theme token). Removed the previous temporary
+        diagnostic instrumentation (?matrix-debug=1 panel, snapshot
+        collection, overflowing-element scanner, outline experiment) and
+        all High Contrast-only structural CSS - only color tokens
+        (background, border, shadow) differ between themes now.
+        Verified: 604/604 tests, tsc clean, build clean, lint clean.
+        Physical device verification still pending.
+     - **UI 2.0 Stage 1B â€” Today visual hierarchy & spacing (2026-11-17,
+       presentation-only):** hero â€” `break-words` on the mobile caption +
        motivational line, desktop motivational clamped to 2 lines (matches
        DESIGN "max 2 lines", prevents hero height growth), desktop streak
        chip label unified to "Best streak" (was "longest streak"); desktop
-       vertical rhythm unified to 20px (vacation banner → week strip →
+       vertical rhythm unified to 20px (vacation banner â†’ week strip â†’
        grid, `lg:mb-5`; Scheduled/All toggle row `mb-4` before the grid);
        CompletionCard legend margins unified with the body views
        (`mt-2.5 sm:mt-3`, week-view placeholder matches so view switching
        doesn't shift the card); tile status captions ("Skipped", "3/4 this
        week", "Not scheduled") render normal-case via a new
        `.tile-status-caption` rule (declared after `.text-caption` so it
-       wins the cascade) — design-system uppercase captions elsewhere
+       wins the cascade) â€” design-system uppercase captions elsewhere
        (hero caption, chips, legend labels, weekday headers) unchanged.
        No logic, calculations, geometry or behavior changes.
      - Check-ins/skip/vacation preserved: done wins everywhere; skip menu,
        undo-skip and vacation neutrality unchanged.
      - Tests: +20 (schedule.test.ts opportunityScope; scoreSchedule.test.ts
-       scheduled streaks — weekdays/interval off-days, epoch changes,
+       scheduled streaks â€” weekdays/interval off-days, epoch changes,
        weekly_target week granularity incl. transition weeks and window edges,
-       legacy/empty-epochs bit-identity, weeklyTargetProgress) — 401 tests in
-       25 files; build clean; lint 0 errors (48 warnings — baseline 47 + the
+       legacy/empty-epochs bit-identity, weeklyTargetProgress) â€” 401 tests in
+       25 files; build clean; lint 0 errors (48 warnings â€” baseline 47 + the
        new hook's same-category set-state-in-effect).
-     - **4A fix (2026-11-14) — weekly habit created mid-week:** a weekly_target
+     - **4A fix (2026-11-14) â€” weekly habit created mid-week:** a weekly_target
        epoch now scopes its week as 'week' in `opportunityScope` even during
        its first partial (transition) start week, so a habit created Saturday
        shows "0/4 this partial week" (tile caption + ring tooltip, `partial`
@@ -900,14 +913,14 @@ creates every table above including the post-release `entries.status`, `profiles
        it stays out of the daily done/total (day-completion pre-exclusion and
        Today's `weekScoped` both key off 'week'). Display-only: `dayStatus`
        keeps partial-week days 'unscheduled' (neutral) and score.ts keeps the
-       transition week neutral (never a failed weekly streak) — ordinary
-       weekdays/interval off-days are still null → "Not scheduled". Tests +5
+       transition week neutral (never a failed weekly streak) â€” ordinary
+       weekdays/interval off-days are still null â†’ "Not scheduled". Tests +5
        (partial-week progress, dayStatus neutrality, next-full-week progress,
-       partial week never fails the streak) — 406 tests in 25 files.
-   - **Stage 4B — Overview integration (Complete, 2026-11-14):** the Overview
+       partial week never fails the streak) â€” 406 tests in 25 files.
+   - **Stage 4B â€” Overview integration (Complete, 2026-11-14):** the Overview
      page is now schedule-aware, reusing the existing helpers (no duplicated
      scheduling logic):
-     - **Wiring:** `useScheduleHistory()` (same hook as Today — probe-gated,
+     - **Wiring:** `useScheduleHistory()` (same hook as Today â€” probe-gated,
        `schedule-reload` aware) feeds `epochsByHabit` into BOTH metrics of
        the per-habit series: `scoreSeries(..., epochs)` (the Stage 2 law:
        per-scheduled-opportunity steps, weekly_target steps per closed week)
@@ -917,18 +930,18 @@ creates every table above including the post-release `entries.status`, `profiles
        `epochs` param (omitted/empty = legacy walk bit-identical). Mirrors the
        scoring law exactly: daily/weekdays/interval/legacy dates count per day
        with off-days neutral ('unscheduled'; done-on-off-day still wins);
-       weekly_target = one opportunity per CLOSED Mon–Sun week (achieved = done
-       ≥ M via the now-exported `weeklyTargetAchieved`), the week containing
+       weekly_target = one opportunity per CLOSED Monâ€“Sun week (achieved = done
+       â‰¥ M via the now-exported `weeklyTargetAchieved`), the week containing
        endDate and transition/partial window-edge weeks carry. Historical
        epochs are honoured per date via `resolveEpoch`, so past performance
        follows the schedule that governed it.
      - Avg/Best/Needs-attention tiles, Top-5 ranking and chart lines all read
-       the epoch-aware series — no separate summary logic touched.
+       the epoch-aware series â€” no separate summary logic touched.
      - Tests: +11 in overview.test.ts (daily/empty/legacy bit-identity,
        weekdays off-days neutral + done-wins, interval anchors, mid-range
-       daily→weekdays change, weekly_target closed weeks / skipped rows /
+       dailyâ†’weekdays change, weekly_target closed weeks / skipped rows /
        vacation dones / transition carry / window-edge partial / created-
-       mid-week) — 417 tests in 25 files; build clean; lint 0 errors
+       mid-week) â€” 417 tests in 25 files; build clean; lint 0 errors
        (48 warnings, unchanged).
    - **Pre-production integrity fix (2026-11-15):** same-day schedule edits
      no longer coalesce over a `legacy` epoch. The unique
@@ -954,7 +967,7 @@ creates every table above including the post-release `entries.status`, `profiles
      Custom `times <= days` bound. It creates the three v7 triggers
      (`habits_normalize_schedule`, `habits_guard_schedule_columns`,
      `habits_seed_schedule_history`) and the original 5-parameter RPC that
-     `20261114` replaces. Apply `20261113` → `20261114` → `20261115` as one
+     `20261114` replaces. Apply `20261113` â†’ `20261114` â†’ `20261115` as one
      sequence; `supabase/tests/20261113_schedule_base_v7.sql` and
      `src/lib/scheduleBaseMigration.test.ts` cover classification and the
      frozen legacy frequencies. **No SQL was executed by this change.**
@@ -962,3 +975,4 @@ creates every table above including the post-release `entries.status`, `profiles
      backup epoch restore (Stage 5).
 4. Optional polish: count-up numerals on stat tiles; periodic backup reminders.
 5. Optional (paid): Supabase Pro custom auth domain to brand the OAuth account chooser.
+

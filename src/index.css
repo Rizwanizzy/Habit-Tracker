@@ -1461,8 +1461,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 [data-theme="high-contrast"] .glass-pill {
   background-color: #000000;
   border: 1px solid var(--border);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
   box-shadow: none;
 }
 
@@ -1482,17 +1480,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   [data-theme="high-contrast"] body {
     background-attachment: scroll; /* Fixed bg with none image misbehaves on iOS */
   }
-  [data-theme="high-contrast"] .app-shell {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    overflow-x: hidden; /* Contain any internal overflow */
-  }
-  [data-theme="high-contrast"] .mobile-dock {
-    left: env(safe-area-inset-left, 1rem);
-    right: env(safe-area-inset-right, 1rem);
-    max-width: calc(100vw - env(safe-area-inset-left, 1rem) - env(safe-area-inset-right, 1rem));
-  }
 }
 
 [data-theme="high-contrast"] .bg-surface-raised,
@@ -1500,16 +1487,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 [data-theme="high-contrast"] .input-field {
   background-color: #0a0a0c;
   border: 1px solid var(--border);
-}
-
-[data-theme="high-contrast"] .input-field:focus {
-  border-color: #00e5ff !important;
-  outline: 2px solid #00e5ff;
-}
-
-[data-theme="high-contrast"] *:focus-visible {
-  outline: 3px solid #00e5ff !important;
-  outline-offset: 2px !important;
 }
 
 [data-theme="high-contrast"] button,

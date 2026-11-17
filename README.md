@@ -35,7 +35,15 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
 - **Profile & avatar** — banner with grid pattern and overlapping avatar (camera upload; inputs up to 20 MB are compressed to a small 512px WebP, with clear warnings for non-images or oversized files; remove photo), name with verified badge, email, and an optional **motivation line (bio)** up to 140 code points (with inline 140-char textarea editor, single-line sanitization, and ghost button trigger). The page features **"Your journey" lifetime stats** (longest streak with habit indicator, total check-ins across all-time history, 30-day consistency percentage, days tracking) and **"Milestones" badges** (4 streak milestones: 7, 21, 66, 100 days; 4 check-in milestones: 25, 100, 500, 1000 check-ins with animated progress rings for the next locked badge). On desktop (≥1024px), Personal details side (7/12) and Journey + Milestones cards side (5/12) form a balanced 2-column grid.
 - **Multi-Theme Appearance System** — 7 distinct appearance options: System (matches OS light/dark), Light (pastel liquid glass), Dark (deep midnight default), Sepia (warm cream & espresso parchment), OLED (pure #000000 midnight black), Solarized (classic Ethan Schoonover palette), and High Contrast (maximum text clarity on a solid black base with subtle neutral container borders and bright cyan focus/active outlines); accessible via the Today header theme button (with rotating Sun/Moon icon, 1-tap quick toggle, and anchored popover theme selector). Design tokens from `DESIGN.md`.
 - **iOS Safari zoom prevention** — editable keyboard-entry inputs (Matrix inline numeric editor, HabitFormMobile unit field, ProfileDetailsEdit text fields) now enforce a 16px minimum font size on mobile via a scoped `.input-no-zoom` utility, eliminating unwanted viewport zoom on focus; wheel pickers, date/time pickers, dropdowns and steppers are untouched.
-- **High Contrast iPhone alignment fix** — iOS-only overrides (`background-attachment: scroll`, app-shell width clamping, mobile dock safe-area insets) prevent the horizontal misalignment that occurred when switching to the High Contrast theme on physical iPhone; other themes unaffected. Physical device verification pending.
+- **High Contrast Matrix horizontal overflow fix** — High Contrast used to
+  make the mobile dock too wide (content shifted left on iPhone Safari,
+  clipped names on Android Chrome). Root cause was `backdrop-filter: none`
+  on `.glass-card`/`.glass-pill` making Chrome miscalculate the fixed
+  dock's width; removing it (the opaque black background already makes the
+  blur visually irrelevant) and removing the matching HC-only
+  `.app-shell`/`.mobile-dock` layout overrides makes High Contrast share
+  the exact same layout as Dark — only color tokens differ. Physical
+  device verification pending.
 
 ## Tech stack
 

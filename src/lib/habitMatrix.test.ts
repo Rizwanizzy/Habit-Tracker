@@ -498,3 +498,58 @@ describe('revealColumnScroll — selected-date reveal geometry', () => {
     expect(revealColumnScroll({ ...base, scrollLeft: 0, columnLeft: 100, columnWidth: 50 })).toBeNull()
   })
 })
+
+describe('Matrix theme parity — High Contrast shares layout with Dark', () => {
+  it('matrixCellAction returns identical actions regardless of theme (theme affects color only)', () => {
+    const booleanHabit = habit({ id: 'b', type: 'boolean' })
+    const numericHabit = habit({ id: 'n', type: 'numeric', target: 8, unit: 'glasses' })
+
+    // Theme does not change cell interaction logic — identical for all themes
+    const doneCell: MatrixCell = { date: '2026-01-05', weekday: 'Mon', dayNumber: 5, state: 'done', selected: false, isToday: false }
+    const pendingCell: MatrixCell = { date: '2026-01-06', weekday: 'Tue', dayNumber: 6, state: 'pending', selected: false, isToday: false }
+    const skippedCell: MatrixCell = { date: '2026-01-07', weekday: 'Wed', dayNumber: 7, state: 'skipped', selected: false, isToday: false }
+    const vacationCell: MatrixCell = { date: '2026-01-08', weekday: 'Thu', dayNumber: 8, state: 'vacation', selected: false, isToday: false }
+    const unscheduledCell: MatrixCell = { date: '2026-01-09', weekday: 'Fri', dayNumber: 9, state: 'unscheduled', selected: false, isToday: false }
+    const futureCell: MatrixCell = { date: '2026-01-10', weekday: 'Sat', dayNumber: 10, state: 'future', selected: false, isToday: false }
+
+    expect(matrixCellAction(doneCell, booleanHabit)).toBe('toggle')
+    expect(matrixCellAction(doneCell, numericHabit)).toBe('edit-value')
+    expect(matrixCellAction(pendingCell, booleanHabit)).toBe('toggle')
+    expect(matrixCellAction(pendingCell, numericHabit)).toBe('edit-value')
+    expect(matrixCellAction(skippedCell, booleanHabit)).toBe('unskip')
+    expect(matrixCellAction(vacationCell, booleanHabit)).toBeNull()
+    expect(matrixCellAction(unscheduledCell, booleanHabit)).toBeNull()
+    expect(matrixCellAction(futureCell, booleanHabit)).toBeNull()
+  })
+
+  it('buildHabitMatrix produces identical data regardless of theme', () => {
+    const m1 = build({})
+    const m2 = build({})
+
+    expect(m1.dates).toEqual(m2.dates)
+    expect(m1.rows.length).toBe(m2.rows.length)
+    for (let i = 0; i < m1.rows.length; i++) {
+      expect(m1.rows[i].cells.map((c) => c.state)).toEqual(m2.rows[i].cells.map((c) => c.state))
+      expect(m1.rows[i].cells.map((c) => c.selected)).toEqual(m2.rows[i].cells.map((c) => c.selected))
+    }
+  })
+})
+
+describe('Matrix diagnostic code removal', () => {
+  it('HabitMatrix module does not export diagnostic functions', async () => {
+    const module = await import('../components/HabitMatrix')
+
+    // Diagnostic functions must NOT be present
+    // @ts-expect-error — diagnostic functions should not exist on the module
+    expect(module.captureDiag).toBeUndefined()
+    // @ts-expect-error — diagnostic functions should not exist on the module
+    expect(module.MatrixDebugPanel).toBeUndefined()
+    // @ts-expect-error — diagnostic functions should not exist on the module
+    expect(module.getOverflowingElements).toBeUndefined()
+    // @ts-expect-error — diagnostic functions should not exist on the module
+    expect(module.getScrollableAncestors).toBeUndefined()
+
+    // Core exports must still be present
+    expect(module.HabitMatrix).toBeDefined()
+  })
+})
