@@ -28,10 +28,11 @@ import {
 } from '../lib/score'
 import { dayActionFor, nextDayAction } from '../lib/dayStatus'
 import { scheduleLabel } from '../lib/schedule'
-import { addDays } from '../lib/dates'
+import { addDays, parseLocalDate } from '../lib/dates'
 import { vacationDatesInRange } from '../lib/vacation'
 import { useVacationsContext } from '../contexts/VacationsContext'
 import { useLogicalToday } from '../hooks/useLogicalToday'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { extractError } from '../hooks/useHabits'
 
 const DAY_FMT = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' })
@@ -96,6 +97,9 @@ export function HabitDetail() {
   const { epochsByHabit } = useScheduleHistory()
   const habitEpochs = useMemo(() => (id ? epochsByHabit[id] ?? [] : []), [epochsByHabit, id])
 
+  // Mobile: calendar legend uses compact two-row layout; desktop uses single row.
+  const isMobile = useMediaQuery('(max-width: 767px)')
+
   const today = useLogicalToday()
   const { periods } = useVacationsContext()
   // The 365-day entries window is the widest anything here walks (streaks,
@@ -105,6 +109,7 @@ export function HabitDetail() {
     [periods, today],
   )
   const [scoreWindow, setScoreWindow] = useState<'90' | '30'>('90')
+  const [calendarWeeks, setCalendarWeeks] = useState(18)
   const [actionError, setActionError] = useState<string | null>(null)
   const habit = habits.find((h) => h.id === id)
   const entries = id ? (entriesByHabit[id] ?? []) : []
@@ -209,8 +214,8 @@ export function HabitDetail() {
             aria-hidden="true"
             className="grid size-8 shrink-0 place-items-center rounded-full text-lg leading-none"
             style={{
-              border: `2px solid ${color}`,
-              backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)`,
+              border: `3px solid ${color}`,
+              backgroundColor: `color-mix(in srgb, ${color} 20%, transparent)`,
             }}
           >
             {emoji}
@@ -222,7 +227,7 @@ export function HabitDetail() {
             style={{ backgroundColor: color }}
           />
         )}
-        <h1 className="text-page-title min-w-0 flex-1 truncate">{habit.name}</h1>
+        <h1 className="text-page-title min-w-0 flex-1 truncate text-page-title-mobile">{habit.name}</h1>
         <Link
           to={`/habits/${habit.id}/edit`}
           aria-label={`Edit ${habit.name}`}
@@ -273,7 +278,7 @@ export function HabitDetail() {
               <p className="text-body text-fg-secondary">Check in a habit to see your score.</p>
             </div>
           ) : (
-            <div className="mt-3 h-48">
+            <div className="mt-3 h-48" aria-label="Score progress over time">
               <ResponsiveContainer>
                 <AreaChart data={series} margin={{ top: 8, right: 8, left: -22 }}>
                   <defs>
@@ -335,6 +340,11 @@ export function HabitDetail() {
 
         {/* Weekly/monthly completion bars (§7) in habit color. */}
         <section className="glass-card fade-up rounded-card p-5 lg:p-6" style={{ animationDelay: '160ms' }}>
+          <p className="sr-only" aria-live="polite">
+            {entries.length === 0
+              ? 'No check-ins recorded yet.'
+              : `${name}: ${entries.filter((e) => e.status === 'done').length} completed of ${entries.length} total entries over ${entries.length ? Math.ceil((parseLocalDate(today).getTime() - parseLocalDate(entries[0].date).getTime()) / 86400000) : 0} days`}
+          </p>
           <CompletionHistoryChart habit={habit} entries={entries} vacations={vacations} epochs={habitEpochs} />
         </section>
       </div>
@@ -343,11 +353,22 @@ export function HabitDetail() {
       <section className="glass-card fade-up mt-4 rounded-card p-5 lg:mt-5 lg:p-6" style={{ animationDelay: '200ms' }}>
         <p className="text-section-title">Calendar</p>
         <p className="text-caption mt-1 text-fg-muted">
-          Last 18 weeks — cell brightness shows progress toward the daily target; tap a day to cycle
+          Last {calendarWeeks} weeks — cell brightness shows progress toward the daily target; tap a day to cycle
           empty → done → skipped.
         </p>
         <div className="mt-3">
-          <Heatmap habit={habit} entries={entries} vacations={vacations} epochs={habitEpochs} onToggle={(d) => void cycleDay(d)} />
+          <Heatmap
+            habit={habit}
+            entries={entries}
+            vacations={vacations}
+            epochs={habitEpochs}
+            responsive
+            minWeeks={6}
+            maxWeeks={52}
+            onWeeksChange={setCalendarWeeks}
+            onToggle={(d) => void cycleDay(d)}
+            compactLegend={isMobile}
+          />
         </div>
         {actionError && (
           <p role="alert" className="mt-3 rounded-input bg-danger/10 px-3 py-2 text-body text-danger">

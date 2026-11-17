@@ -148,7 +148,6 @@ export function HabitTile({
       <Link
         to={`/habits/${habit.id}`}
         tabIndex={reorderMode ? -1 : undefined}
-        aria-hidden={reorderMode || undefined}
         className={`absolute inset-0 rounded-tile focus-visible:ring-2 focus-visible:ring-accent focus-visible:[outline:none] ${reorderMode ? 'pointer-events-none' : ''}`}
       >
         <span className="sr-only">View {habit.name} overview</span>
@@ -257,9 +256,9 @@ export function HabitTile({
         />
       </div>
 
-      {/* Title row: single line, truncate with ellipsis */}
+      {/* Title row: allow up to 2 lines at wider densities (≥232px), truncate at narrower */}
       <div className="mt-1.5 min-w-0">
-        <h3 className="tile-name text-habit-name truncate text-fg leading-snug" title={habit.name}>
+        <h3 className="tile-name text-habit-name text-fg leading-snug" title={habit.name}>
           {habit.name}
         </h3>
       </div>
@@ -318,7 +317,7 @@ export function HabitTile({
                 onChange={(e) => setInput(e.target.value)}
                 onFocus={(e) => e.target.select()}
                 aria-label={`Value for ${habit.name}`}
-                className="h-9 flex-1 min-w-0 rounded-input border border-border bg-surface px-1.5 text-center text-[15px] tabular-nums text-fg focus:border-accent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0"
+                className="h-9 flex-1 min-w-0 rounded-input border border-border bg-surface px-1.5 text-center text-[15px] tabular-nums text-fg focus:border-accent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-inner-spin-button]:m-0 input-no-zoom"
               />
               <button
                 type="submit"

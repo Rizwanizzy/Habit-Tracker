@@ -4,7 +4,7 @@
 > understanding of this project — concept, stack, architecture, data model, features, and
 > conventions. It describes **what is true right now**; the per-pass history lives in
 > `CHANGELOG.md`. **Update this file after every completed task** (AGENTS.md rule 11).
-> Last updated: 2026-11-15
+> Last updated: 2026-11-17
 
 ## 1. What this project is
 
@@ -92,7 +92,10 @@ src/
                         /reset-password (in-app password recovery), /welcome (Landing), /privacy (Privacy);
                         inside RequireAuth+AppShell: / (Today), /overview, /review (Performance Review),
                         /profile, /settings, /habits/new, /habits/:id/edit, /habits/:id
-  index.css             Tailwind v4 + Aurora-Glass tokens (@theme) + component recipes
+  index.css             Tailwind v4 + Aurora-Glass tokens (@theme) + component recipes,
+                        plus `.text-page-title-mobile` (mobile-scaled Habit Detail page
+                        title) and `.tile-cell .tile-name` line-clamp rules (2 lines at
+                        wider densities, 1 line at density 3+)
   App.css               (unused leftover styles)
   types/
     habit-form.ts       shared HabitForm state types (desktop page + phone layout)
@@ -319,7 +322,9 @@ src/
     RingTooltip.tsx     ring hover tooltip
     CompletionCard.tsx + CompletionMonth.tsx + CompletionYear.tsx + CompletionHistoryChart.tsx
                         week/month/year completion views + habit-detail bar chart
-    Heatmap.tsx         custom calendar heatmap (tap-cycles empty → done → skipped)
+    Heatmap.tsx         custom calendar heatmap (tap-cycles empty → done → skipped),
+                        responsive week count via ResizeObserver (min/max clamped),
+                        compact two-row legend on mobile
     ScoreLineChart.tsx  Overview multi-line chart (Score / Completion %, halo glow lines, interactive click-to-isolate)
     StatTile.tsx        stat tiles (+ optionally stretched links on Overview)
     RangeSwitch.tsx     30/90/365 (optional `compact`), Week/Month/Year uses it too
@@ -365,7 +370,8 @@ src/
     Overview.tsx        stat tiles + Score / Completion % chart with Top 5 / All / None filters & click-to-isolate
     PerformanceReview.tsx  /review — weekly/monthly/yearly retrospective (hero rate card, breakdowns,
                         insights, habit trajectory tables)
-    HabitDetail.tsx     stats, score chart, completion bars, heatmap, skip cycling
+    HabitDetail.tsx     stats, score chart, responsive calendar heatmap (ResponsiveObserver
+                        week count, compact mobile legend), skip cycling, accessibility labels
     HabitForm.tsx       create/edit habit (desktop ≥1024px layout + shared state → HabitFormMobile)
     Settings.tsx        Day/Habits/Vacation/Data/Account/Notification cards (phone reflow below 1024px)
     Profile.tsx         banner, details, journey, milestones

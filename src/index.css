@@ -303,6 +303,20 @@ body {
   text-transform: uppercase;
 }
 
+/* Habit Detail page title: 50% size on mobile (<768px), full size on tablet+.
+   Uses the existing --text-page-title token as baseline (2rem → 1rem).
+   Mobile: ~15% larger than 1rem = 1.15rem (≈18.4px). */
+.text-page-title-mobile {
+  font-size: 1.15rem; /* ~15% larger than 1rem = ~18.4px */
+  line-height: 1.5rem; /* 24px line-height */
+}
+@media (min-width: 768px) {
+  .text-page-title-mobile {
+    font-size: var(--text-page-title); /* 2rem */
+    line-height: var(--text-page-title--line-height); /* 2.5rem */
+  }
+}
+
 /* Glass recipes (DESIGN.md §1): blur + saturate, 1px border, inset top
    highlight, and a deep soft shadow that changes with the theme. */
 .glass-card {
@@ -515,6 +529,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   container-type: inline-size;
 }
 
+/* Base tile-name (≥232px column width = densities 1–2): allow up to 2 lines. */
+.tile-cell .tile-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @container (max-width: 231.9px) {
   .tile-cell .habit-tile {
     min-height: 104px;
@@ -528,6 +552,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .tile-cell .tile-name {
     font-size: 13px;
     line-height: 1.25;
+    /* Density 3+: truncate to single line */
+    display: block;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    white-space: nowrap;
   }
   .tile-cell .tile-streak {
     gap: 4px;
