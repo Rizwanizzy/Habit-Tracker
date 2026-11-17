@@ -111,7 +111,7 @@ export function ProfileEditFields({
           value={draft.bio}
           placeholder="A line that keeps you going"
           disabled={saving}
-          className="input-field h-auto min-h-[5rem] py-2.5 resize-none leading-relaxed"
+          className="input-field h-auto min-h-[5rem] py-2.5 resize-none leading-relaxed input-no-zoom"
           onChange={(e) => {
             const singleLine = e.target.value.replace(/[\r\n]+/g, ' ')
             setDraft((d) => ({ ...d, bio: singleLine }))
@@ -141,7 +141,7 @@ export function ProfileEditFields({
           value={draft.full_name}
           placeholder="Your name"
           disabled={saving}
-          className="input-field"
+          className="input-field input-no-zoom"
           onChange={(e) => setDraft((d) => ({ ...d, full_name: e.target.value }))}
         />
         {errors.full_name && (
@@ -198,7 +198,7 @@ export function ProfileEditFields({
           value={draft.nationality}
           placeholder="e.g. Indian"
           disabled={saving}
-          className="input-field"
+          className="input-field input-no-zoom"
           onChange={(e) => setDraft((d) => ({ ...d, nationality: e.target.value }))}
         />
         {errors.nationality && (
@@ -218,7 +218,7 @@ export function ProfileEditFields({
           value={draft.country}
           placeholder="e.g. India"
           disabled={saving}
-          className="input-field"
+          className="input-field input-no-zoom"
           onChange={(e) => setDraft((d) => ({ ...d, country: e.target.value }))}
         />
         {errors.country && (
@@ -239,7 +239,7 @@ export function ProfileEditFields({
           value={draft.phone}
           placeholder="+91 …"
           disabled={saving}
-          className="input-field"
+          className="input-field input-no-zoom"
           onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
         />
         {errors.phone && (
@@ -260,7 +260,7 @@ export function ProfileEditFields({
           value={draft.address}
           placeholder="Country, city or region"
           disabled={saving}
-          className="input-field"
+          className="input-field input-no-zoom"
           onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))}
         />
         {errors.address && (

@@ -173,7 +173,7 @@ export function HabitFormMobile({
                   value={form.unit}
                   onChange={(e) => setField('unit', e.target.value)}
                   placeholder="pages, miles, minutes"
-                  className="input-field h-12 min-w-0 flex-1 text-body"
+                  className="input-field h-12 min-w-0 flex-1 text-body input-no-zoom"
                 />
               </div>
             </div>

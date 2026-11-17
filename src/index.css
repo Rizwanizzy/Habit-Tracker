@@ -861,6 +861,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 1rem; /* 16px: iOS Safari zooms on focus below 16px */
   line-height: 1.5rem; /* 24px — fixed value-box line height */
 }
+
+/* ---------------------------------------------------------------------------
+   iOS Safari zoom prevention for editable keyboard-entry inputs.
+   iOS Safari auto-zooms when focusing an <input type="text|number|email|...">,
+   <textarea>, or contenteditable whose computed font-size is < 16px.
+   This class forces a 16px minimum on mobile while preserving desktop sizes.
+   Applied to: Matrix ValueEditor, HabitFormMobile numeric target/unit,
+   ProfileDetailsEdit text fields. */
+.input-no-zoom {
+  font-size: 1rem !important; /* 16px minimum — prevents iOS Safari zoom */
+}
+@media (min-width: 1024px) {
+  .input-no-zoom {
+    font-size: inherit !important; /* Restore design sizes on desktop */
+  }
+}
 .date-field::-webkit-date-and-time-value {
   text-align: left;
   margin: 0;
@@ -1424,6 +1440,30 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 [data-theme="high-contrast"] .app-shell {
   border: 1px solid var(--border);
   box-shadow: none;
+}
+
+/* High Contrast on iOS Safari: prevent horizontal misalignment.
+   Root cause candidates: background-attachment:fixed with --bg-aurora:none
+   creates a 0x0 fixed layer that iOS may size incorrectly; the app-shell
+   border + overflow-hidden can shift the viewport when safe-area insets
+   are applied. Fixes: disable fixed attachment for high-contrast on iOS,
+   ensure app-shell uses 100% width with box-sizing, and prevent any
+   horizontal overflow from the shell or dock. */
+@supports (-webkit-touch-callout: none) {
+  [data-theme="high-contrast"] body {
+    background-attachment: scroll; /* Fixed bg with none image misbehaves on iOS */
+  }
+  [data-theme="high-contrast"] .app-shell {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden; /* Contain any internal overflow */
+  }
+  [data-theme="high-contrast"] .mobile-dock {
+    left: env(safe-area-inset-left, 1rem);
+    right: env(safe-area-inset-right, 1rem);
+    max-width: calc(100vw - env(safe-area-inset-left, 1rem) - env(safe-area-inset-right, 1rem));
+  }
 }
 
 [data-theme="high-contrast"] .bg-surface-raised,

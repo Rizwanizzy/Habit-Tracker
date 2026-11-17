@@ -842,6 +842,27 @@ creates every table above including the post-release `entries.status`, `profiles
        date applies revealColumnScroll (minimum distance, sticky-aware,
        clamped) with smooth scrolling unless prefers-reduced-motion; entry
        updates and manual scrolling never trigger it.
+     - **iOS Safari zoom fix (2026-11-18) — editable keyboard-entry inputs:**
+       iOS Safari auto-zooms when focusing `<input>`/`<textarea>` with
+       computed font-size < 16px. Added `.input-no-zoom` utility
+       (src/index.css) forcing 16px minimum on mobile while inheriting
+       design sizes on desktop (≥1024px). Applied to: Matrix inline
+       numeric editor (HabitMatrix.tsx), HabitFormMobile unit field,
+       ProfileDetailsEdit textarea + all text inputs (full name,
+       nationality, country, phone, address). Wheel pickers, date/time
+       pickers, dropdowns, steppers untouched — they don't invoke the
+       keyboard. Tests: 601 passed, build clean, lint 0 errors.
+     - **High Contrast iPhone horizontal alignment fix (2026-11-18):**
+       On physical iPhone, switching to High Contrast theme caused
+       horizontal misalignment (content shifted left). Root cause:
+       `background-attachment: fixed` on body with `--bg-aurora: none`
+       creates a 0×0 fixed layer iOS sizes incorrectly; app-shell border
+       + overflow-hidden shifts viewport with safe-area insets. Fix:
+       iOS-only (`@supports (-webkit-touch-callout: none)`) overrides for
+       high-contrast: `body { background-attachment: scroll }`,
+       `.app-shell { width: 100%; max-width: 100%; box-sizing: border-box;
+       overflow-x: hidden }`, `.mobile-dock` clamped to safe-area insets.
+       Other themes unchanged. Physical iPhone verification pending.
      - **UI 2.0 Stage 1B — Today visual hierarchy & spacing (2026-11-17,
        presentation-only):** hero — `break-words` on the mobile caption +
        motivational line, desktop motivational clamped to 2 lines (matches

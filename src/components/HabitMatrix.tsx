@@ -530,7 +530,7 @@ function ValueEditor({
         }
       }}
       aria-label={`${habit.name} value for ${matrixDateLabel(cell.date)}${unit ? ` (${unit})` : ''}`}
-      className="h-8 w-10 rounded-[10px] border border-accent bg-[var(--surface-solid)] px-0.5 text-center text-[12px] tabular-nums text-fg focus-visible:outline-none"
+      className="h-8 w-10 rounded-[10px] border border-accent bg-[var(--surface-solid)] px-0.5 text-center text-[12px] tabular-nums text-fg focus-visible:outline-none input-no-zoom"
     />
   )
 }
