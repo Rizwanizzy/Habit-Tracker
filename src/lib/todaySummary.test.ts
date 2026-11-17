@@ -185,7 +185,7 @@ describe('todayPair — end-to-end mixing and labels', () => {
     expect(after).toMatchObject({ done: 4, total: 9 })
   })
 
-  it('weeklyCounted drives the caption qualifier', () => {
+  it('weeklyCounted reports when weekly habits are inside the pair', () => {
     const pair = run([shower], showerEntries(['2026-01-05']), '2026-01-06')
     expect(pair.weeklyCounted).toBe(1)
     const noWeekly = todayPair({

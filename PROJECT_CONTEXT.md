@@ -121,7 +121,7 @@ src/
     useScheduleHistory.ts Stage 4A schedule epochs per habit from habit_schedule_history
                          (RLS SELECT-only, capability-probe gated, `schedule-reload`
                          window event; exposes epochsByHabit/loading/error)
-  lib/                  pure logic + their *.test.ts (34 test files, 541 tests)
+  lib/                  pure logic + their *.test.ts (35 test files, 558 tests)
     review.ts           Performance Review analysis engine (getCompletedWeekRange, getCompletedMonthRange,
                         getCompletedYearRange, calculatePeriodReview, calculateMonthlyWeeklyBreakdown,
                         calculateYearlyMonthlyBreakdown, generateActionableInsights)
@@ -190,9 +190,15 @@ src/
                         weekly-target habits (achievement-day + post-goal extras), neutral
                         + before-start days excluded, pending weekly habits in the
                         denominator while Scheduled-visible, post-achievement weekly days
-                        out; ignores the Scheduled/All toggle; + todayPairCaption. NOTE:
+                        out; ignores the Scheduled/All toggle. NOTE:
                         deliberately diverges from dayCompletion/Overview/Review daily
                         stats on weekly-activity days (temporary, documented)
+    weekStrip.ts        UI 2.0 Stage 1A: buildWeekStrip — 7 Mon–Sun cells for the
+                        selected date's week (weekStart anchor); each cell's indicator
+                        REUSES todayPair (same weekly semantics as the hero); future
+                        days carry no values; paused = vacation day with nothing
+                        achieved; neutral = nothing eligible (all skipped/unscheduled/
+                        before-start); + weekStripLabel (deterministic EN abbreviations)
     rings.ts            ring layout math (≤7 rings; >7 shares outer rings, inner full rings)
     order.ts            sortHabits/moveHabit/diffOrder — habit ordering engine
     emoji.ts            emoji validation (≤24 code points) + processing helpers
@@ -246,6 +252,10 @@ src/
     SortableHabitTile.tsx + HabitReorderGrid.tsx   jiggle reorder (dnd-kit, portal DragOverlay)
     TileDensity.tsx     "Per row" stepper (localStorage['tile-columns'])
     ProgressRings.tsx   hero rings (rings.ts geometry, morphs on reorder)
+    WeekStrip.tsx       UI 2.0 Stage 1A: interactive Mon–Sun strip above the hero
+                        (thin renderer over lib/weekStrip.ts; taps set the same
+                        selectedDate as the chevrons/date pill; roving-tabindex
+                        arrows + Home/End, future days disabled, tokens only)
     RingTooltip.tsx     ring hover tooltip
     CompletionCard.tsx + CompletionMonth.tsx + CompletionYear.tsx + CompletionHistoryChart.tsx
                         week/month/year completion views + habit-detail bar chart
@@ -650,6 +660,22 @@ creates every table above including the post-release `entries.status`, `profiles
        muted with "Not scheduled", weekly tiles show "n/M this week" caption
        via the new HabitTile/SortableHabitTile `weekly` prop, epoch-aware
        streaks; the DragOverlay copy shares `tileState`).
+     - **UI 2.0 Stage 1A — Today week strip (2026-11-17):** new
+       `src/lib/weekStrip.ts` + `src/components/WeekStrip.tsx`; a compact
+       interactive Mon–Sun strip sits between the vacation banner and the
+       bento grid (both viewports). Each cell's completion indicator calls
+       the SAME `todayPair` per day (identical weekly semantics, no competing
+       calculation); the week follows `selectedDate` via `weekStart`, so the
+       existing chevrons/date pill move it — no duplicate navigation. Future
+       days (date > logical today) are disabled placeholders with no
+       completion values; vacation days render paused (moon badge) unless a
+       check-in landed (done wins); all-neutral days (all skipped /
+       unscheduled / before-start era) render muted; selected = surface-
+       raised + accent ring, logical today = accent weekday + aria-current.
+       Keyboard: one tab stop, roving tabindex, Left/Right/Home/End. No new
+       data fetching (365-day entries + 400-day vacation windows already
+       cover any reachable week). dayStatus/schedule/todayPair/scoring/
+       heatmap/Overview/Review untouched.
      - Check-ins/skip/vacation preserved: done wins everywhere; skip menu,
        undo-skip and vacation neutrality unchanged.
      - Tests: +20 (schedule.test.ts opportunityScope; scoreSchedule.test.ts

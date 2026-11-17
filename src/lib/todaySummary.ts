@@ -48,7 +48,8 @@ export interface TodayPair {
   /** Neutral habits — excluded from the pair (drives the all-skipped caption). */
   neutralCount: number
   /** Weekly-target habits currently inside the pair (done or pending) —
-   *  drives the "weekly habits included" caption qualifier. */
+   *  part of the pair's composition (used by tests/consumers to know when
+   *  weekly habits contribute). */
   weeklyCounted: number
 }
 
@@ -112,10 +113,4 @@ export function todayPair({
   }
 
   return { done, total, neutralCount, weeklyCounted }
-}
-
-/** Caption qualifier for the hero / ring-center label when weekly-target
- *  habits contribute to the pair (no separate UI section — label only). */
-export function todayPairCaption(base: string, pair: TodayPair): string {
-  return pair.weeklyCounted > 0 ? `${base} · weekly habits included` : base
 }

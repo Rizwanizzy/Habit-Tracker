@@ -11,7 +11,8 @@ import { now } from '../lib/clock'
 import { useLogicalToday } from '../hooks/useLogicalToday'
 import { useScheduleHistory } from '../hooks/useScheduleHistory'
 import { useSettings } from '../contexts/SettingsContext'
-import { todayPair, todayPairCaption } from '../lib/todaySummary'
+import { todayPair } from '../lib/todaySummary'
+import { buildWeekStrip } from '../lib/weekStrip'
 import { layoutRings } from '../lib/rings'
 import { ThemeIconButton } from '../components/ThemeIconButton'
 import { ProgressRings } from '../components/ProgressRings'
@@ -20,6 +21,7 @@ import { TileDensity } from '../components/TileDensity'
 import { HabitReorderGrid } from '../components/HabitReorderGrid'
 import { IconChevronDown, IconChevronLeft, IconChevronRight, IconFlame } from '../components/icons'
 import { TodayGreeting } from '../components/TodayGreeting'
+import { WeekStrip } from '../components/WeekStrip'
 
 function upsertEntry(list: Entry[], entry: Entry): Entry[] {
   const i = list.findIndex((e) => e.date === entry.date)
@@ -284,18 +286,32 @@ export function Today() {
   const totalToday = pair.total
   const skippedToday = pair.neutralCount
 
-  // Hero + ring-center share one caption; the qualifier makes the metric's
-  // meaning explicit when weekly-target habits contribute (label only — no
-  // extra UI section).
-  const doneCaption = todayPairCaption(
+  // Hero + ring-center share one caption (vacation/paused and all-skipped
+  // states preserved; no weekly-habits suffix).
+  const doneCaption =
     vacationToday && selectedDate === today
       ? 'habits are paused'
       : skippedToday === habits.length && habits.length > 0
         ? 'all habits skipped'
         : isPast
           ? 'done that day'
-          : 'done today',
-    pair,
+          : 'done today'
+
+  // Stage 1A (UI 2.0): the seven-day strip's cells come from the SAME data
+  // the hero uses — no extra fetching (useEntries covers 365 days back,
+  // vacation dates 400 days back, epochs are full history) — and reuse the
+  // approved todayPair metric per day via buildWeekStrip.
+  const weekStripCells = useMemo(
+    () =>
+      buildWeekStrip({
+        habits,
+        entriesByHabit,
+        today,
+        selectedDate,
+        vacations: vacationDays,
+        epochsByHabit,
+      }),
+    [habits, entriesByHabit, today, selectedDate, vacationDays, epochsByHabit],
   )
 
   const motivational =
@@ -658,6 +674,13 @@ export function Today() {
           </button>
         </div>
       )}
+
+      {/* Stage 1A (UI 2.0): interactive seven-day strip for the selected
+          week (Mon–Sun). Tapping a day updates the same selectedDate state
+          as the chevrons/date pill above; future days are disabled. */}
+      <div className="mb-3 lg:mb-4">
+        <WeekStrip cells={weekStripCells} onSelect={setSelectedDate} />
+      </div>
 
       {/* Bento grid (desktop) / Stack (mobile):
           Order: 1. Hero rings -> 2. Completion card (Week/Month/Year) -> 3. Habit tiles.
