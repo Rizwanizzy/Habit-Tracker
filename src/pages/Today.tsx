@@ -22,6 +22,9 @@ import { HabitReorderGrid } from '../components/HabitReorderGrid'
 import { IconChevronDown, IconChevronLeft, IconChevronRight, IconFlame } from '../components/icons'
 import { TodayGreeting } from '../components/TodayGreeting'
 import { WeekStrip } from '../components/WeekStrip'
+import { HabitMatrix } from '../components/HabitMatrix'
+import { RingExplainer } from '../components/RingExplainer'
+import { buildHabitMatrix } from '../lib/habitMatrix'
 
 function upsertEntry(list: Entry[], entry: Entry): Entry[] {
   const i = list.findIndex((e) => e.date === entry.date)
@@ -96,6 +99,18 @@ export function Today() {
   // remain governed by scheduling rules.
   const [viewMode, setViewMode] = useState<'scheduled' | 'all'>('scheduled')
 
+  // Stage 2 (UI 2.0): Tiles (default) or read-only weekly Matrix view for the
+  // habit section. Persisted like the other Today preferences; switching to
+  // Matrix exits reorder mode (reordering is a Tiles-only capability — see
+  // changeGridMode below).
+  const [gridMode, setGridMode] = useState<'tiles' | 'matrix'>(() => {
+    try {
+      return localStorage.getItem('today-grid-mode') === 'matrix' ? 'matrix' : 'tiles'
+    } catch {
+      return 'tiles'
+    }
+  })
+
   // Tiles-per-row density (1–6): the user's grid-width preference — no code
   // changes needed to rearrange rows. Persisted, validated on read, and it now
   // drives the grid on phones too. The first-run default adapts to the screen
@@ -133,6 +148,29 @@ export function Today() {
     }
   }, [perRow])
 
+  // Matrix habit-name pane width level (1–4): independent from Tiles per-row,
+  // persisted under its own key. Level 1 = production pane; each step adds
+  // one date-column width. Restored safely with clamping; default is 1 for
+  // users without a saved Matrix preference.
+  const [matrixNameWidth, setMatrixNameWidth] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem('matrix-name-width')
+      if (stored && /^[1-4]$/.test(stored)) return Number(stored)
+    } catch {
+      // Storage disabled: fall through to default.
+    }
+    return 1
+  })
+
+  const updateMatrixNameWidth = (next: number) => {
+    setMatrixNameWidth(next)
+    try {
+      localStorage.setItem('matrix-name-width', String(next))
+    } catch {
+      // Storage disabled: the choice just doesn't persist.
+    }
+  }
+
   // --- Reorder (jiggle) mode -------------------------------------------------
   // Long-press (350ms, 8px tolerance on both pointer and touch) lifts the tile
   // and enters the mode; a pointerdown outside a tile (or Escape) exits it.
@@ -141,6 +179,21 @@ export function Today() {
   const [reorderMode, setReorderMode] = useState(false)
   const exitReorderMode = useCallback(() => setReorderMode(false), [])
   const [notice, setNotice] = useState<{ kind: 'success' | 'danger'; text: string } | null>(null)
+
+  // Stage 2: Tiles/Matrix switch — Matrix is read-only, so leaving reorder
+  // mode when it activates keeps the two views' capabilities consistent.
+  const changeGridMode = useCallback(
+    (mode: 'tiles' | 'matrix') => {
+      setGridMode(mode)
+      try {
+        localStorage.setItem('today-grid-mode', mode)
+      } catch {
+        // Storage disabled: the choice just doesn't persist.
+      }
+      if (mode === 'matrix' && reorderMode) exitReorderMode()
+    },
+    [reorderMode, exitReorderMode],
+  )
 
   // Escape exits reorder mode.
   useEffect(() => {
@@ -205,25 +258,29 @@ export function Today() {
     remoteQueues.current.set(habit.id, queued.catch(() => undefined))
   }
 
-  function toggle(habit: Habit) {
-    const existing = (entriesByHabit[habit.id] ?? []).find((e) => e.date === selectedDate)
+  /** Check-in handlers (Stage 2 refinement): now parameterized by date so the
+   *  weekly Matrix can toggle/edit any cell of the displayed week through the
+   *  SAME pipeline; Tiles omit the argument and keep operating on the
+   *  selected day. Optimistic apply + rollback live in applyLocal above. */
+  function toggle(habit: Habit, date: string = selectedDate) {
+    const existing = (entriesByHabit[habit.id] ?? []).find((e) => e.date === date)
     const markingDone = !(existing && isDone(habit, existing))
     const value = habit.type === 'numeric' ? habit.target : 1
     void applyLocal(
       habit,
       (prev) =>
         markingDone
-          ? upsertEntry(prev, { date: selectedDate, value, status: 'done' })
-          : prev.filter((e) => e.date !== selectedDate),
-      () => (markingDone ? saveEntry(habit.id, selectedDate, value) : removeEntry(habit.id, selectedDate)),
+          ? upsertEntry(prev, { date, value, status: 'done' })
+          : prev.filter((e) => e.date !== date),
+      () => (markingDone ? saveEntry(habit.id, date, value) : removeEntry(habit.id, date)),
     )
   }
 
-  function logValue(habit: Habit, value: number) {
+  function logValue(habit: Habit, value: number, date: string = selectedDate) {
     void applyLocal(
       habit,
-      (prev) => upsertEntry(prev, { date: selectedDate, value, status: 'done' }),
-      () => saveEntry(habit.id, selectedDate, value),
+      (prev) => upsertEntry(prev, { date, value, status: 'done' }),
+      () => saveEntry(habit.id, date, value),
     )
   }
 
@@ -231,17 +288,17 @@ export function Today() {
    *  score drop): upserts a status-'skipped' row; undo deletes the row.
    *  Checking in on a skipped day stays possible through toggle (upserts
    *  status 'done'). Only a day without a done entry can be skipped. */
-  function skip(habit: Habit) {
-    const existing = (entriesByHabit[habit.id] ?? []).find((e) => e.date === selectedDate)
+  function skip(habit: Habit, date: string = selectedDate) {
+    const existing = (entriesByHabit[habit.id] ?? []).find((e) => e.date === date)
     if (existing && isDone(habit, existing)) return
     const skipping = !(existing && existing.status === 'skipped')
     void applyLocal(
       habit,
       (prev) =>
         skipping
-          ? upsertEntry(prev, { date: selectedDate, value: 0, status: 'skipped' })
-          : prev.filter((e) => e.date !== selectedDate),
-      () => (skipping ? skipEntry(habit.id, selectedDate) : removeEntry(habit.id, selectedDate)),
+          ? upsertEntry(prev, { date, value: 0, status: 'skipped' })
+          : prev.filter((e) => e.date !== date),
+      () => (skipping ? skipEntry(habit.id, date) : removeEntry(habit.id, date)),
     )
   }
 
@@ -312,6 +369,24 @@ export function Today() {
         epochsByHabit,
       }),
     [habits, entriesByHabit, today, selectedDate, vacationDays, epochsByHabit],
+  )
+
+  // Stage 2 (UI 2.0): weekly matrix data — same sources as the hero/strip,
+  // no extra fetching; dayStatus + shouldShowHabitOnDate do ALL classification
+  // and eligibility (lib/habitMatrix.ts is pure). The week is the selected
+  // date's Monday–Sunday week (same anchor as the strip above).
+  const matrixData = useMemo(
+    () =>
+      buildHabitMatrix({
+        habits,
+        entriesByHabit,
+        today,
+        selectedDate,
+        viewMode,
+        vacations: vacationDays,
+        epochsByHabit,
+      }),
+    [habits, entriesByHabit, today, selectedDate, viewMode, vacationDays, epochsByHabit],
   )
 
   const motivational =
@@ -500,13 +575,28 @@ export function Today() {
               </div>
             </div>
 
-            <TileDensity
-              value={perRow}
-              onChange={updatePerRow}
-              className={`h-11 sm:h-12 transition-[flex-grow,flex-basis] duration-150 justify-center ${
-                isPast ? 'flex-[35] basis-[35%] min-w-0' : 'flex-1 basis-1/2 min-w-0'
-              }`}
-            />
+            {gridMode === 'tiles' ? (
+              <TileDensity
+                value={perRow}
+                onChange={updatePerRow}
+                className={`h-11 sm:h-12 transition-[flex-grow,flex-basis] duration-150 justify-center ${
+                  isPast ? 'flex-[35] basis-[35%] min-w-0' : 'flex-1 basis-1/2 min-w-0'
+                }`}
+              />
+            ) : (
+              <TileDensity
+                value={matrixNameWidth}
+                onChange={updateMatrixNameWidth}
+                label="Habit names"
+                max={4}
+                groupLabel="Habit name pane width"
+                minusLabel="Narrower habit names"
+                plusLabel="Wider habit names"
+                className={`h-11 sm:h-12 transition-[flex-grow,flex-basis] duration-150 justify-center ${
+                  isPast ? 'flex-[35] basis-[35%] min-w-0' : 'flex-1 basis-1/2 min-w-0'
+                }`}
+              />
+            )}
           </div>
 
           {dayShifted && (
@@ -593,23 +683,38 @@ export function Today() {
         </div>
       </header>
 
-      {/* Desktop >7 habits note LEFT | Scheduled/All toggle + Per row RIGHT (matching-height pills) */}
-      <div className="mb-4 mt-1 hidden lg:flex lg:flex-nowrap items-center justify-between gap-3 lg:mt-0">
-        {/* LEFT: Dynamic description */}
-        <div className="flex flex-1 items-center min-w-0">
-          {habits.length > 7 && (
-            <p className="text-caption max-w-full text-fg-muted">
-              You have {habits.length} active habits. Rings are shared from here on (up to 4 habits
-              per ring).
-              <br />
-              Fewer habits are easier to stick to.
-              {ringLayout.hiddenCount > 0 &&
-                ` +${ringLayout.hiddenCount} more habits are not shown in the rings.`}
-            </p>
-          )}
-        </div>
-        {/* RIGHT: Toggle + Per row - matching height pills */}
+      {/* Desktop: Tiles/Matrix switch | Scheduled/All toggle + Per row (matching-height pills).
+          The persistent ">7 habits / shared rings" note was removed in Stage 2 — the ring
+          explainer popover (RingExplainer, on the hero rings) now carries that explanation. */}
+      <div className="mb-4 hidden lg:flex lg:flex-nowrap items-center justify-end gap-3">
+        {/* RIGHT: Tiles/Matrix + Scheduled/All + Per row - matching height pills */}
         <div className="flex items-center gap-2 shrink-0">
+          <div role="group" aria-label="Grid view" className="glass-pill inline-flex items-center gap-0.5 rounded-pill p-1">
+            <button
+              type="button"
+              onClick={() => changeGridMode('tiles')}
+              aria-pressed={gridMode === 'tiles'}
+              className={`relative grid h-9 place-items-center rounded-pill px-3 text-caption font-medium transition-all duration-150 ${
+                gridMode === 'tiles'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-fg-secondary hover:text-fg'
+              }`}
+            >
+              Tiles
+            </button>
+            <button
+              type="button"
+              onClick={() => changeGridMode('matrix')}
+              aria-pressed={gridMode === 'matrix'}
+              className={`relative grid h-9 place-items-center rounded-pill px-3 text-caption font-medium transition-all duration-150 ${
+                gridMode === 'matrix'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-fg-secondary hover:text-fg'
+              }`}
+            >
+              Matrix
+            </button>
+          </div>
           <div role="group" aria-label="Habit view" className="glass-pill inline-flex items-center gap-0.5 rounded-pill p-1">
             <button
               type="button"
@@ -636,16 +741,21 @@ export function Today() {
               All Habits
             </button>
           </div>
-          <TileDensity value={perRow} onChange={updatePerRow} />
+          {gridMode === 'tiles' ? (
+            <TileDensity value={perRow} onChange={updatePerRow} />
+          ) : (
+            <TileDensity
+              value={matrixNameWidth}
+              onChange={updateMatrixNameWidth}
+              label="Habit names"
+              max={4}
+              groupLabel="Habit name pane width"
+              minusLabel="Narrower habit names"
+              plusLabel="Wider habit names"
+            />
+          )}
         </div>
       </div>
-
-      {/* Mobile hidden-count note only (when > 28 habits) */}
-      {ringLayout.hiddenCount > 0 && (
-        <p className="text-caption text-center text-fg-muted mb-3 lg:hidden">
-          +{ringLayout.hiddenCount} more habits are not shown in the rings.
-        </p>
-      )}
 
       {actionError && (
         <p role="alert" className="text-body mb-3 lg:mb-4 rounded-input bg-danger/10 px-3 py-2 text-danger">
@@ -686,8 +796,10 @@ export function Today() {
           Order: 1. Hero rings -> 2. Completion card (Week/Month/Year) -> 3. Habit tiles.
           Desktop layout: Row 1 = Hero (5 cols) + Completion card (7 cols), Row 2 = Habit tiles (12 cols). */}
       <div className="flex flex-col gap-3 lg:grid lg:grid-cols-12 lg:gap-5">
-        {/* Hero card */}
-        <section className="glass-card fade-up rounded-card p-4 lg:col-span-5 lg:p-6">
+        {/* Hero card. `relative` anchors the RingExplainer info overlay to the
+            card's top-right corner (its existing empty space) without any
+            in-flow space — card height/geometry stay identical to production. */}
+        <section className="glass-card fade-up rounded-card relative p-4 lg:col-span-5 lg:p-6">
           <div className="flex flex-row items-center gap-4 lg:gap-6">
             {/* Mobile Left stat block (hidden on lg+) */}
             <div className="min-w-0 flex-1 lg:hidden">
@@ -722,8 +834,11 @@ export function Today() {
               </div>
             </div>
 
-            {/* ProgressRings (both viewports: Right on mobile via order-2, Left on desktop via lg:order-1) */}
-            <div className="size-[120px] sm:size-[140px] shrink-0 order-2 lg:order-1 lg:size-auto lg:w-full lg:max-w-[200px] lg:self-center">
+            {/* ProgressRings (both viewports: Right on mobile via order-2, Left on desktop via lg:order-1).
+                Stage 2: the persistent ">7 habits" note moved into the dismissible RingExplainer,
+                which is now a card-corner overlay OUTSIDE this container — production container
+                size (and thus ring size and card height) fully restored. */}
+            <div className="relative size-[120px] sm:size-[140px] shrink-0 order-2 lg:order-1 lg:size-auto lg:w-full lg:max-w-[200px] lg:self-center">
               <ProgressRings
                 habits={habits}
                 entriesByHabit={entriesByHabit}
@@ -749,6 +864,12 @@ export function Today() {
               </span>
             </div>
           </div>
+
+          {/* Info button: card-anchored overlay in the existing top-right empty
+              space (8px inset from the card edges). Its popover opens below it
+              and, via the .ring-explainer-open class + index.css :has() rule,
+              the whole card lifts above the heatmap card while it is open. */}
+          <RingExplainer hiddenCount={ringLayout.hiddenCount} />
         </section>
 
         {/* Completion card */}
@@ -762,8 +883,34 @@ export function Today() {
           />
         </div>
 
-        {/* Mobile: Scheduled / All Habits toggle (right-aligned, compact) */}
-        <div className="lg:hidden flex justify-end mb-2">
+        {/* Mobile: Tiles/Matrix switch (left) + Scheduled/All toggle (right) */}
+        <div className="lg:hidden mb-2 flex items-center justify-between gap-2">
+          <div role="group" aria-label="Grid view" className="glass-pill flex items-center rounded-pill p-0.5">
+            <button
+              type="button"
+              onClick={() => changeGridMode('tiles')}
+              aria-pressed={gridMode === 'tiles'}
+              className={`relative flex h-8 items-center rounded-pill px-2.5 text-[11px] font-medium transition-all duration-150 after:absolute after:inset-y-[-4px] after:inset-x-1 after:rounded-pill after:content-[''] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                gridMode === 'tiles'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-fg-secondary hover:text-fg'
+              }`}
+            >
+              Tiles
+            </button>
+            <button
+              type="button"
+              onClick={() => changeGridMode('matrix')}
+              aria-pressed={gridMode === 'matrix'}
+              className={`relative flex h-8 items-center rounded-pill px-2.5 text-[11px] font-medium transition-all duration-150 after:absolute after:inset-y-[-4px] after:inset-x-1 after:rounded-pill after:content-[''] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none ${
+                gridMode === 'matrix'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-fg-secondary hover:text-fg'
+              }`}
+            >
+              Matrix
+            </button>
+          </div>
           <div role="group" aria-label="Habit view" className="glass-pill flex items-center rounded-pill p-0.5">
             <button
               type="button"
@@ -792,9 +939,22 @@ export function Today() {
           </div>
         </div>
 
-        {/* Habit tiles (sortable grid; long-press enters jiggle mode) */}
+        {/* Habit section: Tiles (default, full reorder/check-in functionality)
+            or the Stage 2 interactive weekly Matrix — the switch is above.
+            The Matrix reuses the SAME handlers (toggle/logValue/skip), so
+            check-ins made here flow through the shared entriesByHabit state
+            and instantly update hero, rings, week strip and Tiles. */}
         <div className="w-full lg:col-span-12">
-          <HabitReorderGrid
+          {gridMode === 'matrix' ? (
+            <HabitMatrix
+              data={matrixData}
+              onToggle={toggle}
+              onLogValue={logValue}
+              onSkip={skip}
+              nameWidth={matrixNameWidth}
+            />
+          ) : (
+            <HabitReorderGrid
             habits={habits}
             entriesByHabit={entriesByHabit}
             selectedDate={selectedDate}
@@ -811,7 +971,8 @@ export function Today() {
             onToggle={toggle}
             onLogValue={logValue}
             onSkip={skip}
-          />
+            />
+          )}
         </div>
       </div>
 

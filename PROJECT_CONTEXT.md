@@ -121,7 +121,7 @@ src/
     useScheduleHistory.ts Stage 4A schedule epochs per habit from habit_schedule_history
                          (RLS SELECT-only, capability-probe gated, `schedule-reload`
                          window event; exposes epochsByHabit/loading/error)
-  lib/                  pure logic + their *.test.ts (35 test files, 558 tests)
+  lib/                  pure logic + their *.test.ts (36 test files, 596 tests)
     review.ts           Performance Review analysis engine (getCompletedWeekRange, getCompletedMonthRange,
                         getCompletedYearRange, calculatePeriodReview, calculateMonthlyWeeklyBreakdown,
                         calculateYearlyMonthlyBreakdown, generateActionableInsights)
@@ -199,6 +199,26 @@ src/
                         days carry no values; paused = vacation day with nothing
                         achieved; neutral = nothing eligible (all skipped/unscheduled/
                         before-start); + weekStripLabel (deterministic EN abbreviations)
+    habitMatrix.ts      UI 2.0 Stage 2: buildHabitMatrix — weekly matrix data (rows =
+                        active habits in order × selected date's Mon–Sun week); cell
+                        states via dayStatus ('missed' → "pending", never "missed"
+                        — weekly unchecked weekdays are not daily obligations); Scheduled
+                        filtering = shouldShowHabitOnDate visible on ≥1 non-future date of
+                        the week, evaluated as-of-each-day (no historical future leakage);
+                        future cells carry no values; matrixCellAction = which EXISTING
+                        Today handler a cell routes to (toggle / edit-value / unskip;
+                        vacation, unscheduled, before-start and future cells are null =
+                        read-only); numeric done rows carry `value` for the editor
+                        prefill; numericCellProgress = numeric fill math
+                        (value/target clamped 0–100, compact ≤5-char "3/9" chip label,
+                        missing/invalid → no progress, negatives clamp, actual numbers
+                        preserved); numericCellDisplayValue = DISPLAY fallback —
+                        untouched pending numerics read "0/target" exactly like a
+                        recorded zero, nothing persisted, other states unchanged;
+                        revealColumnScroll = minimum-distance scrollLeft to
+                        reveal the selected column (sticky column counts as obstruction,
+                        clamped to range, null when visible);
+                        + matrixCellLabel/matrixDateLabel/matrixCaption (deterministic EN)
     rings.ts            ring layout math (≤7 rings; >7 shares outer rings, inner full rings)
     order.ts            sortHabits/moveHabit/diffOrder — habit ordering engine
     emoji.ts            emoji validation (≤24 code points) + processing helpers
@@ -256,6 +276,46 @@ src/
                         (thin renderer over lib/weekStrip.ts; taps set the same
                         selectedDate as the chevrons/date pill; roving-tabindex
                         arrows + Home/End, future days disabled, tokens only)
+    HabitMatrix.tsx     UI 2.0 Stage 2: interactive weekly habit table (Aurora Glass
+                        habit-tinted 32px chips; numeric cells render a bottom-to-top
+                        habit-color fill with the value/target label as a CENTERED
+                        foreground overlay (9px semibold tabular-nums, theme-aware
+                        text-fg + bg-base halo — never the habit color; shown at 0%,
+                        partial, completion and over-target; long values fall back to
+                        tooltip/aria and keep the check/dot glyph; untouched pending
+                        numerics DISPLAY "0/target" (numericCellDisplayValue —
+                        identical to a recorded zero, nothing persisted, editor still
+                        prefills empty); TWO-PANE layout (visual-integration fix
+                        after four paint attempts): fixed habit-name pane
+                        (.matrix-names, OUTSIDE the horizontal scroller) paints
+                        NOTHING — glass card shows through, identical to the date
+                        columns, continuity by construction; scrolled cells and
+                        numeric labels structurally cannot reach it (no sticky,
+                        no occlusion, no guessed colors); hairline border-right
+                        divider, 40px locked row heights on both panes,
+                        per-cell isolation:isolate kept; auto-reveal feeds the
+                        pane width to revealColumnScroll as sticky-zone width; selected column auto-revealed on selection change /
+                        matrix mount (revealColumnScroll, smooth unless reduced
+                        motion); done cells toggle via the existing Today handlers,
+                        numeric cells open an inline value editor → logValue, skipped
+                        cells unskip, vacation/unscheduled/before-start/future
+                        read-only; selected/today column highlights, empty state).
+                        Name-width stepper (UI 2.0 refinement): the existing
+                        density pill is reused in Matrix mode as "Habit names"
+                        (level 1–4, Tiles keeps "Per row" 1–6 independently).
+                        Level 1 = production pane; each level adds one date-column
+                        width (300px/7 ≈ 43px) via `matrixNamePaneStyle(level)`
+                        (pure, habitMatrix.ts) — responsive max-width guarantees
+                        at least one full date column at 320px; auto-reveal
+                        recomputes on width changes. "Habits" header in the
+                        names pane's thead aligns with weekday row, no height
+                        change.
+    RingExplainer.tsx   UI 2.0 Stage 2: card-anchored info overlay in the hero
+                        card's top-right empty space + glass popover ("How
+                        progress rings work"; Escape/outside-click dismiss;
+                        :has() lifts the hero card above siblings while open
+                        so the popover clears the heatmap; replaces the
+                        removed >7-habits caption)
     RingTooltip.tsx     ring hover tooltip
     CompletionCard.tsx + CompletionMonth.tsx + CompletionYear.tsx + CompletionHistoryChart.tsx
                         week/month/year completion views + habit-detail bar chart
@@ -676,6 +736,112 @@ creates every table above including the post-release `entries.status`, `profiles
        data fetching (365-day entries + 400-day vacation windows already
        cover any reachable week). dayStatus/schedule/todayPair/scoring/
        heatmap/Overview/Review untouched.
+     - **UI 2.0 Stage 2 — Tiles/Matrix + ring explainer (2026-11-17):**
+       (a) `src/lib/habitMatrix.ts` + `src/components/HabitMatrix.tsx`: a
+       Tiles/Matrix segmented switch above the habit grid (persisted
+       `localStorage['today-grid-mode']`, Tiles default; mobile = left pill
+       next to Scheduled/All, desktop = first pill in the right-aligned
+       control row). Matrix is an INTERACTIVE weekly checklist: rows = active
+       habits in user order, columns = the selected date's Mon–Sun week;
+       every cell classified by dayStatus ('missed' shown as "pending" so
+       weekly unchecked weekdays are not daily obligations), Scheduled rows
+       = shouldShowHabitOnDate visible on ≥1 non-future date (as-of-day, no
+       leakage); future columns dimmed with no values; selected column
+       tinted, today header accent + aria-current; switching modes never
+       mutates entries/stats and exits reorder mode. Stage 2 refinement
+       (same day): Aurora-Glass cell redesign (32px rounded chips — done =
+       solid habit color + readableColor check + soft habit shadow, pending =
+       habit color-mix tint + hairline ring + partial-progress dot for
+       numerics, skipped = dashed habit tint, others token-based; hairline
+       row dividers) and the sticky-column fix: the sticky habit-name layer
+       now uses the OPAQUE --surface-solid (popover-solid recipe, all 7
+       themes) with corner(z-30) > row-header(z-20) > cells z-order — no
+       backdrop-blur-only, nothing bleeds through, and the selected-column
+       tint cannot paint over names. Interactivity REUSES the existing
+       pipeline: Today's toggle/logValue/skip gained an optional trailing
+       `date` param (default selectedDate — Tiles unchanged; applyLocal's
+       optimistic update + rollback + per-habit remote queue untouched) and
+       are passed to the matrix; per matrixCellAction: boolean done↔pending
+       toggles (repeated click undoes), numeric pending/done cells open an
+       inline ValueEditor (prefilled from cell.value; empty input commits
+       nothing; never auto-completes; commits via logValue), skipped cells
+       unskip via skip(), vacation/unscheduled/before-start/future cells are
+       read-only. Matrix edits flow through shared entriesByHabit so hero,
+       ring center/arcs, week strip and Tiles stay in sync. Name-width
+       stepper (refinement): the density pill is reused in Matrix mode as
+       "Habit names" (level 1–4, independent of Tiles "Per row" 1–6);
+       `matrixNamePaneStyle(level)` (pure, habitMatrix.ts) derives the
+       increment from the existing 300px/7 date column — level 1 = production
+       pane, each step adds ~43px, responsive max-width guarantees ≥1 full
+       date column at 320px; auto-reveal recomputes on width changes. "Habits"
+       header in names pane thead aligns with weekday row. (b) Ring
+       explanation cleanup: the persistent ">7 habits / shared rings"
+       caption, the mobile "+K more not shown" note and "Fewer habits are
+       easier to stick to." are removed; a small info button beside the
+       rings (RingExplainer) opens the approved popover text (+ factual
+       hidden-count line when >28 habits hide). Ring geometry/arcs/colors/
+       tooltips untouched. (b2) Ring explainer fixes: the icon originally
+       sat at the rings container's top-right corner, where the ring arc
+       passes through ANY box (at the 45° diagonal it reaches ~25px into a
+       28px corner box). An in-flow icon row above the rings fixed the
+       overlap but grew the card — rejected against the production
+       reference, so the FINAL fix is a card-anchored overlay (`absolute
+       top-2 right-2` on the section, 8px inset) in the card's existing
+       top-right empty space: production card height/padding/ring
+       position/ring size fully restored, glyph clears the arc's shoulder
+       by ≥7px even in the worst case (rings flush with content top on
+       vacation/"All caught up" days) and the 14px hover/focus circle
+       never touches the arc (closest approach 16.4px); desktop rings sit
+       left with the stat block vertically centered, leaving the
+       top-right free. The popover's bottom was painted UNDER the heatmap
+       card: both bento cards create stacking contexts (backdrop-filter)
+       and the hero is the EARLIER sibling, so the popover's internal
+       z-30 can never beat later-sibling paint order — while open,
+       `.glass-card:has(.ring-explainer-open)` (index.css) lifts the hero
+       card itself above its siblings, scoped to the open state.
+       No protected files modified; no new dependencies.
+       Final refinement (same day): (c) sticky-column tone — after four
+       failed paint attempts (flat #1a2132 "navy", flat #191b25, a shared
+       whole-table surface that made the Matrix a dark panel, and a
+       card-composite reproduction with background-attachment:fixed), the
+       root cause is structural: position:sticky name cells must paint an
+       OPAQUE backing (translucent/blur backings let scrolled cells bleed
+       through) and NO opaque tone can reliably match the card's live
+       render — the glass card computes its tone by runtime backdrop-filter
+       sampling, and background-attachment:fixed rasterizes at element
+       scale inside composited scrollers (the aurora painted at cell scale
+       in the reproduction, reading as a distinctly dark strip). Structural
+       fix: TWO-PANE layout — a fixed habit-name pane (div.matrix-names)
+       OUTSIDE the horizontal scroller paints NOTHING (glass card shows
+       through, identical to the date columns; continuity by construction;
+       scrolled cells structurally cannot reach it), the scrolling table
+       holds only the date columns (min-w-[300px] preserves phone column
+       widths); hairline border-right divider, 40px locked row heights on
+       both panes so dividers align, per-cell isolation:isolate kept, no
+       sticky/occlusion/z-order needed; auto-reveal feeds the pane width to
+       revealColumnScroll (frozen math) as the sticky-zone width; cells
+       prefix the habit name in their aria-labels (two tables → no shared
+       row headers); (d) numeric progress in cells —
+       numeric
+       chips render a bottom-to-top habit-color fill (value/target clamped
+       0–100 via numericCellProgress) with the value/target label as a
+       CENTERED foreground overlay (exact chip center, z-20 above the fill;
+       9px semibold tabular-nums in theme-aware text-fg — never the habit
+       color — with a soft bg-base text-shadow halo for readability over
+       tint/fill in all themes; label shows at 0%, partial, completion
+       ("9/9" replaces the checkmark when it fits) and over-target
+       ("12/9"); >5-char labels are omitted, exact numbers in tooltip/aria,
+       and the check/dot glyph yields whenever the label shows; zero =
+       honest "0/9", missing/invalid = no fill; booleans unchanged);
+       (d2) 0/target display fallback — untouched pending numerics render
+       "0/target" via numericCellDisplayValue exactly like a recorded zero
+       (pure display: no entry created, nothing marked done, the value
+       editor still prefills empty from the stored value); skipped/
+       vacation/unscheduled/future/before-start appearances unchanged; (e)
+       selected-date auto-reveal — useEffect keyed only on the selected
+       date applies revealColumnScroll (minimum distance, sticky-aware,
+       clamped) with smooth scrolling unless prefers-reduced-motion; entry
+       updates and manual scrolling never trigger it.
      - **UI 2.0 Stage 1B — Today visual hierarchy & spacing (2026-11-17,
        presentation-only):** hero — `break-words` on the mobile caption +
        motivational line, desktop motivational clamped to 2 lines (matches

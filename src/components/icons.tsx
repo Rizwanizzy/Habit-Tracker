@@ -380,3 +380,12 @@ export function IconEyeOff({ className }: { className?: string }) {
     </svg>
   )
 }
+export function IconInfo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5" />
+      <circle cx="12" cy="7.5" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}

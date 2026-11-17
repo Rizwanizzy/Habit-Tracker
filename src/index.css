@@ -1458,6 +1458,68 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   backdrop-filter: none !important;
 }
 
+/* Ring explainer popover layering (Today hero card): both bento cards create
+   their own stacking contexts (backdrop-filter on .glass-card), so as the
+   EARLIER sibling the hero card paints entirely before the completion card
+   that follows it — the explainer popover's internal z-30 only ranks inside
+   its own card's context and is painted UNDER the heatmap no matter how high
+   it goes. The real fix is at the sibling level: while the popover is open
+   (RingExplainer sets .ring-explainer-open on its root), lift the hero card
+   itself above its siblings. Scoped to the open state so sibling paint order
+   is untouched the rest of the time; position:relative is required for the
+   z-index to apply (the section is otherwise static). */
+.glass-card:has(.ring-explainer-open) {
+  position: relative;
+  z-index: 30;
+}
+
+/* ---------------------------------------------------------------------------
+   Weekly habit matrix (UI 2.0 Stage 2). TWO-PANE layout — a fixed habit-name
+   pane beside a horizontally scrolling date-columns table.
+
+   Root cause of the recurring "dark sidebar" (investigated over four paint
+   attempts): position:sticky name cells must paint an OPAQUE backing
+   (translucent/blur backings let scrolled cells bleed through), and NO
+   opaque tone can reliably match the card's live render — the glass card
+   computes its tone by backdrop-filtering the page at runtime, and
+   background-attachment:fixed (which the page+aurora+surface reproduction
+   depended on) rasterizes at element scale inside composited scrollers
+   instead of sampling the viewport like the card's backdrop does. Flat
+   tokens and the recipe reproduction both rendered visibly darker.
+
+   Structural fix: the name pane paints NOTHING and sits directly on the
+   glass card exactly like the date columns — visual continuity by
+   construction — while living OUTSIDE the scroller, so scrolled date cells
+   and their numeric labels can structurally never reach the names (no
+   sticky, no occlusion layer, no z-index games, no guessed colors).
+   Divider = hairline right border on the names pane. Row heights are
+   locked on both panes so the row dividers align. Every cell keeps its
+   isolation:isolate stacking context (chip layers stay atomic). Row
+   separation = hairline dividers on every tbody cell.
+--------------------------------------------------------------------------- */
+.matrix-names {
+  /* Hairline separating the frozen names from the scrolling date columns. */
+  border-right: 1px solid var(--border);
+}
+/* Locked row heights on BOTH panes so the row dividers align: the 32px
+   chip + 8px padding drive the date rows at 40px; names stay within it. */
+.matrix-table thead tr,
+.matrix-table tbody tr {
+  height: 2.5rem;
+}
+.matrix-table thead th,
+.matrix-table tbody th,
+.matrix-table tbody td {
+  border-bottom: 1px solid var(--border);
+  /* Atomic-cell stacking (kept from the stacking fix): contains each cell's
+     positioned children in their own context at z:auto. */
+  isolation: isolate;
+}
+.matrix-table tbody tr:last-child th,
+.matrix-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 /* ---------------------------------------------------------------------------
    Emoji picker (emoji-picker-react v5) in the habit form. The library injects
    its stylesheet at runtime, so each override is scoped with
