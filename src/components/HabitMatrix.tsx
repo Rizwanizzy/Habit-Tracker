@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { Link } from 'react-router-dom'
 import { useThemeName } from '../hooks/useThemeName'
 import { readableColor } from '../lib/color'
 import {
@@ -7,6 +8,7 @@ import {
   matrixCellAction,
   matrixCellLabel,
   matrixDateLabel,
+  matrixNameKeyAction,
   matrixNamePaneStyle,
   numericCellDisplayValue,
   numericCellProgress,
@@ -30,7 +32,10 @@ import { IconCheck, IconMoon, IconSkip } from './icons'
  *  Interaction rules (see lib/habitMatrix.ts): boolean done↔pending toggle
  *  (repeated click undoes), numeric cells open the inline value editor
  *  (never auto-completed), skipped cells undo the skip, vacation /
- *  unscheduled / before-start / future cells stay read-only.
+ *  unscheduled / before-start / future cells stay read-only. The habit-name
+ *  cell (icon + name) is a link to the same Habit Detail route the Today
+ *  tiles use — one accessible target per row — while date cells never
+ *  navigate.
  *
  *  Visuals (Aurora Glass): habit-colored rounded-square chips — done = solid
  *  habit color + readable check; pending = subtle habit tint + hairline ring
@@ -276,7 +281,7 @@ export function HabitMatrix({ data, onToggle, onLogValue, onSkip, nameWidth }: P
             <tbody>
               {rows.map(({ habit }) => (
                 <tr key={habit.id}>
-                  <th scope="row" className="p-2 pr-3 text-left align-middle font-normal">
+                  <th scope="row" className="relative p-2 pr-3 text-left align-middle font-normal">
                     <span className="flex min-w-0 items-center gap-2">
                       {habit.emoji ? (
                         <span aria-hidden="true" className="grid size-5 shrink-0 place-items-center text-[13px] leading-none">
@@ -293,6 +298,29 @@ export function HabitMatrix({ data, onToggle, onLogValue, onSkip, nameWidth }: P
                         {habit.name}
                       </span>
                     </span>
+                    {/* Whole name cell = link to the habit's Habit Detail — the
+                        SAME route the Today tiles use (/habits/:id), so Matrix
+                        and Tiles navigate identically (icon and name are one
+                        target). The overlay is transparent, paints above the
+                        static name content and occupies no box of its own
+                        (absolute inset-0), so the locked 40px row height, the
+                        pane width, the truncation and the typography are all
+                        unchanged; the focus ring is the shared box-shadow ring
+                        (zero layout impact). Date cells live in the other pane
+                        and keep their check-in / value-editor behavior only. */}
+                    <Link
+                      to={`/habits/${habit.id}`}
+                      title={habit.name}
+                      aria-label={`View ${habit.name} overview`}
+                      onKeyDown={(e) => {
+                        // Anchors activate on Enter natively; Space is handled
+                        // here so the cell matches the Tiles for keyboard users.
+                        if (matrixNameKeyAction(e.key) !== 'space') return
+                        e.preventDefault()
+                        e.currentTarget.click()
+                      }}
+                      className="absolute inset-0 rounded-[6px] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+                    />
                   </th>
                 </tr>
               ))}

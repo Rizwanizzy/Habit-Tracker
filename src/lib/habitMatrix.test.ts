@@ -4,6 +4,7 @@ import {
   matrixCaption,
   matrixCellAction,
   matrixCellLabel,
+  matrixNameKeyAction,
   numericCellDisplayValue,
   numericCellProgress,
   revealColumnScroll,
@@ -551,5 +552,21 @@ describe('Matrix diagnostic code removal', () => {
 
     // Core exports must still be present
     expect(module.HabitMatrix).toBeDefined()
+  })
+})
+
+describe('matrixNameKeyAction — habit-name cell keyboard activation', () => {
+  it('Enter activates natively (the name cell is an anchor)', () => {
+    expect(matrixNameKeyAction('Enter')).toBe('native')
+  })
+
+  it('Space is handled explicitly (anchors do not activate on Space)', () => {
+    expect(matrixNameKeyAction(' ')).toBe('space')
+  })
+
+  it('every other key is a no-op (no navigation side effects)', () => {
+    for (const key of ['a', 'Tab', 'Escape', 'ArrowRight', 'Space', '']) {
+      expect(matrixNameKeyAction(key)).toBeNull()
+    }
   })
 })

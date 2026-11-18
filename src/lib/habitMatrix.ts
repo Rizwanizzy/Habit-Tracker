@@ -319,6 +319,19 @@ export function matrixNamePaneStyle(level: number): { width?: string; maxWidth?:
   }
 }
 
+/** Keyboard parity for the interactive habit-name cell (Matrix ↔ Tiles):
+ *  the name cell is an anchor, so Enter activates it natively; Space is NOT
+ *  an anchor activation key, so the cell handles it explicitly (prevent the
+ *  page scroll, then click the same link). Pure and React-free so the
+ *  contract stays unit-tested. */
+export type MatrixNameKeyAction = 'native' | 'space' | null
+
+export function matrixNameKeyAction(key: string): MatrixNameKeyAction {
+  if (key === 'Enter') return 'native'
+  if (key === ' ') return 'space'
+  return null
+}
+
 /** Selected-date reveal geometry (pure, unit-testable): given the matrix
  *  scroll container's state and the selected column's content-space rect,
  *  return the scrollLeft that makes the WHOLE column visible — counting the
