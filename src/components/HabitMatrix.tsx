@@ -417,6 +417,7 @@ function MatrixCellView({
   const c = habit.color ?? '#3B82F6'
   const action = matrixCellAction(cell, habit)
   const label = cellAriaLabel(cell, habit)
+  const cellRef = useRef<HTMLButtonElement>(null)
 
   // Numeric progress (Stage 2 final refinements): numeric cells render a
   // bottom-to-top habit-color fill (value/target, clamped 0–100) with the
@@ -433,6 +434,16 @@ function MatrixCellView({
   const showLabel = numeric?.label != null
   const glyph = cellGlyph(cell, showLabel)
 
+  // Escape cancels editing without saving. Close the editor first, then restore
+  // focus to the originating matrix cell so a keyboard user does not lose their
+  // place in the grid. setTimeout defers the focus until after React has
+  // re-mounted the cell button; focus() on an already-visible cell does not
+  // scroll the document.
+  const handleCancel = () => {
+    onCloseEditor()
+    setTimeout(() => cellRef.current?.focus(), 0)
+  }
+
   if (editing) {
     return (
       <td className={`p-1 text-center ${cell.selected ? 'bg-accent/[0.08]' : ''}`}>
@@ -443,7 +454,7 @@ function MatrixCellView({
             onLogValue(habit, v, cell.date)
             onCloseEditor()
           }}
-          onCancel={onCloseEditor}
+          onCancel={handleCancel}
         />
       </td>
     )
@@ -483,6 +494,7 @@ function MatrixCellView({
     <td className={`p-1 text-center ${cell.selected ? 'bg-accent/[0.08]' : ''}`}>
       {action ? (
         <button
+          ref={cellRef}
           type="button"
           onClick={
             action === 'toggle'

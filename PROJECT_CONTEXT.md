@@ -54,7 +54,7 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 npm run dev     # dev server — vite --host 0.0.0.0 --port 3000 (NOT 5173)
 npm run build   # tsc -b && vite build
 npm start       # node server.js — plain static SPA server (Cloud Run deploy route, not used day-to-day)
-npm test        # vitest run — currently 618/618 tests in 38 files, all green
+npm test        # vitest run — currently 625/625 tests in 39 files, all green
 npm run lint    # oxlint
 npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets.config.js)
 ```
@@ -126,8 +126,9 @@ src/
     useScheduleHistory.ts Stage 4A schedule epochs per habit from habit_schedule_history
                          (RLS SELECT-only, capability-probe gated, `schedule-reload`
                          window event; exposes epochsByHabit/loading/error)
-  lib/                  pure logic + their unit tests (38 test files / 618 tests
-                        overall, including components/HabitMatrix.test.tsx)
+  lib/                  pure logic + their unit tests (39 test files / 625 tests
+                        overall, including components/HabitMatrix.test.tsx and
+                        components/WeekStrip.test.tsx)
     review.ts           Performance Review analysis engine (getCompletedWeekRange, getCompletedMonthRange,
                         getCompletedYearRange, calculatePeriodReview, calculateMonthlyWeeklyBreakdown,
                         calculateYearlyMonthlyBreakdown, generateActionableInsights)
@@ -502,6 +503,18 @@ creates every table above including the post-release `entries.status`, `profiles
   on the same row; the note is never truncated and wraps naturally when space is tight.
   Mobile: compact two-row header, landscape hero summary card, view toggle below the
   summary, floating dock with FAB.
+
+  **Today UI 2.0 — COMPLETE (2026-11-18):** Week Strip + date navigation; Tiles↔Matrix
+  switching preserving selected date and check-ins; Matrix boolean toggle + numeric value
+  editor (Escape cancels and restores focus to the originating cell); Matrix habit-name →
+  Habit Detail navigation while date cells never navigate; Matrix name-width levels 1–4;
+  Ring Explainer; responsive Tiles and Habit Detail improvements; High Contrast mobile
+  overflow fix; shared Matrix row-height alignment (40/40 rows, zero delta); Stage 4
+  accessibility & consistency fixes — selected-strip-button border removed so height is
+  identical across all 7 themes, date-selection uses `aria-current`/label instead of
+  `aria-pressed`, and the numeric editor restores focus on cancel. Final QA sign-off:
+  625/625 tests across 39 files, `tsc -b` clean, production build clean, lint 0 errors,
+  and 29/29 manual QA checks passed across all widths, themes and states.
 - **Overview** — RangeSwitch 30/90/365; StatTile row (avg score + delta chip, best habit,
   needs attention — both drill into `/habits/:id`); ScoreLineChart card with habit toggle
   chips, habit-color lines with static halo glow `<Line>`, glass tooltip, Top 5 / All / None

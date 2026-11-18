@@ -79,11 +79,11 @@ export function WeekStrip({ cells, onSelect }: Props) {
             }}
             disabled={disabled}
             tabIndex={i === rovingIdx ? 0 : -1}
-            aria-pressed={cell.selected}
             aria-current={cell.isToday ? 'date' : undefined}
             aria-label={`${weekStripLabel(cell)}${cell.isToday ? ', today' : ''}${cell.selected ? ', selected' : ''}`}
             onClick={() => onSelect(cell.date)}
             onKeyDown={(e) => onKeyDown(e, i)}
+            style={cell.selected ? { border: 'none' } : undefined}
             className={`relative flex min-w-0 flex-col items-center gap-0.5 rounded-xl px-0 py-1.5 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
               cell.selected ? 'bg-surface-raised ring-1 ring-accent' : dimmed ? '' : 'hover:bg-surface-raised/60'
             } ${dimmed ? 'opacity-55' : ''} ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}

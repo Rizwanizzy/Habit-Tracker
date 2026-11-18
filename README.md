@@ -42,8 +42,8 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
   dock's width; removing it (the opaque black background already makes the
   blur visually irrelevant) and removing the matching HC-only
   `.app-shell`/`.mobile-dock` layout overrides makes High Contrast share
-  the exact same layout as Dark — only color tokens differ. Physical
-  device verification pending.
+  the exact same layout as Dark — only color tokens differ. Verified on
+  iPhone Safari and Android Chrome.
 - **Matrix habit names open Habit Detail** — in Today → Matrix, tapping a
   habit's icon or name (the whole fixed left-column cell is one link) opens
   that habit's Habit Detail page, exactly like tapping a tile in the Tiles
