@@ -51,6 +51,16 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
   editor) and never navigate. The overlay adds no box, so row heights,
   column widths, name-width levels 1–4, truncation and both panes'
   scrolling are unchanged.
+- **Matrix row alignment** — the fixed habit-name pane and the horizontally
+  scrolling date pane are two separate tables, and the old
+  `tr { height: 2.5rem }` was only a minimum: the date cells (32px chip + 8px
+  padding + 1px border = 41px) were 1px taller than the name cells, so the
+  first row lined up and every later row drifted another pixel. Both panes now
+  read one shared `--matrix-row-h` applied to their header and habit rows and
+  cells (border-box), and the row dividers are inset shadows instead of
+  borders, so no border can add height. Every row measures 40px in both panes
+  on desktop, iPhone and Android, at name widths 1–4 and with the numeric
+  editor open.
 
 ## Tech stack
 

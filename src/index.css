@@ -1547,23 +1547,41 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   /* Hairline separating the frozen names from the scrolling date columns. */
   border-right: 1px solid var(--border);
 }
-/* Locked row heights on BOTH panes so the row dividers align: the 32px
-   chip + 8px padding drive the date rows at 40px; names stay within it. */
+/* SHARED ROW SIZING — single source of truth for BOTH panes (they are two
+   separate tables, so nothing else makes them agree).
+   --matrix-row-h is the rendered height of the header row and of every habit
+   row; the cells carry it as an explicit border-box height so neither pane's
+   content can make its rows taller than the other pane's.
+   The row divider is an INSET shadow, not `border-bottom`: a real border adds
+   1px to the cell's intrinsic height, and the date cells (32px chip + 8px
+   padding + 1px border = 41px) already exceeded the 40px row height while the
+   name cells (floored by that same 40px) did not — so date rows were 41px and
+   name rows 40px, drifting 1px per habit row (first row aligned, every later
+   row 1px lower, on every theme, viewport and name-width level). A shadow is
+   painted inside the cell box, so the hairline looks identical and adds no
+   height. Content stays within the budget: chip 32px + 8px padding = 40px
+   (numeric editor input is also 32px), name line 19.5px + 16px padding. */
+.matrix-table {
+  --matrix-row-h: 2.5rem;
+}
 .matrix-table thead tr,
 .matrix-table tbody tr {
-  height: 2.5rem;
+  height: var(--matrix-row-h);
 }
 .matrix-table thead th,
 .matrix-table tbody th,
 .matrix-table tbody td {
-  border-bottom: 1px solid var(--border);
+  height: var(--matrix-row-h);
+  box-sizing: border-box;
+  /* Hairline divider drawn INSIDE the cell: no layout contribution. */
+  box-shadow: inset 0 -1px 0 var(--border);
   /* Atomic-cell stacking (kept from the stacking fix): contains each cell's
      positioned children in their own context at z:auto. */
   isolation: isolate;
 }
 .matrix-table tbody tr:last-child th,
 .matrix-table tbody tr:last-child td {
-  border-bottom: none;
+  box-shadow: none;
 }
 
 /* ---------------------------------------------------------------------------

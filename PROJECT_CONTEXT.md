@@ -54,15 +54,17 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 npm run dev     # dev server — vite --host 0.0.0.0 --port 3000 (NOT 5173)
 npm run build   # tsc -b && vite build
 npm start       # node server.js — plain static SPA server (Cloud Run deploy route, not used day-to-day)
-npm test        # vitest run — currently 612/612 tests in 37 files, all green
+npm test        # vitest run — currently 618/618 tests in 38 files, all green
 npm run lint    # oxlint
 npm run icons   # regenerate PWA icons/favicons from public/logo.png (pwa-assets.config.js)
 ```
 
 - Local dev needs `.env.local` (NOT committed): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-- `vite.config.ts` sets server/preview `port: 3000`, `allowedHosts: true`, and a Vitest
+- `vite.config.ts` sets server/preview `port: 3000`, `allowedHosts: true`, a Vitest
   `test.exclude` of `**/node_modules/**`, `**/.kilo/**`, `**/dist/**` so nested tool
-  worktrees never run under `npm test`. Keep that exclude if `.kilo/` reappears.
+  worktrees never run under `npm test`, and `test.css: true` so `?raw` stylesheet
+  imports resolve to the real file (Vitest stubs CSS otherwise — `matrixLayout.test.ts`
+  guards the Matrix row-sizing contract that way). Keep that exclude if `.kilo/` reappears.
 - Run `npm test` AND `npm run build` after every change; fix failures before finishing.
 
 ## 5. Deployment
@@ -124,7 +126,7 @@ src/
     useScheduleHistory.ts Stage 4A schedule epochs per habit from habit_schedule_history
                          (RLS SELECT-only, capability-probe gated, `schedule-reload`
                          window event; exposes epochsByHabit/loading/error)
-  lib/                  pure logic + their unit tests (37 test files / 612 tests
+  lib/                  pure logic + their unit tests (38 test files / 618 tests
                         overall, including components/HabitMatrix.test.tsx)
     review.ts           Performance Review analysis engine (getCompletedWeekRange, getCompletedMonthRange,
                         getCompletedYearRange, calculatePeriodReview, calculateMonthlyWeeklyBreakdown,
@@ -296,8 +298,12 @@ src/
                         columns, continuity by construction; scrolled cells and
                         numeric labels structurally cannot reach it (no sticky,
                         no occlusion, no guessed colors); hairline border-right
-                        divider, 40px locked row heights on both panes,
-                        per-cell isolation:isolate kept; auto-reveal feeds the
+                        divider, ONE shared row height (`--matrix-row-h`,
+                        2.5rem) applied to both panes' header and habit rows and
+                        to their cells (border-box), hairline row dividers drawn
+                        as `box-shadow: inset 0 -1px 0 var(--border)` so no
+                        border can add height, per-cell isolation:isolate kept;
+                        auto-reveal feeds the
                         pane width to revealColumnScroll as sticky-zone width; selected column auto-revealed on selection change /
                         matrix mount (revealColumnScroll, smooth unless reduced
                         motion); done cells toggle via the existing Today handlers,
@@ -912,6 +918,36 @@ creates every table above including the post-release `entries.status`, `profiles
        habit to its own route, date cells contain no links and keep their
        existing aria labels) + `matrixNameKeyAction` unit tests → 612 passed,
        tsc clean, build clean, lint clean.
+      - **Matrix row alignment across both panes (2026-11-18):** the fixed
+        habit-name pane and the scrolling date pane drifted apart — the header
+        lined up but every later row sat another 1px lower (7 habits = 6px by
+        the last row). Root cause (measured in headless Chrome; identical on
+        desktop 1280, iPhone 402 and Android 360, name widths 1 and 4): the two
+        panes are SEPARATE tables and `tr { height: 2.5rem }` is only a
+        MINIMUM. Name cells (`p-2`: 8 + 19.5 + 8 + 1px border = 36.5px) were
+        floored to 40px, date cells (`p-1` + 32px chip + 1px border = 41px)
+        exceeded it, so every date row was 41px while its name row stayed 40px
+        — 1px of cumulative drift per row. Fix (CSS only, `src/index.css`):
+        `--matrix-row-h: 2.5rem` on `.matrix-table` is now the single row-height
+        definition, applied to `thead tr`/`tbody tr` AND to `thead th`/
+        `tbody th`/`tbody td` with `box-sizing: border-box`; the row divider
+        became `box-shadow: inset 0 -1px 0 var(--border)` (painted inside the
+        cell — identical hairline, zero layout height; the last row keeps
+        `box-shadow: none`). No per-row transforms, negative margins, offsets,
+        JS measurement, ResizeObserver or sync effects. Names still truncate,
+        the 32px numeric editor still fits (4 + 32 + 4 = 40px), name widths
+        1–4 and both panes' scrolling are untouched. Verified in 10 configs
+        (dark/light/high-contrast × desktop/iPhone/Android × name width 1/4 ×
+        numeric editor open): every header and habit row is 40px/40px with a
+        top and bottom delta of 0 for all 8 rows (was 40/41 with 0…6px), and
+        both tables end at the same y; the card is 368→362px (desktop) /
+        352→346px (mobile) because the 7 phantom pixels are gone. Regression
+        guards: new `src/lib/matrixLayout.test.ts` (CSS contract through a
+        `?raw` stylesheet import; `test.css: true` added to `vite.config.ts` so
+        Vitest returns the real file instead of an empty stub) plus two markup
+        tests in `HabitMatrix.test.tsx` (both panes render as `.matrix-table`,
+        no inline per-row heights) → 618 passed, tsc clean, build clean, lint
+        0 errors. No physical-device test performed.
      - **UI 2.0 Stage 1B — Today visual hierarchy & spacing (2026-11-17,
        presentation-only):** hero — `break-words` on the mobile caption +
        motivational line, desktop motivational clamped to 2 lines (matches

@@ -94,3 +94,18 @@ describe('HabitMatrix — date cells never navigate', () => {
     expect(html).toContain(`aria-label="${`Run — ${matrixCellLabel(data.rows[0].cells[4])}`}"`)
   })
 })
+
+describe('HabitMatrix — row alignment plumbing', () => {
+  it('both panes render as .matrix-table, which carries the shared row height', () => {
+    const tables = [...html.matchAll(/<table class="([^"]*)"/g)].map((m) => m[1])
+    expect(tables).toHaveLength(2) // fixed names pane + scrolling dates pane
+    for (const cls of tables) expect(cls).toContain('matrix-table')
+  })
+
+  it('name rows are the same table rows that get the shared height (no per-row sizing)', () => {
+    // Every habit renders exactly one <tr> in each pane, none with inline height.
+    const bodyRows = [...html.matchAll(/<tr([^>]*)>/g)].filter((m) => !m[1].includes('</'))
+    expect(bodyRows.length).toBeGreaterThanOrEqual(data.rows.length * 2)
+    expect(html).not.toMatch(/<tr[^>]*style="[^"]*height/)
+  })
+})

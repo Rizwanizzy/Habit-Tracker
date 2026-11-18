@@ -15,6 +15,9 @@ export default defineConfig({
     allowedHosts: true,
   },
   test: {
+    // Process CSS imports so `?raw` stylesheet imports return the real file
+    // (matrixLayout.test.ts guards the shared Matrix row-sizing contract).
+    css: true,
     // Don't run other tools' worktree snapshots nested in this folder
     // (e.g. .kilo/worktrees/*/src/**) — only this project's own tests count.
     exclude: ['**/node_modules/**', '**/.kilo/**', '**/dist/**'],
