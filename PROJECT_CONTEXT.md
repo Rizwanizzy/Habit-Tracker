@@ -4,7 +4,7 @@
 > understanding of this project — concept, stack, architecture, data model, features, and
 > conventions. It describes **what is true right now**; the per-pass history lives in
 > `CHANGELOG.md`. **Update this file after every completed task** (AGENTS.md rule 11).
-> Last updated: 2026-11-18
+> Last updated: 2026-11-19
 
 ## 1. What this project is
 
@@ -319,19 +319,47 @@ src/
                         overlay adds no box, so row height/truncation/typography are
                         unchanged and the focus ring is the shared box-shadow ring).
                         DATE cells never navigate: they stay check-in / value-editor
-                        only.
+                        only. Long-press (500 ms, 10 px slop) or right-click on a
+                        pending/skipped chip opens MatrixCellMenu (body portal,
+                        fixed) with Skip this day / Remove skip / Cancel; done,
+                        future, vacation, unscheduled and before-start chips stay
+                        read-only; ContextMenu/Shift+F10 opens it, Escape restores
+                        focus, outside pointerdown / scroll / resize dismiss
+                        (pointerdown avoids the synthetic mousedown a touch lift
+                        would replay), and the popup adds no layout box.
+                        Row reordering: the first column is
+                        `[six-dot handle] [emoji / colour dot] [name]` (18 px
+                        grip in a 24×28 button with a ~32×40 hit pad, 22 px
+                        emoji, 14 px name, locked 40 px row). Only the handle is
+                        a dnd-kit sortable activator (MouseSensor 5 px,
+                        TouchSensor 350 ms/8 px long-press, KeyboardSensor with
+                        sortableKeyboardCoordinates; Space/Enter, arrows, Escape;
+                        habit-name a11y announcements). The full-cell Link still
+                        opens /habits/:id. On drop moveHabit(full active list)
+                        feeds Today's optimistic reorderHabits, so both panes and
+                        Tiles reorder and survive reload; habits hidden by the
+                        Scheduled filter keep their relative order. Level-1 pane
+                        minimum is 8.75rem and levels 2–4 add 2.5rem + one date
+                        column per step, so the handle does not steal name space
+                        while the 1→4 progression stays monotonic at 320 px.
                         Name-width stepper (UI 2.0 refinement): the existing
                         density pill is reused in Matrix mode as "Habit names"
                         (level 1–4, Tiles keeps "Per row" 1–6 independently).
-                        Level 1 = production pane; each level adds one date-column
-                        width (300px/7 ≈ 43px) via `matrixNamePaneStyle(level)`
-                        (pure, habitMatrix.ts) — responsive max-width guarantees
-                        at least one full date column at 320px; auto-reveal
+                        Level 1 = production pane (8.75rem minimum keeps the
+                        handle allowance); levels 2–4 add one date-column width
+                        (300px/7 ≈ 43px) plus a 2.5rem handle allowance per step
+                        via `matrixNamePaneStyle(level)` (pure, habitMatrix.ts) —
+                        responsive max-width guarantees at least one full date
+                        column at 320px and the 1→4 widths stay monotonic there; auto-reveal
                         recomputes on width changes. "Habits" header in the
                         names pane's thead aligns with weekday row, no height
                         change. Markup test: HabitMatrix.test.tsx (one link per
                         habit row to its own /habits/:id, date cells emit no
                         links and keep their existing aria labels).
+    MatrixCellMenu.tsx  compact long-press / right-click cell popup (Skip this
+                        day / Remove skip / Cancel; fixed, portalled to body,
+                        anchored from the chip rect; Escape / outside
+                        pointerdown / scroll / resize dismiss)
     RingExplainer.tsx   UI 2.0 Stage 2: card-anchored info overlay in the hero
                         card's top-right empty space + glass popover ("How
                         progress rings work"; Escape/outside-click dismiss;
@@ -383,7 +411,7 @@ src/
                          resend = another recovery request, single-flight guards) — used
                          by ResetPassword
     RecoverySuccessCard.tsx final "Password updated" card (no other-device claims)
-    icons.tsx           all inline SVG icons (+ IconEye/IconEyeOff)
+    icons.tsx           all inline SVG icons (+ IconEye/IconEyeOff/IconGrip)
   pages/
     Today.tsx           bento: header + date pill, hero rings, completion card, tiles
     Overview.tsx        stat tiles + Score / Completion % chart with Top 5 / All / None filters & click-to-isolate
@@ -504,17 +532,22 @@ creates every table above including the post-release `entries.status`, `profiles
   Mobile: compact two-row header, landscape hero summary card, view toggle below the
   summary, floating dock with FAB.
 
-  **Today UI 2.0 — COMPLETE (2026-11-18):** Week Strip + date navigation; Tiles↔Matrix
-  switching preserving selected date and check-ins; Matrix boolean toggle + numeric value
-  editor (Escape cancels and restores focus to the originating cell); Matrix habit-name →
-  Habit Detail navigation while date cells never navigate; Matrix name-width levels 1–4;
-  Ring Explainer; responsive Tiles and Habit Detail improvements; High Contrast mobile
-  overflow fix; shared Matrix row-height alignment (40/40 rows, zero delta); Stage 4
+  **Today UI 2.0 — COMPLETE (2026-11-18; Matrix interaction pass 2026-11-19):** Week Strip +
+  date navigation; Tiles↔Matrix switching preserving selected date and check-ins; Matrix
+  boolean toggle + numeric value editor (Escape cancels and restores focus to the
+  originating cell); Matrix long-press/right-click skip popup (Skip this day / Remove skip /
+  Cancel; read-only on done/future/vacation/unscheduled/before-start); Matrix first column
+  `[six-dot handle] [emoji] [name]` with handle-only long-press/keyboard row reordering
+  (both panes + Tiles stay in sync, persisted, hidden habits keep relative order); Matrix
+  habit-name → Habit Detail navigation while date cells never navigate; Matrix name-width
+  levels 1–4; Ring Explainer; responsive Tiles and Habit Detail improvements; High Contrast
+  mobile overflow fix; shared Matrix row-height alignment (40/40 rows, zero delta); Stage 4
   accessibility & consistency fixes — selected-strip-button border removed so height is
   identical across all 7 themes, date-selection uses `aria-current`/label instead of
-  `aria-pressed`, and the numeric editor restores focus on cancel. Final QA sign-off:
-  625/625 tests across 39 files, `tsc -b` clean, production build clean, lint 0 errors,
-  and 29/29 manual QA checks passed across all widths, themes and states.
+  `aria-pressed`, and the numeric editor restores focus on cancel. Verification: 635/635
+  tests across 39 files, `tsc -b` clean, production build clean, lint 0 errors; headless
+  browser QA at 320/375/390/430/1280 px across all 7 themes, plus mouse/touch/keyboard
+  reorder, reload persistence and numeric/date/detail interactions.
 - **Overview** — RangeSwitch 30/90/365; StatTile row (avg score + delta chip, best habit,
   needs attention — both drill into `/habits/:id`); ScoreLineChart card with habit toggle
   chips, habit-color lines with static halo glow `<Line>`, glass tooltip, Top 5 / All / None

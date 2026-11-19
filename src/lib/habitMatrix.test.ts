@@ -4,6 +4,7 @@ import {
   matrixCaption,
   matrixCellAction,
   matrixCellLabel,
+  matrixCellMenuAction,
   matrixNameKeyAction,
   numericCellDisplayValue,
   numericCellProgress,
@@ -331,6 +332,67 @@ describe('habitMatrix — cell actions (interactive refinement)', () => {
     const cells = buildCells(booleanHabit, [entry('2026-01-07')], { vacations: ['2026-01-07'] })
     expect(cells[2].state).toBe('done')
     expect(matrixCellAction(cells[2], booleanHabit)).toBe('toggle')
+  })
+})
+
+describe('habitMatrix — long-press skip popup eligibility (Task 1)', () => {
+  const booleanHabit = habit({ id: 'b', type: 'boolean' })
+  const numericHabit = habit({ id: 'n', type: 'numeric', target: 8, unit: 'glasses' })
+  const buildCells = (h: Habit, entries: Entry[] = [], overrides = {}) =>
+    build({
+      habits: [h],
+      entriesByHabit: { [h.id]: entries },
+      epochsByHabit: { [h.id]: [epoch()] },
+      ...overrides,
+    }).rows[0].cells
+
+  it('a pending boolean day can be skipped from the popup', () => {
+    const cells = buildCells(booleanHabit)
+    expect(matrixCellMenuAction(cells[1])).toBe('skip')
+  })
+
+  it('a pending numeric day BELOW target can be skipped (partial handling preserved)', () => {
+    // Below-target numeric rows are 'pending' — never auto-completed, but the
+    // neutral-day popup still applies.
+    const cells = buildCells(numericHabit, [entry('2026-01-06', 3)])
+    expect(cells[1].state).toBe('pending')
+    expect(matrixCellMenuAction(cells[1])).toBe('skip')
+  })
+
+  it('an existing skip offers Remove skip', () => {
+    const cells = buildCells(booleanHabit, [entry('2026-01-06', 0, 'skipped')])
+    expect(matrixCellMenuAction(cells[1])).toBe('unskip')
+  })
+
+  it('done days never offer skip — a done numeric day is not downgraded', () => {
+    const doneBool = buildCells(booleanHabit, [entry('2026-01-05')])
+    expect(matrixCellMenuAction(doneBool[0])).toBeNull()
+    const doneNumeric = buildCells(numericHabit, [entry('2026-01-05', 8)])
+    expect(doneNumeric[0].state).toBe('done')
+    expect(matrixCellMenuAction(doneNumeric[0])).toBeNull()
+  })
+
+  it('future, vacation, unscheduled and before-start days stay read-only', () => {
+    const cells = buildCells(booleanHabit, [], { vacations: ['2026-01-07'], today: '2026-01-08' })
+    expect(matrixCellMenuAction(cells[2])).toBeNull() // vacation
+    expect(matrixCellMenuAction(cells[4])).toBeNull() // future
+    const lateHabit = habit({ id: 'late', created_at: '2026-01-07' })
+    const late = buildCells(lateHabit, [], {
+      epochsByHabit: { late: [epoch({ effective_from: '2026-01-07' })] },
+    })
+    expect(matrixCellMenuAction(late[0])).toBeNull() // before-start
+    const intervalHabit = habit({
+      id: 'i',
+      schedule_type: 'interval',
+      interval_days: 3,
+      created_at: '2026-01-05',
+    })
+    const interval = buildCells(intervalHabit, [], {
+      epochsByHabit: {
+        i: [epoch({ schedule_type: 'interval', interval_days: 3, effective_from: '2026-01-05' })],
+      },
+    })
+    expect(matrixCellMenuAction(interval[1])).toBeNull() // unscheduled
   })
 })
 

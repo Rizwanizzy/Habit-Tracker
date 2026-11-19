@@ -389,3 +389,17 @@ export function IconInfo({ className }: { className?: string }) {
     </svg>
   )
 }
+
+/** Six-dot drag handle (Matrix row reordering). */
+export function IconGrip({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...base} aria-hidden="true">
+      <circle cx="9" cy="5.5" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="5.5" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18.5" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18.5" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}

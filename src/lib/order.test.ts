@@ -66,6 +66,18 @@ describe('moveHabit', () => {
   it('returns a new array when the order actually changes', () => {
     expect(moveHabit(list, 'a', 'd')).not.toBe(list)
   })
+
+  it('reorders visible habits in the FULL list without disturbing hidden ones’ relative order', () => {
+    // Scheduled filter: only a/c/e are visible; b/d/f are hidden. Dragging the
+    // visible 'e' onto the visible 'a' must reorder within the full list, so
+    // hidden habits keep their order relative to each other (b before d before f).
+    const full = ['a', 'b', 'c', 'd', 'e', 'f'].map((id, i) => h(id, i + 1))
+    const visible = ['a', 'c', 'e']
+    const moved = moveHabit(full, 'e', 'a').map((x) => x.id)
+    expect(moved).toEqual(['e', 'a', 'b', 'c', 'd', 'f'])
+    const hidden = (ids: string[]) => ids.filter((id) => !visible.includes(id))
+    expect(hidden(moved)).toEqual(['b', 'd', 'f'])
+  })
 })
 
 describe('diffOrder', () => {

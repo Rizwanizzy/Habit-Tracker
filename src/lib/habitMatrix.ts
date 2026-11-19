@@ -89,6 +89,23 @@ export function matrixCellAction(cell: MatrixCell, habit: Habit): MatrixCellActi
   }
 }
 
+/** Long-press / right-click menu action for a date cell (Task 1). The compact
+ *  popup only offers the neutral-day control the app already permits (rule 9):
+ *  - 'skip'    a PENDING day (boolean, or a numeric day below target — a done
+ *              numeric cell is never downgraded, so no menu there);
+ *  - 'unskip'  an existing skipped day (remove the neutral row);
+ *  - null      done (done wins — a done day can never be skipped), future,
+ *              unscheduled, vacation-paused and before-start days, which stay
+ *              read-only exactly as their normal tap behaviour already is.
+ *  Pure and React-free so the eligibility contract stays unit-tested. */
+export type MatrixCellMenuAction = 'skip' | 'unskip' | null
+
+export function matrixCellMenuAction(cell: MatrixCell): MatrixCellMenuAction {
+  if (cell.state === 'pending') return 'skip'
+  if (cell.state === 'skipped') return 'unskip'
+  return null
+}
+
 export interface MatrixRow {
   habit: Habit
   cells: MatrixCell[]
@@ -306,15 +323,19 @@ export function clampMatrixNameLevel(value: unknown): number {
 }
 
 /** Inline style for the fixed habit-name pane. Level 1 returns an empty
- *  object so the production classes (`w-[30%] min-w-[7.5rem]`) apply
- *  unchanged; higher levels override `width` (level 1 base + one date
- *  column per step) and cap `maxWidth` at (row − one column − 6px). Plain
+ *  object so the production classes (`w-[30%] min-w-[8.75rem]`) apply
+ *  unchanged; higher levels override `width` (level 1 base + 2.5rem of
+ *  handle allowance + one date column per step) and cap `maxWidth` at
+ *  (row − one column − 6px). The minimum grew from 7.5rem to 8.75rem when
+ *  the Task 2 six-dot handle joined the first column, so short names keep
+ *  the space they had before the handle; the level 1→4 progression still
+ *  increases by exactly one date column per step at every viewport. Plain
  *  object, no React import — the lib stays framework-free. */
 export function matrixNamePaneStyle(level: number): { width?: string; maxWidth?: string } {
   const l = clampMatrixNameLevel(level)
   if (l <= MATRIX_NAME_WIDTH_MIN_LEVEL) return {}
   return {
-    width: `calc(30% + ${l - 1} * (300px / 7))`,
+    width: `calc(30% + 2.5rem + ${l - 1} * (300px / 7))`,
     maxWidth: 'calc(100% - (300px / 7) - 6px)',
   }
 }

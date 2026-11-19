@@ -180,8 +180,9 @@ export function Today() {
   const exitReorderMode = useCallback(() => setReorderMode(false), [])
   const [notice, setNotice] = useState<{ kind: 'success' | 'danger'; text: string } | null>(null)
 
-  // Stage 2: Tiles/Matrix switch — Matrix is read-only, so leaving reorder
-  // mode when it activates keeps the two views' capabilities consistent.
+  // Stage 2: Tiles/Matrix switch. Matrix has its own handle-based row
+  // reordering (no wiggle mode), so leaving the Tiles jiggle mode on switch
+  // keeps the two views' interaction models clean.
   const changeGridMode = useCallback(
     (mode: 'tiles' | 'matrix') => {
       setGridMode(mode)
@@ -948,6 +949,9 @@ export function Today() {
           {gridMode === 'matrix' ? (
             <HabitMatrix
               data={matrixData}
+              habits={habits}
+              onReorder={reorderHabits}
+              onNotice={(kind, text) => setNotice({ kind, text })}
               onToggle={toggle}
               onLogValue={logValue}
               onSkip={skip}

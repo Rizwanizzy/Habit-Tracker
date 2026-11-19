@@ -1,12 +1,31 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
+import {
+  DndContext,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type Announcements,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { useThemeName } from '../hooks/useThemeName'
 import { readableColor } from '../lib/color'
+import { moveHabit } from '../lib/order'
 import {
   clampMatrixNameLevel,
   matrixCaption,
   matrixCellAction,
   matrixCellLabel,
+  matrixCellMenuAction,
   matrixDateLabel,
   matrixNameKeyAction,
   matrixNamePaneStyle,
@@ -19,7 +38,8 @@ import {
   type MatrixCellState,
 } from '../lib/habitMatrix'
 import type { Habit } from '../lib/score'
-import { IconCheck, IconMoon, IconSkip } from './icons'
+import { IconCheck, IconGrip, IconMoon, IconSkip } from './icons'
+import { MatrixCellMenu, type MatrixCellMenuAnchor } from './MatrixCellMenu'
 
 /** UI 2.0 Stage 2 (final refinement) — INTERACTIVE weekly habit matrix:
  *  habit rows in user order × seven Monday–Sunday columns for the selected
@@ -32,10 +52,14 @@ import { IconCheck, IconMoon, IconSkip } from './icons'
  *  Interaction rules (see lib/habitMatrix.ts): boolean done↔pending toggle
  *  (repeated click undoes), numeric cells open the inline value editor
  *  (never auto-completed), skipped cells undo the skip, vacation /
- *  unscheduled / before-start / future cells stay read-only. The habit-name
- *  cell (icon + name) is a link to the same Habit Detail route the Today
- *  tiles use — one accessible target per row — while date cells never
- *  navigate.
+ *  unscheduled / before-start / future cells stay read-only. A 500ms
+ *  long-press (touch) or right-click (mouse) on a pending/skipped chip opens
+ *  the compact MatrixCellMenu (Skip this day / Remove skip / Cancel) — a
+ *  body portal, so it never grows a row or the scroller. The habit-name row
+ *  is `[six-dot handle] [emoji] [name]`: the name cell stays a link to the
+ *  same Habit Detail route the Today tiles use (one accessible target per
+ *  row), while the handle is the only drag surface for vertical row
+ *  reordering (no wiggle mode); date cells never navigate.
  *
  *  Visuals (Aurora Glass): habit-colored rounded-square chips — done = solid
  *  habit color + readable check; pending = subtle habit tint + hairline ring
@@ -75,12 +99,24 @@ interface Props {
    *  selectedDate default — unchanged). */
   onToggle: (habit: Habit, date: string) => void
   onLogValue: (habit: Habit, value: number, date: string) => void
-  /** Existing skip toggle — used only to UNDO a skip from the matrix. */
+  /** Existing skip toggle (Today picks skip vs remove-skip from the stored
+   *  row) — used by the long-press/right-click popup and normal taps on a
+   *  skipped cell. */
   onSkip: (habit: Habit, date: string) => void
   /** Habit-name pane width level (1–4, clamped). Level 1 is the production
    *  pane exactly; each step adds one date-column width. Owned/persisted by
    *  the Today page (shared "Habit names" pill). */
   nameWidth: number
+  /** FULL ordered active habit list (not the filtered rows). Drag-and-drop
+   *  reorders against this list so habits hidden by the Scheduled filter keep
+   *  their relative positions — exactly like the Tiles grid. Optional for
+   *  static markup tests; falls back to the rendered rows. */
+  habits?: Habit[]
+  /** Persists the new order through the shared reorderHabits mechanism
+   *  (optimistic save + rollback). Omit to disable saving. */
+  onReorder?: (orderedIds: string[]) => Promise<void>
+  /** Shared toast channel ("Order saved"); failures arrive via reorderError. */
+  onNotice?: (kind: 'success' | 'danger', text: string) => void
 }
 
 interface Editing {
@@ -191,12 +227,127 @@ function formatNumber(n: number): string {
   return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100)
 }
 
-export function HabitMatrix({ data, onToggle, onLogValue, onSkip, nameWidth }: Props) {
+/** One sortable habit row in the fixed names pane (Task 2). The first column
+ *  is now `[six-dot handle] [emoji / colour dot] [name]` at a consistent
+ *  optical size (handle 18px glyph in a 32×40px hit area, emoji 22px box /
+ *  14px glyph, name 14px) while the CSS-locked 40px row height, truncation
+ *  and name-width levels stay exactly as before.
+ *
+ *  Drag activation lives ONLY on the handle (`useSortable` listeners +
+ *  keyboard attributes): a normal tap on the name/emoji still follows the
+ *  full-cell Link to Habit Detail, and the date cells stay untouched. Mouse
+ *  starts a drag after 5px; touch requires a 350ms long-press with 8px
+ *  tolerance (no wiggle mode); Space/Enter on the focused handle starts
+ *  keyboard reordering (arrows move, Space drops, Escape cancels). The row
+ *  transform is pure transform (no layout change), and on drop Today's
+ *  optimistic `reorderHabits` reorders the shared habits so BOTH panes (and
+ *  the Tiles view) render the same order. */
+function MatrixNameRow({ habit }: { habit: Habit }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: habit.id,
+  })
+  const name = habit.name ?? 'habit'
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        ...(isDragging ? { position: 'relative', zIndex: 2 } : null),
+      }}
+    >
+      <th scope="row" className="relative p-1.5 pr-2 text-left align-middle font-normal">
+        <span className="flex min-w-0 items-center gap-1">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            aria-label={`Reorder ${name}`}
+            title="Drag to reorder"
+            className="relative z-10 -ml-1 grid h-7 w-6 shrink-0 cursor-grab place-items-center rounded-[6px] text-fg-muted transition-colors duration-150 hover:text-fg focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none active:cursor-grabbing after:absolute after:-inset-y-1.5 after:-left-1 after:-right-1 after:content-['']"
+          >
+            <IconGrip className="size-[18px]" />
+          </button>
+          {habit.emoji ? (
+            <span
+              aria-hidden="true"
+              className="grid size-[22px] shrink-0 place-items-center text-[14px] leading-none"
+            >
+              {habit.emoji}
+            </span>
+          ) : (
+            <span
+              aria-hidden="true"
+              className="size-[15px] shrink-0 rounded-[5px]"
+              style={{ backgroundColor: habit.color, opacity: 0.9 }}
+            />
+          )}
+          <span className="truncate text-[14px] font-semibold text-fg" title={name}>
+            {name}
+          </span>
+        </span>
+        {/* Whole name cell = link to Habit Detail (unchanged contract). The
+            handle above is z-10 and wins the pointer; everywhere else the
+            transparent overlay captures the tap. */}
+        <Link
+          to={`/habits/${habit.id}`}
+          title={name}
+          aria-label={`View ${name} overview`}
+          onKeyDown={(e) => {
+            if (matrixNameKeyAction(e.key) !== 'space') return
+            e.preventDefault()
+            e.currentTarget.click()
+          }}
+          className="absolute inset-0 rounded-[6px] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        />
+      </th>
+    </tr>
+  )
+}
+
+export function HabitMatrix({ data, onToggle, onLogValue, onSkip, nameWidth, habits, onReorder, onNotice }: Props) {
   const theme = useThemeName()
   const { dates, rows } = data
   const [editing, setEditing] = useState<Editing | null>(null)
   // Clamped here too so a bad stored value can never reach the pane style.
   const nameLevel = clampMatrixNameLevel(nameWidth)
+
+  // Row reordering (Task 2): the names pane is the sortable surface.
+  // Mouse needs a 5px move (a plain tap on the handle does nothing and never
+  // navigates); touch requires a 350ms long-press so vertical page scrolling
+  // is never hijacked; keyboard uses dnd-kit's sortable coordinates on the
+  // focused handle. `orderSource` is the FULL ordered active list, so hidden
+  // (Scheduled-filtered) habits keep their relative order — same as Tiles.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 350, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+  const orderSource = habits ?? rows.map((r) => r.habit)
+
+  // Screen-reader announcements use habit NAMES, not raw ids (dnd-kit's
+  // defaults announce "Draggable item h3").
+  const announcements = useMemo<Announcements>(() => {
+    const nameById = new Map(rows.map(({ habit }) => [habit.id, habit.name ?? 'habit']))
+    const nameOf = (id: unknown) => nameById.get(String(id)) ?? 'habit'
+    return {
+      onDragStart: ({ active }) => `Picked up ${nameOf(active.id)}.`,
+      onDragOver: ({ active, over }) =>
+        over ? `${nameOf(active.id)} moved over ${nameOf(over.id)}.` : undefined,
+      onDragEnd: ({ active, over }) =>
+        over ? `${nameOf(active.id)} dropped on ${nameOf(over.id)}.` : `${nameOf(active.id)} dropped.`,
+      onDragCancel: ({ active }) => `Reordering ${nameOf(active.id)} cancelled.`,
+    }
+  }, [rows])
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id || !onReorder) return
+    const nextIds = moveHabit(orderSource, String(active.id), String(over.id)).map((h) => h.id)
+    await onReorder(nextIds)
+    onNotice?.('success', 'Order saved')
+  }
 
   // Selected-date auto-reveal (Stage 2 final refinement): whenever the
   // selected date changes (date picker, week strip, chevrons), the matrix
@@ -255,10 +406,15 @@ export function HabitMatrix({ data, onToggle, onLogValue, onSkip, nameWidth }: P
           width feeds revealColumnScroll as the sticky-zone width. Locked row
           heights (.matrix-table tr rule in index.css) keep the row dividers
           of both panes aligned; the divider is a hairline right border. */}
+      <DndContext
+        sensors={sensors}
+        accessibility={{ announcements }}
+        onDragEnd={(e) => void handleDragEnd(e)}
+      >
       <div className="flex items-stretch">
         <div
           ref={stickyRef}
-          className="matrix-names w-[30%] min-w-[7.5rem] shrink-0"
+          className="matrix-names w-[30%] min-w-[8.75rem] shrink-0"
           style={matrixNamePaneStyle(nameLevel)}
         >
           <table className="matrix-table w-full table-fixed border-separate border-spacing-0">
@@ -278,53 +434,16 @@ export function HabitMatrix({ data, onToggle, onLogValue, onSkip, nameWidth }: P
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {rows.map(({ habit }) => (
-                <tr key={habit.id}>
-                  <th scope="row" className="relative p-2 pr-3 text-left align-middle font-normal">
-                    <span className="flex min-w-0 items-center gap-2">
-                      {habit.emoji ? (
-                        <span aria-hidden="true" className="grid size-5 shrink-0 place-items-center text-[13px] leading-none">
-                          {habit.emoji}
-                        </span>
-                      ) : (
-                        <span
-                          aria-hidden="true"
-                          className="size-3.5 shrink-0 rounded-[5px]"
-                          style={{ backgroundColor: habit.color, opacity: 0.9 }}
-                        />
-                      )}
-                      <span className="truncate text-[13px] font-semibold text-fg" title={habit.name}>
-                        {habit.name}
-                      </span>
-                    </span>
-                    {/* Whole name cell = link to the habit's Habit Detail — the
-                        SAME route the Today tiles use (/habits/:id), so Matrix
-                        and Tiles navigate identically (icon and name are one
-                        target). The overlay is transparent, paints above the
-                        static name content and occupies no box of its own
-                        (absolute inset-0), so the locked 40px row height, the
-                        pane width, the truncation and the typography are all
-                        unchanged; the focus ring is the shared box-shadow ring
-                        (zero layout impact). Date cells live in the other pane
-                        and keep their check-in / value-editor behavior only. */}
-                    <Link
-                      to={`/habits/${habit.id}`}
-                      title={habit.name}
-                      aria-label={`View ${habit.name} overview`}
-                      onKeyDown={(e) => {
-                        // Anchors activate on Enter natively; Space is handled
-                        // here so the cell matches the Tiles for keyboard users.
-                        if (matrixNameKeyAction(e.key) !== 'space') return
-                        e.preventDefault()
-                        e.currentTarget.click()
-                      }}
-                      className="absolute inset-0 rounded-[6px] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-                    />
-                  </th>
-                </tr>
-              ))}
-            </tbody>
+            <SortableContext
+              items={rows.map(({ habit }) => habit.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <tbody>
+                {rows.map(({ habit }) => (
+                  <MatrixNameRow key={habit.id} habit={habit} />
+                ))}
+              </tbody>
+            </SortableContext>
           </table>
         </div>
         <div ref={scrollRef} className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain">
@@ -389,6 +508,7 @@ export function HabitMatrix({ data, onToggle, onLogValue, onSkip, nameWidth }: P
           </table>
         </div>
       </div>
+      </DndContext>
     </section>
   )
 }
@@ -418,6 +538,97 @@ function MatrixCellView({
   const action = matrixCellAction(cell, habit)
   const label = cellAriaLabel(cell, habit)
   const cellRef = useRef<HTMLButtonElement>(null)
+  // Long-press / right-click skip popup (Task 1). Anchor is the chip's
+  // viewport rect; the menu itself is portalled (MatrixCellMenu) so it can
+  // never affect the table's layout or the horizontal scroller.
+  const menuAction = matrixCellMenuAction(cell)
+  const [menuAnchor, setMenuAnchor] = useState<MatrixCellMenuAnchor | null>(null)
+  const pressTimer = useRef<number | null>(null)
+  const pressOrigin = useRef<{ x: number; y: number } | null>(null)
+  /** Eats the trailing click after a long-press opened the popup. */
+  const swallowClick = useRef(false)
+
+  useEffect(
+    () => () => {
+      if (pressTimer.current != null) window.clearTimeout(pressTimer.current)
+    },
+    [],
+  )
+
+  function clearPress() {
+    if (pressTimer.current != null) {
+      window.clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+    pressOrigin.current = null
+  }
+
+  function openMenu() {
+    const rect = cellRef.current?.getBoundingClientRect()
+    if (!rect) return
+    setMenuAnchor({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
+  }
+
+  function closeMenu(restoreFocus: boolean, swallowNextClick = false) {
+    setMenuAnchor(null)
+    // A dismissing outside press may be followed by a click on the chip;
+    // eat it so the tap only closes the popup. The next pointerdown on a
+    // cell clears this again, so no later tap is affected.
+    if (swallowNextClick) swallowClick.current = true
+    if (restoreFocus) setTimeout(() => cellRef.current?.focus(), 0)
+  }
+
+  function handlePointerDown(e: React.PointerEvent<HTMLButtonElement>) {
+    // A new press starts a fresh interaction; any trailing click from the
+    // previous menu interaction has already been delivered.
+    swallowClick.current = false
+    // Only the primary button on a skippable cell; a done / read-only cell
+    // keeps its normal tap behaviour and gets no popup.
+    if (!menuAction || e.button !== 0) return
+    pressOrigin.current = { x: e.clientX, y: e.clientY }
+    if (pressTimer.current != null) window.clearTimeout(pressTimer.current)
+    pressTimer.current = window.setTimeout(() => {
+      pressTimer.current = null
+      pressOrigin.current = null
+      swallowClick.current = true
+      openMenu()
+    }, 500)
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLButtonElement>) {
+    const o = pressOrigin.current
+    if (!o) return
+    // Anything beyond the slop is a scroll / tap-drag, not a long-press.
+    if (Math.abs(e.clientX - o.x) > 10 || Math.abs(e.clientY - o.y) > 10) clearPress()
+  }
+
+  function handleClick() {
+    if (swallowClick.current) {
+      swallowClick.current = false
+      return
+    }
+    if (action === 'toggle') onToggle(habit, cell.date)
+    else if (action === 'unskip') onSkip(habit, cell.date)
+    else if (action === 'edit-value') onEdit()
+  }
+
+  function handleContextMenu(e: React.MouseEvent<HTMLButtonElement>) {
+    if (!menuAction) return
+    // Suppress the browser menu (and a mobile long-press context menu) only
+    // where the app has an action to offer.
+    e.preventDefault()
+    openMenu()
+  }
+
+  function handleCellKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
+    // Keyboard parity for the pointer-only popup: the ContextMenu key or
+    // Shift+F10 opens it; Enter/Space keep their normal cell behaviour.
+    if (!menuAction) return
+    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+      e.preventDefault()
+      openMenu()
+    }
+  }
 
   // Numeric progress (Stage 2 final refinements): numeric cells render a
   // bottom-to-top habit-color fill (value/target, clamped 0–100) with the
@@ -496,14 +707,16 @@ function MatrixCellView({
         <button
           ref={cellRef}
           type="button"
-          onClick={
-            action === 'toggle'
-              ? () => onToggle(habit, cell.date)
-              : action === 'unskip'
-                ? () => onSkip(habit, cell.date)
-                : onEdit
-          }
+          onClick={handleClick}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={clearPress}
+          onPointerCancel={clearPress}
+          onPointerLeave={clearPress}
+          onContextMenu={handleContextMenu}
+          onKeyDown={handleCellKeyDown}
           aria-pressed={action === 'toggle' ? cell.state === 'done' : undefined}
+          aria-haspopup={menuAction ? 'menu' : undefined}
           aria-label={label}
           title={label}
           className={`${chipClass(cell.state)} ${numericLayer} cursor-pointer active:scale-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none`}
@@ -521,6 +734,19 @@ function MatrixCellView({
         >
           {chip}
         </span>
+      )}
+      {menuAnchor && menuAction && (
+        <MatrixCellMenu
+          anchor={menuAnchor}
+          habitName={habit.name ?? 'Habit'}
+          dateLabel={matrixDateLabel(cell.date)}
+          action={menuAction}
+          onAction={() => {
+            onSkip(habit, cell.date)
+            closeMenu(true)
+          }}
+          onClose={closeMenu}
+        />
       )}
     </td>
   )

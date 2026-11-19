@@ -28,7 +28,7 @@ function habit(overrides: Partial<Habit> = {}): Habit {
   }
 }
 
-const run = habit({ id: 'run', name: 'Run', color: '#22C55E' })
+const run = habit({ id: 'run', name: 'Run', color: '#22C55E', emoji: '🏃' })
 const water = habit({
   id: 'water',
   name: 'Water',
@@ -75,6 +75,35 @@ describe('HabitMatrix — habit-name cell opens Habit Detail', () => {
     expect(html).toContain('title="Run"')
     expect(html).toContain('>Run</span>')
     expect(html).toContain('>Water</span>')
+  })
+})
+
+describe('HabitMatrix — row reorder handle + first-column layout (Task 2)', () => {
+  it('renders a compact six-dot handle before the emoji and the name', () => {
+    const handle = html.indexOf('aria-label="Reorder Run"')
+    const emoji = html.indexOf('🏃')
+    const name = html.indexOf('>Run</span>')
+    expect(handle).toBeGreaterThan(-1)
+    expect(handle).toBeLessThan(emoji)
+    expect(emoji).toBeLessThan(name)
+    expect(html).toContain('title="Drag to reorder"')
+  })
+
+  it('makes the handle a keyboard-focusable control (accessible reordering)', () => {
+    expect(html).toMatch(/<button[^>]*tabindex="0"[^>]*aria-label="Reorder Run"/)
+    expect(html).toContain('aria-roledescription="sortable"')
+  })
+
+  it('keeps the three first-column elements optically consistent and centred', () => {
+    expect(html).toContain('size-[18px]') // six-dot glyph
+    expect(html).toContain('size-[22px]') // emoji box (+10% from 20px)
+    expect(html).toContain('text-[14px]') // name (+~10% from 13px)
+    expect(html).toContain('items-center') // one vertical line
+  })
+
+  it('keeps the full-cell Habit Detail link for the name tap', () => {
+    expect(hrefs).toEqual(['/habits/run', '/habits/water'])
+    expect(html).toContain('aria-label="View Run overview"')
   })
 })
 
