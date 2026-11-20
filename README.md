@@ -59,7 +59,10 @@ Track habits with one-tap check-ins, streaks, scores, and charts. The UI uses th
   so it never grows a row, adds horizontal overflow or interferes with
   Matrix scrolling; Escape (with focus restored), outside click, scroll and
   resize dismiss it, and ContextMenu/Shift+F10 plus arrow keys cover
-  keyboard users.
+  keyboard users. On iPhone Safari/PWA the actionable chips suppress the
+  native text-selection/callout chrome for that press (scoped to the chip
+  buttons only, so the numeric editor stays selectable), leaving only the
+  app's popup.
 - **Matrix row reordering** — each habit row in the fixed names pane starts
   with a six-dot drag handle, then the emoji/colour dot, then the name; the
   name cell still opens Habit Detail. Long-pressing the handle (350 ms,

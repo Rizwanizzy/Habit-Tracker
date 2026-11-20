@@ -719,7 +719,7 @@ function MatrixCellView({
           aria-haspopup={menuAction ? 'menu' : undefined}
           aria-label={label}
           title={label}
-          className={`${chipClass(cell.state)} ${numericLayer} cursor-pointer active:scale-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none`}
+          className={`${chipClass(cell.state)} ${numericLayer} matrix-cell-action cursor-pointer active:scale-90 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none`}
           style={chipStyle(cell.state, c, theme)}
         >
           {chip}
@@ -756,7 +756,7 @@ function MatrixCellView({
  *  editor, feeding the SAME onLogValue handler. Prefilled with the cell's
  *  current value; Enter or blur commits (empty input commits nothing —
  *  explicit 0 is the app's "zero progress" semantics), Escape cancels. */
-function ValueEditor({
+export function ValueEditor({
   habit,
   cell,
   onCommit,

@@ -4,7 +4,7 @@
 > understanding of this project — concept, stack, architecture, data model, features, and
 > conventions. It describes **what is true right now**; the per-pass history lives in
 > `CHANGELOG.md`. **Update this file after every completed task** (AGENTS.md rule 11).
-> Last updated: 2026-11-19
+> Last updated: 2026-11-20
 
 ## 1. What this project is
 
@@ -25,7 +25,7 @@ days are *neutral*: they are removed from the timeline instead of breaking strea
 | `AGENTS.md` | Rules for any AI/dev working on the repo. Read before every task. |
 | `DESIGN.md` | The design spec ("Aurora Glass": tokens, typography, components, motion). Read before any UI change. |
 | `supabase/schema.sql` | Database schema `README` for human setup (re-synced with the live DB — see §Data model). |
-| `CHANGELOG.md` | Numbered log of every completed pass (1–115). Append, never rewrite. |
+| `CHANGELOG.md` | Numbered log of every completed pass (1–123). Append, never rewrite. |
 | `README.md` | GitHub-facing overview (features, hosting, scripts, layout). Keep in sync. |
 
 ## 3. Stack (verified against `package.json`)
@@ -327,6 +327,16 @@ src/
                         focus, outside pointerdown / scroll / resize dismiss
                         (pointerdown avoids the synthetic mousedown a touch lift
                         would replay), and the popup adds no layout box.
+                        iOS long-press chrome: actionable chips also carry
+                        `.matrix-cell-action` (`user-select: none`,
+                        `-webkit-user-select: none`, `-webkit-touch-callout: none`,
+                        `touch-action: manipulation`) so the same long press cannot
+                        start WebKit text selection / the touch callout. Scoped to
+                        the action buttons only — read-only chips and the numeric
+                        value-editor input keep native selection, and html/body are
+                        never suppressed. Physical iPhone Safari/PWA verification is
+                        PENDING user confirmation (Chrome touch emulation cannot prove
+                        the native iOS gesture behavior).
                         Row reordering: the first column is
                         `[six-dot handle] [emoji / colour dot] [name]` (18 px
                         grip in a 24×28 button with a ~32×40 hit pad, 22 px
@@ -544,10 +554,18 @@ creates every table above including the post-release `entries.status`, `profiles
   mobile overflow fix; shared Matrix row-height alignment (40/40 rows, zero delta); Stage 4
   accessibility & consistency fixes — selected-strip-button border removed so height is
   identical across all 7 themes, date-selection uses `aria-current`/label instead of
-  `aria-pressed`, and the numeric editor restores focus on cancel. Verification: 635/635
-  tests across 39 files, `tsc -b` clean, production build clean, lint 0 errors; headless
-  browser QA at 320/375/390/430/1280 px across all 7 themes, plus mouse/touch/keyboard
-  reorder, reload persistence and numeric/date/detail interactions.
+  `aria-pressed`, and the numeric editor restores focus on cancel. **iOS long-press fix
+  (2026-11-20):** actionable Matrix date chips now carry the scoped `.matrix-cell-action`
+  rule (`user-select` / `-webkit-user-select` / `-webkit-touch-callout: none`,
+  `touch-action: manipulation`) so a long press opens ONLY the custom Skip/Cancel popup
+  instead of also triggering native WebKit text selection/callout; read-only chips, the
+  numeric value-editor input, html and body are untouched, and both scroll axes still pan.
+  **Physical iPhone Safari/PWA verification remains PENDING user confirmation** — Chrome
+  touch emulation validates scoping and interactions but cannot establish the native iOS
+  gesture result. Verification after the fix: 641/641 tests across 39 files, `tsc -b` clean,
+  production build clean, lint 0 errors; headless-Chrome QA at 320/375/390/430/1280 px
+  across all 7 themes (touch long-press vs normal tap, numeric edit/save, both scroll axes,
+  reorder, 40 px rows, zero overflow).
 - **Overview** — RangeSwitch 30/90/365; StatTile row (avg score + delta chip, best habit,
   needs attention — both drill into `/habits/:id`); ScoreLineChart card with habit toggle
   chips, habit-color lines with static halo glow `<Line>`, glass tooltip, Top 5 / All / None

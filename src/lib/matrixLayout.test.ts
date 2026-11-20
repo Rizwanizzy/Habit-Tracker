@@ -18,6 +18,35 @@ const matrixRules = [...css.matchAll(/\.matrix-(?:table|names)[^{}]*\{[^}]*\}/g)
 )
 const matrixCss = matrixRules.join(' ')
 
+describe('matrix CSS — scoped iOS selection/callout suppression', () => {
+  /** The single rule that owns the long-press chrome fix. */
+  const touchRules = [...css.matchAll(/\.matrix-cell-action[^{}]*\{[^}]*\}/g)].map((m) =>
+    m[0].replace(/\s+/g, ' '),
+  )
+
+  it('suppresses native text selection and the touch callout on actionable chips', () => {
+    expect(touchRules).toHaveLength(1)
+    const rule = touchRules[0]
+    expect(rule).toContain('user-select: none')
+    expect(rule).toContain('-webkit-user-select: none')
+    expect(rule).toContain('-webkit-touch-callout: none')
+  })
+
+  it('keeps panning available so Matrix and page scrolling still work', () => {
+    expect(touchRules[0]).toContain('touch-action: manipulation')
+    expect(touchRules[0]).not.toContain('touch-action: none')
+  })
+
+  it('never applies the suppression globally or to editable inputs', () => {
+    // The rule targets only the chip class — not inputs/textareas.
+    expect(touchRules[0]).not.toMatch(/input|textarea/)
+    // No html/body/* rule turns off selection for the whole app.
+    expect(css).not.toMatch(
+      /(?:^|\n)\s*(?:html|body|\*)(?:\s*,\s*(?:html|body|\*))*\s*\{[^}]*user-select\s*:\s*none/,
+    )
+  })
+})
+
 describe('matrix CSS — shared row sizing across both panes', () => {
   it('defines one row-height variable used by the header and every habit row', () => {
     expect(matrixCss).toContain('--matrix-row-h: 2.5rem')

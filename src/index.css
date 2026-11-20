@@ -1584,6 +1584,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   box-shadow: none;
 }
 
+/* iOS Safari / PWA long-press on an ACTIONABLE date chip (Task 1's skip
+   popup): the chip is a <button> and WebKit still starts native text
+   selection plus the touch callout ("Copy / Look Up") over its label unless
+   both are suppressed. Scoped strictly to the actionable chip buttons —
+   never html/body/the app, never read-only date cells, and never the numeric
+   value editor input (a separate <input> with no .matrix-cell-action).
+   touch-action stays `manipulation` (pan-x/pan-y/pinch-zoom remain enabled),
+   so horizontal Matrix scrolling and vertical page scrolling are untouched
+   and the 500ms / 10px long-press logic keeps owning the gesture. */
+.matrix-cell-action {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
 /* ---------------------------------------------------------------------------
    Emoji picker (emoji-picker-react v5) in the habit form. The library injects
    its stylesheet at runtime, so each override is scoped with

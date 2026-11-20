@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
-import { HabitMatrix } from './HabitMatrix'
-import { buildHabitMatrix, matrixCellLabel } from '../lib/habitMatrix'
+import { HabitMatrix, ValueEditor } from './HabitMatrix'
+import { buildHabitMatrix, matrixCellAction, matrixCellLabel } from '../lib/habitMatrix'
 import type { Habit } from '../lib/score'
 
 /** Matrix navigation parity with Today → Tiles: the habit-name cell (icon +
@@ -121,6 +121,47 @@ describe('HabitMatrix — date cells never navigate', () => {
     expect(html).toContain('aria-pressed="true"')
     // Non-interactive states stay non-buttons (no extra links either).
     expect(html).toContain(`aria-label="${`Run — ${matrixCellLabel(data.rows[0].cells[4])}`}"`)
+  })
+})
+
+describe('HabitMatrix — scoped iOS long-press selection/callout suppression', () => {
+  const chipButtons = [...html.matchAll(/<button[^>]*>/g)]
+    .map((m) => m[0])
+    .filter((tag) => tag.includes('mx-auto grid size-8'))
+  const actionable = data.rows.reduce(
+    (n, { habit, cells }) => n + cells.filter((cell) => matrixCellAction(cell, habit) != null).length,
+    0,
+  )
+
+  it('gives every interactive date chip — and only those — the suppression class', () => {
+    expect(chipButtons).toHaveLength(actionable)
+    expect(actionable).toBeGreaterThan(0)
+    for (const tag of chipButtons) expect(tag).toContain('matrix-cell-action')
+  })
+
+  it('leaves read-only date chips alone so suppression never creeps to non-actions', () => {
+    const readOnlyChips = [...html.matchAll(/<span[^>]*class="[^"]*mx-auto grid size-8[^"]*"[^>]*>/g)].map(
+      (m) => m[0],
+    )
+    expect(readOnlyChips.length).toBeGreaterThan(0)
+    for (const tag of readOnlyChips) expect(tag).not.toContain('matrix-cell-action')
+  })
+
+  it('keeps the numeric value editor input selectable/editable (class never reaches it)', () => {
+    const editor = renderToStaticMarkup(
+      <ValueEditor
+        habit={water}
+        cell={data.rows[1].cells[0]}
+        onCommit={noop}
+        onCancel={noop}
+      />,
+    )
+    expect(editor).toContain('type="number"')
+    // The 16px iOS no-zoom contract stays untouched.
+    expect(editor).toContain('input-no-zoom')
+    // The chip-only suppression must not disable caret/selection in the field.
+    expect(editor).not.toContain('matrix-cell-action')
+    expect(editor).not.toContain('user-select')
   })
 })
 
