@@ -16,6 +16,7 @@ export function ReviewHabitList({ habits, bestPerformers, needsAttention }: Prop
 
   const filteredHabits = habits.filter((item) => {
     if (filter === 'all') return true
+    if (filter === 'consistent') return item.trajectory === 'consistent' && item.eligibleDays > 0
     return item.trajectory === filter
   })
 
@@ -149,9 +150,11 @@ export function ReviewHabitList({ habits, bestPerformers, needsAttention }: Prop
                       {item.habit.name}
                     </span>
                     <span className="text-[11px] text-fg-muted truncate">
-                      {item.doneDays} of {item.eligibleDays} {item.weekBased ? 'weeks' : 'days'}{' '}
-                      completed
-                      {item.missedDays > 0 && ` (${item.missedDays} missed)`}
+                      {item.eligibleDays === 0
+                        ? 'Not scheduled — no eligible opportunities this period'
+                        : `${item.doneDays} of ${item.eligibleDays} ${item.weekBased ? 'weeks' : 'days'}${
+                            item.missedDays > 0 ? ` (${item.missedDays} missed)` : ''
+                          } completed`}
                     </span>
                   </div>
                 </div>
@@ -160,7 +163,7 @@ export function ReviewHabitList({ habits, bestPerformers, needsAttention }: Prop
                 <div className="flex items-center gap-2.5 shrink-0">
                   <TrajectoryBadge item={item} />
                   <span className="font-heading text-sm font-semibold text-fg w-12 text-right">
-                    {Math.round(item.completionRate * 100)}%
+                    {item.eligibleDays === 0 ? '—' : Math.round(item.completionRate * 100)}%
                   </span>
                 </div>
               </Link>

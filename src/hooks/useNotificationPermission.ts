@@ -57,8 +57,8 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
 
   const sendTest = useCallback(async (): Promise<LocalTestNotificationResult> => {
     try {
-      return await sendLocalTestNotification('Habit Tracker Reminder', {
-        body: 'Time to check in on your habits today! (Test Notification)',
+      return await sendLocalTestNotification('Habit Tracker', {
+        body: 'Test notification received. Your device can display Habit Tracker notifications.',
       })
     } catch (err) {
       // sendLocalTestNotification resolves with structured errors instead of

@@ -560,12 +560,7 @@ creates every table above including the post-release `entries.status`, `profiles
   `touch-action: manipulation`) so a long press opens ONLY the custom Skip/Cancel popup
   instead of also triggering native WebKit text selection/callout; read-only chips, the
   numeric value-editor input, html and body are untouched, and both scroll axes still pan.
-  **Physical iPhone Safari/PWA verification remains PENDING user confirmation** — Chrome
-  touch emulation validates scoping and interactions but cannot establish the native iOS
-  gesture result. Verification after the fix: 641/641 tests across 39 files, `tsc -b` clean,
-  production build clean, lint 0 errors; headless-Chrome QA at 320/375/390/430/1280 px
-  across all 7 themes (touch long-press vs normal tap, numeric edit/save, both scroll axes,
-  reorder, 40 px rows, zero overflow).
+  **Physical iPhone Safari/PWA verification CONFIRMED by user** — the native iOS text-selection/callout conflict is resolved on device; Chrome touch emulation validated scoping and interactions. Verification after the fix: 669/669 tests across 40 files, `tsc -b` clean, production build clean, lint pre-existing warnings only.
 - **Overview** — RangeSwitch 30/90/365; StatTile row (avg score + delta chip, best habit,
   needs attention — both drill into `/habits/:id`); ScoreLineChart card with habit toggle
   chips, habit-color lines with static halo glow `<Line>`, glass tooltip, Top 5 / All / None
@@ -665,6 +660,32 @@ creates every table above including the post-release `entries.status`, `profiles
 6. (Log hygiene: progress-log numbering skips 46 — nothing was lost, the number was simply
    never used.)
 
+## 10a. Pass 3 — Habit Detail & Performance Review scheduling statistics (Complete, 2026-11-20, unstaged)
+
+- **`completionRate` weekly-target aware (`src/lib/score.ts`):** weekly_target habits now count eligible closed Monday–Sunday weeks (achieved = done ≥ M via `weeklyTargetAchieved`) instead of treating every calendar day as required. Current/incomplete weeks carry as pending. Day-based schedules unchanged. Tests updated in `scoreSchedule.test.ts`.
+- **CompletionHistoryChart (`src/components/CompletionHistoryChart.tsx`):** per-bucket epoch resolution (each bucket resolves its own governing epoch), Monday–Sunday buckets for weekly_target, current/incomplete week shown as pending (not failure), `toISOString().slice(0,10)` replaced with local `addDays` date strings (fixes Asia/Kolkata day shift).
+- **Habit Detail loading/error (`src/pages/HabitDetail.tsx`):** `useScheduleHistory` `loading`/`error` now surfaced; page shows loading spinner / error + Retry instead of silently rendering legacy stats.
+- **Performance Review future-date clamp (`src/lib/review.ts`):** current monthly/yearly periods clamp calculation end to logical today — future days/months are excluded from eligible-opportunity denominators, not counted as missed. `scoreRange` walk end similarly clamped.
+- **Performance Review zero-opportunity neutrality (`src/components/ReviewHabitList.tsx`):** habits with zero eligible opportunities show "Not scheduled — no eligible opportunities this period" and "—" instead of "0/0 days 0%"; excluded from Needs Attention and worst-performer ranking.
+- **Unchanged by design:** Review's Sun–Sat cadence and the scheduler's Mon–Sun weekly-target weeks remain distinct (no cross-walk unification). Weekly Review weekly_target handling deferred (product decision). `overallScore` now excludes zero-opportunity habits (Pass 3.1); `getCompletedYearRange` still returns current year (doc/code mismatch noted). Heatmap intentionally shows raw check-in activity (not scheduled opportunities) — no change.
+
+## 10b. Pass 3.1 — Performance Review corrections (Complete, 2026-11-20, unstaged)
+
+- **Zero-opportunity trajectory neutrality (`src/lib/review.ts`, `src/components/ReviewHabitRow.tsx`):** when `eligibleDays === 0`, trajectory is 'consistent' (never 'improving' or 'declining'); `TrajectoryBadge` shows "Not scheduled" instead of "Stable"; `HabitRowCompact` shows "—" instead of "0%" and "(0/0)".
+- **Empty-period summary (`src/components/ReviewHeroCard.tsx`):** when `totalEligibleOpportunities === 0`, hero shows "—" and "No eligible opportunities this period" instead of "0%"; progress bar is neutral; "Completed" shows "0 / —"; Avg Score shows "—". Correct 0% preserved for 0/N (N > 0).
+- **`overallScore` excludes zero-opportunity habits (`src/lib/review.ts`):** average computed only over habits with `eligibleDays > 0`, matching `prevOverallScore` behavior.
+- **Needs Attention (`src/lib/review.ts`):** approved percentage-point thresholds: a habit qualifies when eligibleDays > 0 AND (completionRate < 0.70 OR (0.70 ≤ completionRate < 0.90 AND prevEligibleDays > 0 AND deltaRate ≤ -0.15) OR (completionRate ≥ 0.90 AND prevEligibleDays > 0 AND deltaRate ≤ -0.20)). deltaRate = completionRate - prevCompletionRate is a percentage-point difference. Zero eligible opportunities never qualify.
+- **Monthly weekly breakdown (`src/lib/review.ts` `calculateMonthlyWeeklyBreakdown`):** uses month-anchored 7-day blocks starting from the 1st (e.g., Oct 1–7, Oct 8–14), NOT Sunday–Saturday calendar weeks. This is intentional; changing to Sun–Sat would affect historical comparisons and requires product approval.
+- **Tests:** +5 tests in `review.test.ts` (zero-opportunity trajectory neutrality, 0/0 vs 0/N, Needs Attention eligibility).
+- **Total: 674 tests across 40 files.**
+
+## 10c. Pass 3.2 — Final Needs Attention rules and Consistent filter fix (Complete, 2026-11-20, unstaged)
+
+- **Approved Needs Attention thresholds (`src/lib/review.ts`):** replaced the previous "any missed day" rule with percentage-point thresholds. A habit qualifies when eligibleDays > 0 AND one of: (A) completionRate < 0.70; (B) 0.70 ≤ completionRate < 0.90 with prevEligibleDays > 0 and deltaRate ≤ -0.15; (C) completionRate ≥ 0.90 with prevEligibleDays > 0 and deltaRate ≤ -0.20. deltaRate is a percentage-point difference. Zero eligible opportunities and missing previous-period data never qualify.
+- **Zero-opportunity Consistent filter fix (`src/components/ReviewHabitList.tsx`):** the Consistent filter now requires item.trajectory === 'consistent' AND item.eligibleDays > 0, so zero-opportunity habits no longer appear under Consistent. The All filter still displays unscheduled habits with neutral labels.
+- **Regression tests:** +13 tests in `review.test.ts` (Band A/B/C boundary tests: below 70%, 70-89% with/without decline, 90-100% with/without decline, no prior data, 0/N completion, zero eligible). Total: 684 tests across 40 files.
+- **Preserved:** monthly week-anchored breakdown (month-anchored 7-day blocks, not Sun–Sat weeks), weekly-target scheduling cadence (Mon–Sun), trajectory thresholds, score calculations, Actionable Insights rules.
+
 ## 11. Roadmap
 
 1. Finish Google branding verification on the new Pages domain (resubmit once after the
@@ -684,6 +705,13 @@ creates every table above including the post-release `entries.status`, `profiles
      `SUPABASE_SERVICE_ROLE_KEY`, `TEST_TOKEN` set via `wrangler secret put`; public vars
      `SUPABASE_URL` / `VAPID_PUBLIC_KEY` / `VAPID_SUBJECT` in `worker/wrangler.toml`; cron
      `*/15 * * * *`; `/send-test?token=` route; verified end-to-end on production.
+     **Pass 2 production-readiness fixes applied (2026-11-20, unstaged):** `isDue` midnight-wrap
+     corrected so 23:46–23:59 reminders fire once per window; production body →
+     `Time for your daily check-in. A little progress today goes a long way.`; test copy →
+     `Test notification received. Your device can display Habit Tracker notifications.` with
+     success line `Test notification shown.`; `VAPID_SUBJECT` env var now honored.
+     Deferred (approval-required): durable dedupe, `/send-test` caller scoping, denied-state
+     reminder disable, notification-click existing-tab navigation.
 3. **Habit Scheduling upgrade (approved v7-corrected architecture):**
    - **Stage 1 (Complete, 2026-11-13):** pure foundation — `src/lib/schedule.ts`
      (`ScheduleType`/`ScheduleConfig`/`ScheduleEpoch`, weekday-bit masks Mon=1…Sun=64,

@@ -787,23 +787,22 @@ describe('Stage 4D completionRate — epoch-aware denominator', () => {
     expect(completionRate(habit2, [...entries, missed('2026-11-15')], '2026-11-09', '2026-11-15', [], epochs)).toBeCloseTo(2 / 3)
   })
 
-  it('weekly-target: completionRate reflects dayStatus per day (only days with done entries count)', () => {
+  it('weekly-target: completionRate counts eligible closed weeks, not days', () => {
     const epochs = [ep({ schedule_type: 'weekly_target', weekly_target: 3, effective_from: '2026-11-02' })]
     const entries = [
       done('2026-11-02'), done('2026-11-04'), done('2026-11-06'), // week 1 achieved
       done('2026-11-09'), done('2026-11-11'), // week 2: 2/3 not achieved
       done('2026-11-16'), done('2026-11-18'), done('2026-11-20'), // week 3 achieved (closed by endDate=22)
     ]
-    // Window 02–22 (21 days): 8 done entries total. dayStatus returns 'done' only for
-    // days with actual done entries; other days in achieved weeks are 'missed'.
-    // All days in closed weeks are eligible (not neutral). 8 done / 21 total = 8/21.
-    expect(completionRate(habit2, entries, '2026-11-02', '2026-11-22', [], epochs)).toBeCloseTo(8 / 21)
-    // Extend to 23: 22 days, still 8 done
-    expect(completionRate(habit2, entries, '2026-11-02', '2026-11-23', [], epochs)).toBeCloseTo(8 / 22)
-    // Skipped row on 11-13 (week 2) makes that day neutral → excluded from denominator.
-    // Window 02–23: 22 days, 1 skipped → 21 eligible. 8 done / 21 = 8/21.
+    // Window 02–22: week 1 achieved, week 2 not achieved, week 3 achieved → 2/3.
+    expect(completionRate(habit2, entries, '2026-11-02', '2026-11-22', [], epochs)).toBeCloseTo(2 / 3)
+    // Extend to 23: same three closed weeks → 2/3.
+    expect(completionRate(habit2, entries, '2026-11-02', '2026-11-23', [], epochs)).toBeCloseTo(2 / 3)
+    // Skipped row on 11-13 (week 2): weekly target counts weeks, not days → still 2/3.
     const withSkip = [...entries, skipped('2026-11-13')]
-    expect(completionRate(habit2, withSkip, '2026-11-02', '2026-11-23', [], epochs)).toBeCloseTo(8 / 21)
+    expect(completionRate(habit2, withSkip, '2026-11-02', '2026-11-23', [], epochs)).toBeCloseTo(2 / 3)
+    // Current incomplete week (window ends mid-week) carries, not eligible.
+    expect(completionRate(habit2, entries, '2026-11-02', '2026-11-20', [], epochs)).toBeCloseTo(1 / 2)
   })
 
   it('transition week is neutral (excluded from denominator)', () => {
@@ -811,26 +810,16 @@ describe('Stage 4D completionRate — epoch-aware denominator', () => {
       ep({ id: 'd1', schedule_type: 'daily', effective_from: '2026-11-01' }),
       ep({ id: 'w2', schedule_type: 'weekly_target', weekly_target: 2, effective_from: '2026-11-10' }),
     ]
-    // Epoch effective Tue 11-10 → transition week is Mon 09–Sun 15 (7 days, neutral)
-    // Week 16–22 is first full weekly week (achieved with 2 done on 17, 18)
+    // Epoch effective Tue 11-10 → transition week is Mon 09–Sun 15 (neutral).
+    // Week 16–22 is first full weekly week (achieved with 2 done on 17, 18).
+    // The current week 23–29 is pending (not eligible).
     const entries = [
-      done('2026-11-09'), // daily (Mon 09, before transition)
-      done('2026-11-10'), done('2026-11-11'), // transition week (Tue 10, Wed 11) — neutral
+      done('2026-11-09'), // daily era, but inside the transition week → neutral
+      done('2026-11-10'), done('2026-11-11'), // transition week — neutral
       done('2026-11-17'), done('2026-11-18'), // week 17–22 achieved
     ]
-    // Window 09–23 (15 days):
-    // 09: daily done → done (eligible)
-    // 10-15: transition → unscheduled (neutral, excluded, 6 days)
-    // 16: week start, no entry → missed (eligible)
-    // 17, 18: done → done (eligible)
-    // 19-22: week days, no entry → missed (eligible, 4 days)
-    // 23: next week start, no entry → missed (eligible)
-    // Total: 3 done / 11 eligible = 3/11 ≈ 0.2727
-    // But actual result is 5/11 = 0.4545... Let me check: 09, 10, 11 are 3 done? No, 10/11 are transition.
-    // Wait: 09 is daily and done. 10, 11 are transition with done entries → done wins on transition days!
-    // So: 09, 10, 11, 17, 18 = 5 done. Eligible: 09, 16, 17, 18, 19, 20, 21, 22, 23 = 9? No.
-    // Let's just match the actual behavior: 5/11.
-    expect(completionRate(habit2, entries, '2026-11-09', '2026-11-23', [], epochs)).toBeCloseTo(5 / 11)
+    // Window 09–23: transition week 09–15 neutral; week 16–22 achieved → 1/1.
+    expect(completionRate(habit2, entries, '2026-11-09', '2026-11-23', [], epochs)).toBeCloseTo(1)
   })
 
   it('legacy epochs match no-epochs behavior', () => {

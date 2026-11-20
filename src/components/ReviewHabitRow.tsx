@@ -27,10 +27,10 @@ export function HabitRowCompact({ item }: { item: HabitPeriodPerformance }) {
 
       <div className="flex items-center gap-1.5 shrink-0">
         <span className="text-[11px] font-semibold text-fg">
-          {Math.round(item.completionRate * 100)}%
+          {item.eligibleDays === 0 ? '—' : Math.round(item.completionRate * 100)}%
         </span>
         <span className="text-[10px] text-fg-muted">
-          ({item.doneDays}/{item.eligibleDays})
+          ({item.eligibleDays === 0 ? '—' : `${item.doneDays}/${item.eligibleDays}`})
         </span>
       </div>
     </Link>
@@ -38,6 +38,15 @@ export function HabitRowCompact({ item }: { item: HabitPeriodPerformance }) {
 }
 
 export function TrajectoryBadge({ item }: { item: HabitPeriodPerformance }) {
+  // Zero eligible opportunities: neutral — nothing to evaluate in this period.
+  if (item.eligibleDays === 0) {
+    return (
+      <span className="rounded-full bg-surface-hover px-2 py-0.5 text-[10px] font-medium text-fg-muted">
+        Not scheduled
+      </span>
+    )
+  }
+
   if (item.trajectory === 'new') {
     return (
       <span className="rounded-full bg-border/60 px-2 py-0.5 text-[10px] font-medium text-fg-muted">

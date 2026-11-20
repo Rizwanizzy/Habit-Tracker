@@ -719,3 +719,413 @@ describe('Stage 4C generateActionableInsights — weekBased wording', () => {
     expect(champion?.description).toContain('weeks completed')
   })
 })
+
+describe('Pass 3 — future dates excluded from denominators', () => {
+  const habit = makeHabit('h1', 'Daily', '2026-11-01')
+
+  it('monthly current period: future days are not counted as missed', () => {
+    // Today is Nov 15 (mid-month); period end is Nov 30 (future).
+    // Entries only exist through Nov 15 (10 done, 5 missed).
+    // Without the fix, Nov 16-30 would be 'future' → counted as missed (15 more misses).
+    const entriesByHabit = {
+      h1: [
+        done('2026-11-01'), done('2026-11-02'), done('2026-11-03'), done('2026-11-04'), done('2026-11-05'),
+        done('2026-11-06'), done('2026-11-07'), done('2026-11-08'), done('2026-11-09'), done('2026-11-10'),
+        missed('2026-11-11'), missed('2026-11-12'), missed('2026-11-13'), missed('2026-11-14'), missed('2026-11-15'),
+      ],
+    }
+    const period = { type: 'monthly' as const, start: '2026-11-01', end: '2026-11-30', prevStart: '2026-10-01', prevEnd: '2026-10-31', label: '', prevLabel: '', offset: 0 }
+    const summary = calculatePeriodReview({
+      habits: [habit],
+      entriesByHabit,
+      period,
+      today: '2026-11-15',
+      epochsByHabit: { h1: [] },
+    })
+    const perf = summary.habitPerformances[0]
+    // Only Nov 1-15 are eligible (15 days). Nov 16-30 are future → excluded.
+    expect(perf.eligibleDays).toBe(15)
+    expect(perf.doneDays).toBe(10)
+    expect(perf.missedDays).toBe(5)
+    expect(perf.completionRate).toBeCloseTo(10 / 15)
+  })
+
+  it('yearly current period: future months are not counted as missed', () => {
+    // Today is Mar 15, 2026; yearly period is Jan 1-Dec 31 (future months).
+    // Entries only exist through Mar 15.
+    const yearlyHabit = makeHabit('hy', 'Yearly', '2026-01-01')
+    const entriesByHabit = {
+      hy: [
+        done('2026-01-10'), done('2026-02-10'), done('2026-03-10'),
+        missed('2026-03-11'), missed('2026-03-12'), missed('2026-03-13'), missed('2026-03-14'), missed('2026-03-15'),
+      ],
+    }
+    const period = { type: 'yearly' as const, start: '2026-01-01', end: '2026-12-31', prevStart: '2025-01-01', prevEnd: '2025-12-31', label: '', prevLabel: '', offset: 0 }
+    const summary = calculatePeriodReview({
+      habits: [yearlyHabit],
+      entriesByHabit,
+      period,
+      today: '2026-03-15',
+      epochsByHabit: { hy: [] },
+    })
+    const perf = summary.habitPerformances[0]
+    // Only Jan 1-Mar 15 are eligible (74 days). Future months excluded.
+    expect(perf.eligibleDays).toBe(74)
+    expect(perf.doneDays).toBe(3)
+    expect(perf.missedDays).toBe(71)
+  })
+})
+
+describe('Pass 3 — zero eligible opportunities are neutral', () => {
+  const earlyHabit = makeHabit('h1', 'Early', '2026-11-01')
+  const lateHabit = makeHabit('h2', 'Late', '2026-11-25') // created after period start
+
+  it('zero-eligible habit is not in needsAttention or worst performers', () => {
+    // Period: Nov 1-15. Late habit created Nov 25 → zero eligible opportunities.
+    const entriesByHabit = {
+      h1: [done('2026-11-01'), done('2026-11-02')],
+      h2: [],
+    }
+    const period = { type: 'weekly' as const, start: '2026-11-01', end: '2026-11-15', prevStart: '2026-10-25', prevEnd: '2026-10-31', label: '', prevLabel: '', offset: 0 }
+    const summary = calculatePeriodReview({
+      habits: [earlyHabit, lateHabit],
+      entriesByHabit,
+      period,
+      today: '2026-11-15',
+      epochsByHabit: {},
+    })
+    // Late habit has 0 eligible → not in needsAttention (filter is eligibleDays > 0)
+    expect(summary.needsAttention.map((p) => p.habit.id)).not.toContain('h2')
+    // Not ranked as worst (bestPerformers filters eligibleDays > 0)
+    expect(summary.bestPerformers.map((p) => p.habit.id)).not.toContain('h2')
+    // completionRate is 0 (no eligible → 0), but not treated as failure
+    const latePerf = summary.habitPerformances.find((p) => p.habit.id === 'h2')
+    expect(latePerf?.eligibleDays).toBe(0)
+    expect(latePerf?.completionRate).toBe(0)
+  })
+})
+
+describe('Pass 3.1 — zero-opportunity trajectory neutrality', () => {
+  const habit = makeHabit('h1', 'Daily', '2026-10-01')
+
+  it('zero eligible opportunities with prior data is not declining', () => {
+    // Habit had 100% completion in prev period, 0 eligible in current period.
+    // Should be neutral ('consistent'), not 'declining'.
+    const entriesByHabit = {
+      h1: [
+        // Prev period Oct 1-15: all done
+        done('2026-10-01'), done('2026-10-02'), done('2026-10-03'),
+        done('2026-10-04'), done('2026-10-05'),
+        // Current period Oct 16-31: no entries → 0 eligible (e.g. all future or off-days)
+      ],
+    }
+    const period = {
+      type: 'monthly' as const,
+      start: '2026-10-16',
+      end: '2026-10-31',
+      prevStart: '2026-10-01',
+      prevEnd: '2026-10-15',
+      label: '',
+      prevLabel: '',
+      offset: 0,
+    }
+    const summary = calculatePeriodReview({
+      habits: [habit],
+      entriesByHabit,
+      period,
+      today: '2026-10-15',
+      epochsByHabit: {},
+    })
+    const perf = summary.habitPerformances[0]
+    expect(perf.eligibleDays).toBe(0)
+    expect(perf.prevEligibleDays).toBeGreaterThan(0)
+    expect(perf.trajectory).toBe('consistent')
+    expect(perf.deltaRate).toBeNull()
+  })
+
+  it('zero eligible opportunities with no prior data is consistent', () => {
+    // Created after the period ends → 0 eligible opportunities.
+    const lateHabit = makeHabit('late', 'Late', '2026-11-20')
+    const entriesByHabit = { late: [] }
+    const period = {
+      type: 'weekly' as const,
+      start: '2026-11-01',
+      end: '2026-11-07',
+      prevStart: '2026-10-25',
+      prevEnd: '2026-10-31',
+      label: '',
+      prevLabel: '',
+      offset: 0,
+    }
+    const summary = calculatePeriodReview({
+      habits: [lateHabit],
+      entriesByHabit,
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    const perf = summary.habitPerformances[0]
+    expect(perf.eligibleDays).toBe(0)
+    expect(perf.trajectory).toBe('consistent')
+  })
+})
+
+describe('Pass 3.1 — empty-period summary (0/0 vs 0/N)', () => {
+  const habit = makeHabit('h1', 'Daily', '2026-10-01')
+
+  it('overallCompletionRate is 0 when totalEligibleOpportunities is 0', () => {
+    const entriesByHabit = { h1: [] }
+    const period = {
+      type: 'yearly' as const,
+      start: '2025-01-01',
+      end: '2025-12-31',
+      prevStart: '2024-01-01',
+      prevEnd: '2024-12-31',
+      label: '',
+      prevLabel: '',
+      offset: 0,
+    }
+    const summary = calculatePeriodReview({
+      habits: [habit],
+      entriesByHabit,
+      period,
+      today: '2026-01-15',
+      epochsByHabit: {},
+    })
+    expect(summary.totalEligibleOpportunities).toBe(0)
+    expect(summary.overallCompletionRate).toBe(0)
+  })
+
+  it('overallCompletionRate is correct 0% when 0/N with N > 0', () => {
+    const entriesByHabit = {
+      h1: [missed('2026-11-01'), missed('2026-11-02'), missed('2026-11-03')],
+    }
+    const period = {
+      type: 'weekly' as const,
+      start: '2026-11-01',
+      end: '2026-11-07',
+      prevStart: '2026-10-25',
+      prevEnd: '2026-10-31',
+      label: '',
+      prevLabel: '',
+      offset: 0,
+    }
+    const summary = calculatePeriodReview({
+      habits: [habit],
+      entriesByHabit,
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    // Habit created Oct 1, all 7 days Nov 1-7 are eligible opportunities.
+    // 3 have missed entries, 4 have no entries → all 7 eligible, 0 done.
+    expect(summary.totalEligibleOpportunities).toBe(7)
+    expect(summary.overallCompletionRate).toBe(0)
+  })
+})
+
+describe('Pass 3.1 — Needs Attention eligibility', () => {
+  it('zero-opportunity habits are excluded from needsAttention', () => {
+    // Created after the period ends → 0 eligible opportunities.
+    const zeroOpp = makeHabit('z', 'Zero Opp', '2026-11-20')
+    const highPerf = makeHabit('h', 'High Perf', '2026-10-01')
+    const entriesByHabit = {
+      z: [],
+      h: [
+        done('2026-11-01'), done('2026-11-02'), done('2026-11-03'),
+        done('2026-11-04'), done('2026-11-05'), done('2026-11-06'),
+        done('2026-11-07'), done('2026-11-08'), done('2026-11-09'),
+        missed('2026-11-10'), // 90% completion but 1 missed day
+      ],
+    }
+    const period = {
+      type: 'weekly' as const,
+      start: '2026-11-01',
+      end: '2026-11-10',
+      prevStart: '2026-10-25',
+      prevEnd: '2026-10-31',
+      label: '',
+      prevLabel: '',
+      offset: 0,
+    }
+    const summary = calculatePeriodReview({
+      habits: [zeroOpp, highPerf],
+      entriesByHabit,
+      period,
+      today: '2026-11-10',
+      epochsByHabit: {},
+    })
+    // Zero-opportunity habit (created after period) excluded from needsAttention
+    expect(summary.needsAttention.map((p) => p.habit.id)).not.toContain('z')
+    const zeroPerf = summary.habitPerformances.find((p) => p.habit.id === 'z')
+    expect(zeroPerf?.eligibleDays).toBe(0)
+    expect(zeroPerf?.trajectory).toBe('consistent')
+    // High-performing habit with 1 miss but NO previous-period data does NOT qualify
+    // (Band C requires comparable prior data: prevEligibleDays > 0)
+    expect(summary.needsAttention.map((p) => p.habit.id)).not.toContain('h')
+  })
+})
+
+describe('Pass 3.2 — Needs Attention threshold boundaries', () => {
+  const period = {
+    type: 'weekly' as const,
+    start: '2026-11-01',
+    end: '2026-11-07',
+    prevStart: '2026-10-25',
+    prevEnd: '2026-10-31',
+    label: '',
+    prevLabel: '',
+    offset: 0,
+  }
+
+  it('Band A: completion below 70% qualifies', () => {
+    const h = makeHabit('h1', 'Low', '2026-10-01')
+    const summary = calculatePeriodReview({
+      habits: [h],
+      entriesByHabit: { h1: [done('2026-11-01'), missed('2026-11-02'), missed('2026-11-03'), missed('2026-11-04'), missed('2026-11-05'), missed('2026-11-06'), missed('2026-11-07')] },
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    expect(summary.habitPerformances[0].completionRate).toBeCloseTo(1 / 7)
+    expect(summary.needsAttention.map((p) => p.habit.id)).toContain('h1')
+  })
+
+  it('Band A: 85.7% with -14.3pp decline does NOT qualify (not <= -15pp)', () => {
+    const h = makeHabit('h1', 'Declining', '2026-10-01')
+    const summary = calculatePeriodReview({
+      habits: [h],
+      entriesByHabit: { h1: [done('2026-10-25'), done('2026-10-26'), done('2026-10-27'), done('2026-10-28'), done('2026-10-29'), done('2026-10-30'), done('2026-10-31'), done('2026-11-01'), done('2026-11-02'), done('2026-11-03'), done('2026-11-04'), missed('2026-11-05'), missed('2026-11-06'), missed('2026-11-07')] },
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    const perf = summary.habitPerformances[0]
+    expect(perf.completionRate).toBeCloseTo(4 / 7)
+    expect(perf.prevCompletionRate).toBe(1)
+    // delta = 57.1% - 100% = -42.9pp → below 70% → Band A qualifies
+    expect(summary.needsAttention.map((p) => p.habit.id)).toContain('h1')
+  })
+
+  it('Band B: 57.1% with -42.9pp decline does NOT qualify (below 70% → Band A)', () => {
+    const h = makeHabit('h1', 'Declining', '2026-10-01')
+    const summary = calculatePeriodReview({
+      habits: [h],
+      entriesByHabit: { h1: [done('2026-10-25'), done('2026-10-26'), done('2026-10-27'), done('2026-10-28'), done('2026-10-29'), done('2026-10-30'), done('2026-10-31'), done('2026-11-01'), done('2026-11-02'), done('2026-11-03'), done('2026-11-04'), missed('2026-11-05'), missed('2026-11-06'), missed('2026-11-07')] },
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    const perf = summary.habitPerformances[0]
+    expect(perf.completionRate).toBeCloseTo(4 / 7)
+    expect(perf.prevCompletionRate).toBe(1)
+    // 4/7 - 1 = -3/7 ≈ -42.9pp → below 70% → Band A qualifies
+    expect(summary.needsAttention.map((p) => p.habit.id)).toContain('h1')
+  })
+  it('Band B: 42.9% with -57.1pp decline DOES qualify', () => {
+    const h = makeHabit('h1', 'Declining', '2026-10-01')
+    const summary = calculatePeriodReview({
+      habits: [h],
+      entriesByHabit: { h1: [done('2026-10-25'), done('2026-10-26'), done('2026-10-27'), done('2026-10-28'), done('2026-10-29'), done('2026-10-30'), done('2026-10-31'), done('2026-11-01'), done('2026-11-02'), missed('2026-11-03'), missed('2026-11-04'), missed('2026-11-05'), missed('2026-11-06'), missed('2026-11-07')] },
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    const perf = summary.habitPerformances[0]
+    expect(perf.completionRate).toBeCloseTo(2 / 7)
+    expect(perf.prevCompletionRate).toBe(1)
+    // delta = 28.6% - 100% = -71.4pp ≤ -15pp → qualifies
+    expect(summary.needsAttention.map((p) => p.habit.id)).toContain('h1')
+  })
+
+  it('Band C: 85.7% with -14.3pp decline does NOT qualify', () => {
+    const h = makeHabit('h1', 'High', '2026-10-01')
+    const summary = calculatePeriodReview({
+      habits: [h],
+      entriesByHabit: { h1: [done('2026-10-25'), done('2026-10-26'), done('2026-10-27'), done('2026-10-28'), done('2026-10-29'), done('2026-10-30'), done('2026-10-31'), done('2026-11-01'), done('2026-11-02'), done('2026-11-03'), done('2026-11-04'), done('2026-11-05'), done('2026-11-06'), missed('2026-11-07')] },
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    const perf = summary.habitPerformances[0]
+    expect(perf.completionRate).toBeCloseTo(6 / 7)
+    expect(perf.prevCompletionRate).toBe(1)
+    // delta = 85.7% - 100% = -14.3pp → not ≤ -15pp → does NOT qualify
+    expect(summary.needsAttention.map((p) => p.habit.id)).not.toContain('h1')
+  })
+
+  it('Band A: 57.1% with -42.9pp decline DOES qualify', () => {
+    const h = makeHabit('h1', 'Declining', '2026-10-01')
+    const summary = calculatePeriodReview({
+      habits: [h],
+      entriesByHabit: { h1: [done('2026-10-25'), done('2026-10-26'), done('2026-10-27'), done('2026-10-28'), done('2026-10-29'), done('2026-10-30'), done('2026-10-31'), done('2026-11-01'), done('2026-11-02'), done('2026-11-03'), done('2026-11-04'), missed('2026-11-05'), missed('2026-11-06'), missed('2026-11-07')] },
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    const perf = summary.habitPerformances[0]
+    expect(perf.completionRate).toBeCloseTo(4 / 7)
+    expect(perf.prevCompletionRate).toBe(1)
+    // delta = 57.1% - 100% = -42.9pp ≤ -15pp → qualifies
+    expect(summary.needsAttention.map((p) => p.habit.id)).toContain('h1')
+  })
+
+  it('Band A: 57.1% without previous-period data DOES qualify', () => {
+    const h = makeHabit('h1', 'New', '2026-11-01')
+    const summary = calculatePeriodReview({
+      habits: [h],
+      entriesByHabit: { h1: [done('2026-11-01'), done('2026-11-02'), done('2026-11-03'), done('2026-11-04'), missed('2026-11-05'), missed('2026-11-06'), missed('2026-11-07')] },
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    const perf = summary.habitPerformances[0]
+    expect(perf.completionRate).toBeCloseTo(4 / 7)
+    expect(perf.prevEligibleDays).toBe(0)
+    // 57.1% < 70% → Band A qualifies even without prior data
+    expect(summary.needsAttention.map((p) => p.habit.id)).toContain('h1')
+  })
+
+  it('Band A: 28.6% without previous-period data DOES qualify', () => {
+    const h = makeHabit('h1', 'Low', '2026-11-01')
+    const summary = calculatePeriodReview({
+      habits: [h],
+      entriesByHabit: { h1: [done('2026-11-01'), done('2026-11-02'), missed('2026-11-03'), missed('2026-11-04'), missed('2026-11-05'), missed('2026-11-06'), missed('2026-11-07')] },
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    const perf = summary.habitPerformances[0]
+    expect(perf.completionRate).toBeCloseTo(2 / 7)
+    expect(summary.needsAttention.map((p) => p.habit.id)).toContain('h1')
+  })
+
+  it('Genuine 0/N completion with N > 0 qualifies', () => {
+    const h = makeHabit('h1', 'Zero', '2026-10-01')
+    const summary = calculatePeriodReview({
+      habits: [h],
+      entriesByHabit: { h1: [missed('2026-10-25'), missed('2026-10-26'), missed('2026-10-27'), missed('2026-10-28'), missed('2026-10-29'), missed('2026-10-30'), missed('2026-10-31'), missed('2026-11-01'), missed('2026-11-02'), missed('2026-11-03'), missed('2026-11-04'), missed('2026-11-05'), missed('2026-11-06'), missed('2026-11-07')] },
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    const perf = summary.habitPerformances[0]
+    expect(perf.eligibleDays).toBe(7)
+    expect(perf.doneDays).toBe(0)
+    expect(perf.completionRate).toBe(0)
+    expect(summary.needsAttention.map((p) => p.habit.id)).toContain('h1')
+  })
+
+  it('Zero eligible opportunities never qualify', () => {
+    const h = makeHabit('h1', 'Empty', '2026-11-20')
+    const summary = calculatePeriodReview({
+      habits: [h],
+      entriesByHabit: { h1: [] },
+      period,
+      today: '2026-11-07',
+      epochsByHabit: {},
+    })
+    expect(summary.habitPerformances[0].eligibleDays).toBe(0)
+    expect(summary.needsAttention.map((p) => p.habit.id)).not.toContain('h1')
+  })
+})

@@ -245,7 +245,11 @@ export function habitOpportunities(
   let weekOpportunities = 0
 
   let d = habit.created_at > start ? habit.created_at : start
-  while (d <= end) {
+  // Never evaluate dates beyond logical today: future dates are out of scope
+  // and must not count as missed opportunities. Past periods (end < today)
+  // are unaffected by this clamp.
+  const effectiveEnd = end < today ? end : today
+  while (d <= effectiveEnd) {
     const epoch = epochs !== undefined && epochs.length > 0 ? resolveEpoch(epochs, d) : undefined
     if (epoch !== undefined && epoch.schedule_type === 'weekly_target' && isValidWeeklyTarget(epoch.weekly_target ?? 0)) {
       const ws = weekStart(d)
@@ -392,7 +396,11 @@ export function calculatePeriodReview({
     const { eligible, done, missed } = countRecords(current.records, period.start, period.end)
 
     const completionRate = eligible > 0 ? done / eligible : 0
-    const score = scoreRange(habit, entries, period.start, period.end, vacations, epochs)
+    // Clamp the score walk to logical today so future dates in the current
+    // period (month/year) don't step the score as misses. Past periods
+    // (period.end < today) are unaffected.
+    const scoreEnd = period.end < today ? period.end : today
+    const score = scoreRange(habit, entries, period.start, scoreEnd, vacations, epochs)
 
     if (done > 0) {
       habitsWithActivity++
@@ -426,7 +434,11 @@ export function calculatePeriodReview({
     let deltaRate: number | null = null
     let deltaScore: number | null = null
 
-    if (prevEligible > 0) {
+    // Zero eligible opportunities is neutral — nothing to evaluate in this
+    // period. Never label a zero-opportunity habit as improving or declining.
+    if (eligible === 0) {
+      trajectory = 'consistent'
+    } else if (prevEligible > 0) {
       deltaRate = completionRate - prevCompletionRate
       deltaScore = score - prevScore
 
@@ -508,8 +520,11 @@ export function calculatePeriodReview({
     totalEligibleOpportunities > 0 ? totalCheckIns / totalEligibleOpportunities : 0
 
   const overallScore =
-    habitPerformances.length > 0
-      ? habitPerformances.reduce((acc, p) => acc + p.score, 0) / habitPerformances.length
+    habitPerformances.filter((p) => p.eligibleDays > 0).length > 0
+      ? habitPerformances
+          .filter((p) => p.eligibleDays > 0)
+          .reduce((acc, p) => acc + p.score, 0) /
+        habitPerformances.filter((p) => p.eligibleDays > 0).length
       : 0
 
   const prevOverallCompletionRate =
@@ -541,9 +556,23 @@ export function calculatePeriodReview({
   const finalBest =
     bestPerformers.length > 0 ? bestPerformers : sortedByPerf.filter((p) => p.completionRate > 0).slice(0, 2)
 
-  // Needs attention: habits with missed opportunities and completion < 75%
+  // Needs attention: percentage-point thresholds relative to the previous period.
+  // A habit qualifies when it has eligible opportunities in the current period
+  // and at least one condition holds:
+  //   A. completionRate < 0.70 (below 70%)
+  //   B. 0.70 <= completionRate < 0.90 with a >= 15 percentage point decline
+  //   C. completionRate >= 0.90 with a >= 20 percentage point decline
+  // deltaRate = completionRate - prevCompletionRate is a percentage-point difference.
+  // Zero eligible opportunities and missing previous-period data never qualify.
   const needsAttention = [...habitPerformances]
-    .filter((p) => p.eligibleDays > 0 && (p.missedDays > 0 || p.completionRate < 0.75))
+    .filter((p) => {
+      if (p.eligibleDays === 0) return false
+      const rate = p.completionRate
+      if (rate < 0.70) return true
+      if (rate >= 0.70 && rate < 0.90 && p.prevEligibleDays > 0 && p.deltaRate != null && p.deltaRate <= -0.15) return true
+      if (rate >= 0.90 && p.prevEligibleDays > 0 && p.deltaRate != null && p.deltaRate <= -0.20) return true
+      return false
+    })
     .sort((a, b) => {
       if (a.completionRate !== b.completionRate) return a.completionRate - b.completionRate
       return b.missedDays - a.missedDays

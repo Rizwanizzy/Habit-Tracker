@@ -11,7 +11,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { Entry, Habit } from '../lib/score'
-import { isDone } from '../lib/score'
+import { weeklyTargetAchieved } from '../lib/score'
 import { dayStatus, isNeutral } from '../lib/dayStatus'
 import { addDays, parseLocalDate } from '../lib/dates'
 import { useLogicalToday } from '../hooks/useLogicalToday'
@@ -65,47 +65,61 @@ function weeklyBuckets(
   epochs?: readonly ScheduleEpoch[],
 ): Bucket[] {
   const byDate = new Map(entries.map((e) => [e.date, e]))
-  const lastSunday = addDays(today, -parseLocalDate(today).getDay())
   const out: Bucket[] = []
 
-  // Check if this is a weekly_target habit with epochs
-  const currentEpoch = epochs?.length ? resolveEpoch(epochs, today) : undefined
-  const isWeeklyTarget = currentEpoch?.schedule_type === 'weekly_target' && isValidWeeklyTarget(currentEpoch.weekly_target ?? 0)
-
+  // Last 8 weeks, most recent first. Week alignment: Monday–Sunday for
+  // weekly_target habits (schedule semantics), Sunday–Saturday otherwise.
   for (let i = 7; i >= 0; i--) {
-    const start = addDays(lastSunday, -i * 7)
+    const anchor = addDays(today, -i * 7)
+    const epoch = epochs?.length ? resolveEpoch(epochs, anchor) : undefined
+    const isWeekly =
+      epoch !== undefined &&
+      epoch.schedule_type === 'weekly_target' &&
+      isValidWeeklyTarget(epoch.weekly_target ?? 0)
 
-    if (isWeeklyTarget && epochs) {
-      // Weekly-target: check if this week is achieved
-      const weekEpoch = resolveEpoch(epochs, start)
-      if (weekEpoch?.schedule_type === 'weekly_target' && !isTransitionWeek(epochs, start) && start >= habit.created_at) {
-        const target = weekEpoch.weekly_target ?? 0
-        let done = 0
-        for (let d = 0; d < 7; d++) {
-          const date = addDays(start, d)
-          if (date > today) break
-          if (isDone(habit, byDate.get(date))) done++
-        }
-        const achieved = done >= target
-        out.push({ label: DAY_FMT.format(parseLocalDate(start)), count: achieved ? 1 : 0, total: 1 })
-      } else {
-        // Transition week or before habit creation - neutral
-        out.push({ label: DAY_FMT.format(parseLocalDate(start)), count: 0, total: 0 })
+    if (isWeekly) {
+      const ws = weekStart(anchor)
+      const we = weekEnd(ws)
+      // Week starts before the habit existed — neutral.
+      if (ws < habit.created_at) {
+        out.push({ label: DAY_FMT.format(parseLocalDate(ws)), count: 0, total: 0 })
+        continue
       }
+      // Current / incomplete week — pending, never a failure.
+      if (we > today) {
+        out.push({ label: DAY_FMT.format(parseLocalDate(ws)), count: 0, total: 0 })
+        continue
+      }
+      // Closed week: achieved when done entries reach the target.
+      const target = epoch.weekly_target ?? 0
+      const achieved = weeklyTargetAchieved(habit, byDate, ws, we, target)
+      out.push({
+        label: DAY_FMT.format(parseLocalDate(ws)),
+        count: achieved ? 1 : 0,
+        total: 1,
+      })
     } else {
-      // Daily/weekdays/interval/legacy: count eligible days completed
+      // Daily / weekdays / interval / legacy: Sunday–Saturday bucket.
+      const sundayStart = addDays(anchor, -parseLocalDate(anchor).getDay())
       let eligible = 0
       let done = 0
       for (let d = 0; d < 7; d++) {
-        const date = addDays(start, d)
+        const date = addDays(sundayStart, d)
         if (date > today) break
-        const status = dayStatus({ habit, date, entry: byDate.get(date), today, vacations, schedule: epochs })
+        const status = dayStatus({
+          habit,
+          date,
+          entry: byDate.get(date),
+          today,
+          vacations,
+          schedule: epochs,
+        })
         if (!isNeutral(status)) {
           eligible++
           if (status === 'done') done++
         }
       }
-      out.push({ label: DAY_FMT.format(parseLocalDate(start)), count: done, total: eligible })
+      out.push({ label: DAY_FMT.format(parseLocalDate(sundayStart)), count: done, total: eligible })
     }
   }
   return out
@@ -119,56 +133,70 @@ function monthlyBuckets(
   epochs?: readonly ScheduleEpoch[],
 ): Bucket[] {
   const byDate = new Map(entries.map((e) => [e.date, e]))
-  const now = parseLocalDate(today)
   const out: Bucket[] = []
-
-  // Check if this is a weekly_target habit with epochs
-  const currentEpoch = epochs?.length ? resolveEpoch(epochs, today) : undefined
-  const isWeeklyTarget = currentEpoch?.schedule_type === 'weekly_target' && isValidWeeklyTarget(currentEpoch.weekly_target ?? 0)
+  const now = parseLocalDate(today)
 
   for (let k = 5; k >= 0; k--) {
     const start = new Date(now.getFullYear(), now.getMonth() - k, 1)
     const y = start.getFullYear()
     const m = start.getMonth()
     const end = new Date(y, m + 1, 0) // last day of month
-    const startStr = start.toISOString().slice(0, 10)
-    const endStr = end.toISOString().slice(0, 10)
+    const startStr = `${y}-${String(m + 1).padStart(2, '0')}-01`
+    const endStr = `${y}-${m + 1}-${String(end.getDate()).padStart(2, '0')}`
 
-    if (isWeeklyTarget && epochs) {
-      // Weekly-target: count achieved weeks in this month
+    const epoch = epochs?.length ? resolveEpoch(epochs, startStr) : undefined
+    const isWeekly =
+      epoch !== undefined &&
+      epoch.schedule_type === 'weekly_target' &&
+      isValidWeeklyTarget(epoch.weekly_target ?? 0)
+
+    if (isWeekly && epochs) {
+      // Weekly-target: count achieved Mon–Sun weeks fully inside the month.
+      // Partial first/last weeks carry (never a failure); the current week
+      // is pending.
       let achievedWeeks = 0
       let totalWeeks = 0
-      // Iterate through each week (Monday-Sunday) in the month
       let weekStartDate = weekStart(startStr)
 
       while (weekStartDate <= endStr) {
-        const weekEndDate = weekEnd(weekStartDate)
-        // Check if this week falls in the month
-        if (weekStartDate >= startStr && weekEndDate <= endStr) {
-          const weekEpoch = resolveEpoch(epochs, weekStartDate)
-          if (weekEpoch?.schedule_type === 'weekly_target' && !isTransitionWeek(epochs, weekStartDate) && weekStartDate >= habit.created_at) {
-            totalWeeks++
-            let done = 0
-            for (let d = 0; d < 7; d++) {
-              const date = addDays(weekStartDate, d)
-              if (date > today) break
-              if (isDone(habit, byDate.get(date))) done++
+        const we = weekEnd(weekStartDate)
+        // Week must be fully inside the month and closed (not the current week).
+        if (weekStartDate >= startStr && we <= endStr && we <= today) {
+          if (weekStartDate >= habit.created_at) {
+            const weekEpoch = resolveEpoch(epochs, weekStartDate)
+            if (
+              weekEpoch?.schedule_type === 'weekly_target' &&
+              !isTransitionWeek(epochs, weekStartDate)
+            ) {
+              totalWeeks++
+              const target = weekEpoch.weekly_target ?? 0
+              if (weeklyTargetAchieved(habit, byDate, weekStartDate, we, target)) {
+                achievedWeeks++
+              }
             }
-            if (done >= (weekEpoch.weekly_target ?? 0)) achievedWeeks++
           }
         }
         weekStartDate = addDays(weekStartDate, 7)
       }
       out.push({ label: MONTH_FMT.format(start), count: achievedWeeks, total: totalWeeks })
     } else {
-      // Daily/weekdays/interval/legacy: count eligible days completed in month
+      // Daily / weekdays / interval / legacy: count eligible days in month.
+      // Use local date strings (addDays) — never toISOString().slice(0,10),
+      // which shifts dates by a day in Asia/Kolkata.
       let eligible = 0
       let done = 0
       for (let d = 0; d <= end.getDate(); d++) {
-        const date = new Date(y, m, d + 1).toISOString().slice(0, 10)
+        const date = addDays(startStr, d)
         if (date > today) break
         if (date < habit.created_at) continue
-        const status = dayStatus({ habit, date, entry: byDate.get(date), today, vacations, schedule: epochs })
+        const status = dayStatus({
+          habit,
+          date,
+          entry: byDate.get(date),
+          today,
+          vacations,
+          schedule: epochs,
+        })
         if (!isNeutral(status)) {
           eligible++
           if (status === 'done') done++

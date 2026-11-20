@@ -16,17 +16,23 @@ export function ReviewHeroCard({ review, periodName }: Props) {
     overallScore,
   } = review
 
-  const ratePct = Math.round(overallCompletionRate * 100)
+  const ratePct =
+    totalEligibleOpportunities > 0 ? Math.round(overallCompletionRate * 100) : null
   const deltaPct = completionDelta !== null ? Math.round(completionDelta * 100) : null
+  const habitsWithData = review.habitPerformances.filter(
+    (p) => p.eligibleDays > 0,
+  ).length
 
   const deltaDirection = deltaPct !== null && deltaPct >= 0 ? 'up' : 'down'
   const deltaTone = deltaPct === null || deltaPct >= 0 ? 'success' : 'danger'
   const deltaText =
-    deltaPct !== null
-      ? `${deltaPct > 0 ? '+' : ''}${deltaPct}% vs prev ${periodName}`
-      : 'No prior period'
+    totalEligibleOpportunities === 0
+      ? 'No data'
+      : deltaPct !== null
+        ? `${deltaPct > 0 ? '+' : ''}${deltaPct}% vs prev ${periodName}`
+        : 'No prior period'
 
-  const scorePct = Math.round(overallScore * 100)
+  const scorePct = habitsWithData > 0 ? Math.round(overallScore * 100) : null
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border bg-surface p-4 sm:p-6 shadow-sm w-full min-w-0">
@@ -35,11 +41,13 @@ export function ReviewHeroCard({ review, periodName }: Props) {
         className="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full opacity-15 blur-2xl"
         style={{
           background:
-            ratePct >= 80
-              ? 'radial-gradient(circle, var(--color-success, #10b981) 0%, transparent 70%)'
-              : ratePct >= 50
-                ? 'radial-gradient(circle, var(--color-accent, #6366f1) 0%, transparent 70%)'
-                : 'radial-gradient(circle, var(--color-warning, #f59e0b) 0%, transparent 70%)',
+            ratePct === null
+              ? 'var(--border)'
+              : ratePct >= 80
+                ? 'radial-gradient(circle, var(--color-success, #10b981) 0%, transparent 70%)'
+                : ratePct >= 50
+                  ? 'radial-gradient(circle, var(--color-accent, #6366f1) 0%, transparent 70%)'
+                  : 'radial-gradient(circle, var(--color-warning, #f59e0b) 0%, transparent 70%)',
         }}
       />
 
@@ -57,10 +65,12 @@ export function ReviewHeroCard({ review, periodName }: Props) {
         {/* Hero numeral */}
         <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2 min-w-0">
           <span className="font-heading text-4xl sm:text-5xl font-bold tracking-tight text-fg">
-            {ratePct}%
+            {ratePct ?? '—'}
           </span>
           <span className="text-caption text-fg-muted">
-            of eligible habit opportunities
+            {totalEligibleOpportunities === 0
+              ? 'No eligible opportunities this period'
+              : 'of eligible habit opportunities'}
           </span>
         </div>
 
@@ -69,8 +79,11 @@ export function ReviewHeroCard({ review, periodName }: Props) {
           <div
             className="h-full rounded-full transition-all duration-500 ease-out"
             style={{
-              width: `${Math.min(100, Math.max(0, ratePct))}%`,
-              background: 'linear-gradient(90deg, var(--color-accent) 0%, #10b981 100%)',
+              width: `${Math.min(100, Math.max(0, ratePct ?? 0))}%`,
+              background:
+                ratePct === null
+                  ? 'var(--border)'
+                  : 'linear-gradient(90deg, var(--color-accent) 0%, #10b981 100%)',
             }}
           />
         </div>
@@ -81,7 +94,9 @@ export function ReviewHeroCard({ review, periodName }: Props) {
             <span className="text-caption text-fg-muted">Completed</span>
             <span className="font-heading text-base sm:text-lg font-semibold text-fg">
               {totalCheckIns}
-              <span className="text-xs font-normal text-fg-muted"> / {totalEligibleOpportunities}</span>
+              <span className="text-xs font-normal text-fg-muted">
+                {totalEligibleOpportunities === 0 ? ' / —' : ` / ${totalEligibleOpportunities}`}
+              </span>
             </span>
           </div>
 
@@ -95,7 +110,7 @@ export function ReviewHeroCard({ review, periodName }: Props) {
           <div className="flex flex-col">
             <span className="text-caption text-fg-muted">Avg Score</span>
             <span className="font-heading text-base sm:text-lg font-semibold text-fg">
-              {scorePct}%
+              {scorePct ?? '—'}
             </span>
           </div>
         </div>

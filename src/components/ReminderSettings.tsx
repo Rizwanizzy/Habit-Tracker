@@ -236,7 +236,7 @@ export function ReminderSettings({
       )}
 
       {/* Compact feedback lines (success is brief, failures visible). */}
-      {testSent && <p className="text-caption text-success">Test notification sent!</p>}
+      {testSent && <p className="text-caption text-success">Test notification shown.</p>}
       {testError && (
         <p role="alert" className="text-caption text-danger">
           {testError}

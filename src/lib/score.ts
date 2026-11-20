@@ -333,6 +333,78 @@ export function completionRate(
   epochs?: readonly ScheduleEpoch[],
 ): number {
   const byDate = new Map(entries.map((e) => [e.date, e]))
+
+  // Weekly-target habits count eligible closed Monday–Sunday weeks, not
+  // calendar days. The governing epoch is resolved at endDate to decide the
+  // current mode; each week's own epoch is resolved to honour schedule
+  // changes and transition weeks inside the window.
+  const governingEpoch =
+    epochs !== undefined && epochs.length > 0 ? resolveEpoch(epochs, endDate) : undefined
+  const isWeeklyTarget =
+    governingEpoch !== undefined &&
+    governingEpoch.schedule_type === 'weekly_target' &&
+    isValidWeeklyTarget(governingEpoch.weekly_target ?? 0)
+
+  if (isWeeklyTarget) {
+    // isWeeklyTarget is true only when epochs is defined and non-empty.
+    const ep = epochs!
+    const target = governingEpoch.weekly_target ?? 0
+    const start = habit.created_at > startDate ? habit.created_at : startDate
+    let total = 0
+    let done = 0
+    let d = start
+    while (d <= endDate) {
+      // A weekly_target epoch starting Tue–Sun inside this week makes the
+      // whole week neutral (transition), regardless of which epoch governs
+      // day `d` itself.
+      if (isTransitionWeek(ep, d)) {
+        d = addDaysStr(weekEnd(d), 1)
+        continue
+      }
+      const epoch = resolveEpoch(ep, d)
+      if (epoch !== undefined && epoch.schedule_type === 'weekly_target') {
+        if (!isValidWeeklyTarget(epoch.weekly_target ?? 0)) {
+          // Invalid target — fall through to day-level below.
+        } else {
+          // Count the whole Monday–Sunday week as one opportunity.
+          const ws = weekStart(d)
+          const we = weekEnd(d)
+          if (ws < habit.created_at) {
+            // Week starts before the habit existed — carry to next Monday.
+            d = addDaysStr(we, 1)
+            continue
+          }
+          if (we > endDate) {
+            // Current / incomplete week — pending, not eligible (never a failure).
+            break
+          }
+          total++
+          if (weeklyTargetAchieved(habit, byDate, ws, we, target)) done++
+          d = addDaysStr(we, 1)
+          continue
+        }
+      }
+      // Non-weekly epoch (or no epoch / daily / weekdays / interval / legacy):
+      // count the day at day granularity.
+      const status = dayStatus({
+        habit,
+        date: d,
+        entry: byDate.get(d),
+        today: endDate,
+        vacations,
+        schedule: epochs,
+      })
+      if (!isNeutral(status)) {
+        total++
+        if (status === 'done') done++
+      }
+      d = addDaysStr(d, 1)
+    }
+    if (total === 0) return 0
+    return done / total
+  }
+
+  // Day-based schedules: count eligible scheduled opportunities.
   const start = habit.created_at > startDate ? habit.created_at : startDate
   let total = 0
   let done = 0

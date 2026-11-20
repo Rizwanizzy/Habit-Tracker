@@ -94,7 +94,7 @@ export function HabitDetail() {
   } = useEntries(id ? [id] : [], 365)
 
   // Schedule history for this habit (Stage 4D)
-  const { epochsByHabit } = useScheduleHistory()
+  const { epochsByHabit, loading: scheduleLoading, error: scheduleError } = useScheduleHistory()
   const habitEpochs = useMemo(() => (id ? epochsByHabit[id] ?? [] : []), [epochsByHabit, id])
 
   // Mobile: calendar legend uses compact two-row layout; desktop uses single row.
@@ -156,7 +156,7 @@ export function HabitDetail() {
     })
   }, [habit, entries, today, scoreWindow, vacations, habitEpochs])
 
-  if (loading || entriesLoading) {
+  if (loading || entriesLoading || scheduleLoading) {
     return (
       <div className="glass-card grid min-h-40 place-items-center rounded-card p-10" role="status">
         <span className="text-body text-fg-muted">Loading…</span>
@@ -164,7 +164,7 @@ export function HabitDetail() {
     )
   }
 
-  if (error ?? entriesError) {
+  if (error ?? entriesError ?? scheduleError) {
     const msg = error ?? entriesError
     return (
       <div className="glass-card rounded-card p-6 text-center" role="alert">

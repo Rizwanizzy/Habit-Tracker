@@ -170,7 +170,7 @@ export async function sendLocalTestNotification(
   }
 
   const notificationOptions: NotificationOptionsWithRenotify = {
-    body: 'Notifications are working! You will receive daily habit reminders.',
+    body: 'Test notification received. Your device can display Habit Tracker notifications.',
     icon: '/icon-192.png',
     badge: '/pwa-64x64.png',
     tag: 'test-notification',

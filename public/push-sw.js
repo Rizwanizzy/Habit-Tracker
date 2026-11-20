@@ -16,7 +16,7 @@ self.addEventListener('push', (event) => {
     // silently disappearing, which made sender-side crypto bugs invisible.
     console.warn('[push-sw] push arrived with no decryptable data — decryption failed or empty payload')
     const options = {
-      body: 'A reminder arrived but this device could not decrypt its payload. Check Settings → Daily Reminders.',
+      body: 'A reminder arrived but this device could not decrypt its payload. Check Settings → Reminders.',
       icon: '/icon-192.png',
       badge: '/pwa-64x64.png',
       tag: 'habit-reminder-undecryptable',
@@ -32,13 +32,13 @@ self.addEventListener('push', (event) => {
   } catch {
     payload = {
       title: 'Habit Tracker',
-      body: event.data.text() || 'Time to check in on your daily habits!',
+      body: event.data.text() || 'Time for your daily check-in. A little progress today goes a long way.',
     }
   }
 
   const title = payload.title || 'Habit Tracker'
   const options = {
-    body: payload.body || 'Time to check in on your daily habits!',
+    body: payload.body || 'Time for your daily check-in. A little progress today goes a long way.',
     icon: payload.icon || '/icon-192.png',
     badge: payload.badge || '/pwa-64x64.png',
     tag: payload.tag || 'habit-reminder',

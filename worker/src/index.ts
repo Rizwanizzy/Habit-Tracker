@@ -48,6 +48,7 @@ interface PushSubscription {
 }
 
 const WINDOW_MINUTES = 15 /** must keep matching the cron frequency */
+const MINUTES_PER_DAY = 24 * 60 // 1440
 const DEFAULT_TZ = 'Asia/Kolkata'
 const SUBJECT = 'mailto:reminders@habbits-tracker.pages.dev'
 
@@ -132,13 +133,25 @@ function toMinutes(hhmm: string): number | null {
   return h * 60 + min
 }
 
-/** Due when `now` falls inside [reminderTime, reminderTime + 15 min). */
+/** Due when `now` falls inside [reminderTime, reminderTime + 15 min).
+ *
+ *  The 15-minute dispatch window can cross midnight (e.g. a 23:50 reminder
+ *  is due from 23:50 through 00:04). `now` is an HH:MM minute-of-day that
+ *  wraps at midnight, so a window whose end exceeds 1440 is matched as
+ *  `now >= due` OR `now < windowEnd - 1440`. This makes near-midnight
+ *  reminders fire once per window while leaving normal same-day behaviour
+ *  bit-identical. */
 export function isDue(nowHHMM: string, reminderHHMM: string | undefined): boolean {
   if (!reminderHHMM) return false
   const now = toMinutes(nowHHMM)
   const due = toMinutes(reminderHHMM)
   if (now === null || due === null) return false
-  return now >= due && now < due + WINDOW_MINUTES
+  const windowEnd = due + WINDOW_MINUTES
+  if (windowEnd <= MINUTES_PER_DAY) {
+    return now >= due && now < windowEnd
+  }
+  // Window crosses midnight: the tail lands after 00:00.
+  return now >= due || now < windowEnd - MINUTES_PER_DAY
 }
 
 // ---------------------------------------------------------------------------
@@ -148,7 +161,7 @@ export function isDue(nowHHMM: string, reminderHHMM: string | undefined): boolea
 function reminderPayload(): Record<string, string | boolean> {
   return {
     title: 'Habit Tracker',
-    body: 'Time to check in on your habits for today!',
+    body: 'Time for your daily check-in. A little progress today goes a long way.',
     tag: 'daily-reminder',
     renotify: true,
     url: '/',
@@ -170,7 +183,7 @@ async function sendToSubscription(
 ): Promise<'sent' | 'gone' | 'error'> {
   try {
     const endpointOrigin = new URL(sub.endpoint).origin
-    const authorization = await vapidAuthorization(keys, endpointOrigin, SUBJECT)
+    const authorization = await vapidAuthorization(keys, endpointOrigin, env.VAPID_SUBJECT ?? SUBJECT)
     const body = await encryptPushPayload(payload, { p256dh: sub.p256dh, auth: sub.auth })
     const res = await fetch(sub.endpoint, {
       method: 'POST',
